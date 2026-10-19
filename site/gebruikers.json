@@ -1,3 +1,13 @@
 {
- "gebruikers": []
+ "gebruikers": [
+  {
+   "id": "UIwpRCSkoTuD7+HbRmfZTJokUZuVhnmus0KtxLK10nc=",
+   "naam": "Silver",
+   "admin": true,
+   "iter": 310000,
+   "zout": "4NY2T3lWQ2XXXmP4L+kMtQ==",
+   "iv": "fEzJAEMHYniY2upK",
+   "data": "YXcOujjL5f/bfcBYwYJhNtL525NbIzZRZf6VsDTjy3ez/IR005HDyLAkfSrifQAqfAUoAbS4oK8hNEdsQY9E+2848yBMOXZH7hJYUKf7Zb861axi6CPaUOzgFLXeYOvWLTIqVNqSYSL7ArssFuF1BGPB5NoLE4r0oQ=="
+  }
+ ]
 }
