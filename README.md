@@ -10,9 +10,7 @@ Eenvoudig CRM voor Desko Kantoormeubelen. Werkt op telefoon en computer en is al
 ## Eenmalig instellen
 
 ### 1. Repository voor de gegevens
-1. Ga naar [github.com/new](https://github.com/new), owner **Desko-Kantoorinrichting**, naam `desko-crm-data`, kies **Private**. Vink niets aan en klik **Create repository**.
-2. Geef iedereen die het CRM gebruikt (bijvoorbeeld Ferry) **Write**-toegang: in `desko-crm-data` → **Settings → Collaborators and teams → Add people**.
-
+1. Ga naar [github.com/new](https://github.com/new), owner **Desko-Kantoorinrichting**, naam `desko-crm-data`, kies **Private**. Vink niets aan en klik **Create repository**. Gebruikers van het CRM hebben geen GitHub-account nodig.
 De bestanden worden automatisch aangemaakt bij de eerste keer opslaan.
 
 ### 2. Website publiceren
