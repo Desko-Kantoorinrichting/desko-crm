@@ -16,6 +16,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="config.js"></script>
 <script src="db.js"></script>
+<script src="auth.js"></script>
 <style>
 /* Layout: phone-first single column with a bottom tab bar; on wide screens a centered 760px column */
 :root{
@@ -334,10 +335,10 @@ function merge(base, extra){
 
 /* ---------- state ---------- */
 let db = null;
-const TOKEN_KEY = 'desko-crm-github-token';
+const SESSIE_KEY = 'desko-crm-sessie';
 const lees = k => { try{ return localStorage.getItem(k); }catch{ return null; } };
 const bewaar = (k,v) => { try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch{} };
-const S = {bedrijven:[], deals:[], weergaven:[], exportlog:[], inst:clone(DEFAULT_INST), laden:true, geenDb:false, gebruiker:null, login:{}};
+const S = {bedrijven:[], deals:[], weergaven:[], exportlog:[], inst:clone(DEFAULT_INST), laden:true, geenDb:false, gebruiker:null, login:{}, gebruikers:null, beheer:null};
 const V = {tab:'vandaag', detail:null, zoek:{}, filters:{}, filterOpen:false, terugNaar:'vandaag'};
 let acts = [], actUnsub = null;
 
@@ -707,8 +708,9 @@ function meerView(){
     <section class="section"><div class="section-title"><h2>Nog niet gekoppeld</h2></div>
       <p class="note">Mail versturen en ontvangen via Microsoft 365, de Outlook-agenda, spraakmemo's en pushmeldingen komen later. Leg een mail die je zelf stuurt vast met "Mail gestuurd" en een antwoord met "Reactie". De opvolging telt die mee.</p>
     </section>
+    ${S.gebruiker?.admin ? beheerView() : ''}
     <section class="section"><div class="section-title"><h2>Account</h2></div>
-      <p class="sub">Ingelogd als ${esc(S.gebruiker?.naam||'')}</p>
+      <p class="sub">Ingelogd als ${esc(S.gebruiker?.naam||'')}${S.gebruiker?.admin?' (beheerder)':''}</p>
       <div class="btns"><a class="btn" href="https://github.com/${esc(window.DESKO_CONFIG?.DATA_REPO||'')}/commits/main" target="_blank" rel="noopener">Wijzigingsgeschiedenis</a><button class="btn" data-act="uitloggen">Uitloggen</button></div>
     </section>
   </div>`;
@@ -719,7 +721,7 @@ function render(){
   const a = document.activeElement, id = a?.id, pos = a?.selectionStart;
   let html;
   if(S.geenDb) html = `<div class="wrap"><h1>Desko CRM</h1><div class="empty"><p>De opslag is niet ingesteld. Vul DATA_REPO in config.js in (zie de README).</p></div></div>`;
-  else if(!S.gebruiker && !S.laden) html = loginView();
+  else if(!S.gebruiker && !S.laden) html = S.gebruikers && !S.gebruikers.length ? setupView() : loginView();
   else if(S.laden) html = `<div class="wrap"><h1>Desko CRM</h1><p class="sub">Gegevens laden…</p></div>`;
   else if(V.detail) html = detailView(bedrijf(V.detail));
   else if(V.tab==='vandaag') html = vandaagView();
@@ -733,7 +735,9 @@ function render(){
   $('nav.tabs').hidden = S.geenDb || !S.gebruiker;
   if(id){ const el = document.getElementById(id); if(el && el!==document.activeElement){ el.focus(); try{ if(pos!=null) el.setSelectionRange(pos,pos); }catch{} } }
   const form = $('#inst-form'); if(form) form.onsubmit = bewaarInstellingen;
-  const lf = $('#login-form'); if(lf) lf.onsubmit = stuurInloglink;
+  const lf = $('#login-form'); if(lf) lf.onsubmit = inloggen;
+  const sf = $('#setup-form'); if(sf) sf.onsubmit = eersteKeer;
+  const bf = $('#gebruiker-form'); if(bf) bf.onsubmit = gebruikerToevoegen;
 }
 
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(()=>t.hidden=true, 2400); }
@@ -1127,37 +1131,142 @@ function bewaarBestand(naam, data, type){
 }
 
 /* ---------- inloggen ---------- */
+const CFG = () => window.DESKO_CONFIG || {};
 function loginView(){
-  const l = S.login, repo = window.DESKO_CONFIG.DATA_REPO;
-  const tokenUrl = 'https://github.com/settings/personal-access-tokens/new';
-  return `<div class="wrap" style="max-width:480px;padding-top:8vh">
+  const l = S.login;
+  return `<div class="wrap" style="max-width:440px;padding-top:10vh">
     <header class="page-head"><p class="eyebrow">Desko Kantoormeubelen</p><h1>Desko CRM</h1></header>
     <form id="login-form" class="card">
-      <p>Log eenmalig in op dit apparaat met je GitHub-toegangscode.</p>
-      <label class="f"><span>GitHub-toegangscode</span><input id="login-token" name="token" type="password" required autocomplete="off" placeholder="github_pat_…"></label>
+      <label class="f"><span>E-mailadres</span><input id="login-email" name="email" type="email" required autocomplete="username" value="${esc(l.email||'')}"></label>
+      <label class="f"><span>Wachtwoord</span><input id="login-ww" name="wachtwoord" type="password" required autocomplete="current-password"></label>
       ${l.fout ? `<p class="chip warn" style="white-space:normal">${esc(l.fout)}</p>` : ''}
-      <button class="btn primary" type="submit" ${l.bezig?'disabled':''}>${l.bezig?'Controleren…':'Inloggen'}</button>
-      <details><summary class="sub" style="cursor:pointer">Hoe kom ik aan een toegangscode?</summary>
-        <ol class="sub" style="padding-left:1.2em;margin:8px 0 0;display:flex;flex-direction:column;gap:4px">
-          <li>Open <a href="${tokenUrl}" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
-          <li>Naam: <b>Desko CRM</b>, vervaldatum: zo lang mogelijk</li>
-          <li>Resource owner: <b>${esc(repo.split('/')[0])}</b></li>
-          <li>Repository access: <b>Only select repositories</b> → <b>${esc(repo.split('/')[1])}</b></li>
-          <li>Permissions → Repository permissions → <b>Contents: Read and write</b></li>
-          <li>Klik <b>Generate token</b>, kopieer de code en plak hem hierboven</li>
-        </ol></details>
+      <button class="btn primary" type="submit" ${l.bezig?'disabled':''}>${l.bezig?'Inloggen…':'Inloggen'}</button>
+      <p class="hint">Wachtwoord vergeten? Vraag de beheerder om een nieuw wachtwoord.</p>
     </form>
   </div>`;
 }
-async function stuurInloglink(e){
+async function inloggen(e){
   e.preventDefault();
-  const token = String(new FormData(e.target).get('token')).trim();
-  S.login = {bezig:true}; render();
+  const f = new FormData(e.target), email = String(f.get('email')), ww = String(f.get('wachtwoord'));
+  S.login = {email, bezig:true}; render();
   try{
-    const wie = await controleerToegang(window.DESKO_CONFIG.DATA_REPO, token);
-    bewaar(TOKEN_KEY, token);
-    S.login = {}; start(token, wie);
-  }catch(err){ S.login = {fout:err.message}; render(); }
+    const sessie = await AUTH.inloggen(S.gebruikers, email, ww);
+    await controleerToegang(CFG().DATA_REPO, sessie.token);
+    bewaar(SESSIE_KEY, JSON.stringify(sessie));
+    S.login = {}; start(sessie);
+  }catch(err){ S.login = {email, fout:err.message}; render(); }
+}
+
+/* Eerste keer: beheerder koppelt de GitHub-sleutel en maakt zijn eigen account. */
+function setupView(){
+  const l = S.login, cfg = CFG(), w = l.waarden || {};
+  return `<div class="wrap" style="max-width:520px;padding-top:6vh">
+    <header class="page-head"><p class="eyebrow">Eerste keer instellen</p><h1>Desko CRM</h1></header>
+    <form id="setup-form" class="card">
+      <p>Maak het eerste beheerdersaccount aan. Daarna voeg je in de app de andere gebruikers toe.</p>
+      <label class="f"><span>Je naam</span><input id="su-naam" name="naam" required autocomplete="name" value="${esc(w.naam||'')}"></label>
+      <label class="f"><span>E-mailadres</span><input id="su-email" name="email" type="email" required autocomplete="username" value="${esc(w.email||'')}"></label>
+      <div class="grid2"><label class="f"><span>Wachtwoord</span><input id="su-ww" name="wachtwoord" type="password" required minlength="10" autocomplete="new-password"></label>
+      <label class="f"><span>Herhaal wachtwoord</span><input id="su-ww2" name="wachtwoord2" type="password" required minlength="10" autocomplete="new-password"></label></div>
+      <label class="f"><span>GitHub-toegangssleutel</span><input id="su-token" name="token" type="password" required autocomplete="off" placeholder="github_pat_…"></label>
+      <details><summary class="sub" style="cursor:pointer">Hoe maak ik die sleutel?</summary>
+        <ol class="sub" style="padding-left:1.2em;margin:8px 0 0;display:flex;flex-direction:column;gap:4px">
+          <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
+          <li>Naam <b>Desko CRM</b>, vervaldatum zo lang mogelijk, resource owner <b>${esc(cfg.DATA_REPO.split('/')[0])}</b></li>
+          <li>Only select repositories: <b>${esc(cfg.DATA_REPO.split('/')[1])}</b> en <b>${esc(cfg.SITE_REPO.split('/')[1])}</b></li>
+          <li>Repository permissions → <b>Contents: Read and write</b></li>
+          <li>Generate token, kopieer en plak hierboven</li>
+        </ol></details>
+      ${l.fout ? `<p class="chip warn" style="white-space:normal">${esc(l.fout)}</p>` : ''}
+      <button class="btn primary" type="submit" ${l.bezig?'disabled':''}>${l.bezig?'Bezig…':'Account aanmaken'}</button>
+    </form>
+  </div>`;
+}
+async function eersteKeer(e){
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(e.target).entries());
+  const waarden = {naam:d.naam, email:d.email};
+  if(d.wachtwoord !== d.wachtwoord2){ S.login = {waarden, fout:'De wachtwoorden zijn niet gelijk.'}; render(); return; }
+  S.login = {waarden, bezig:true}; render();
+  try{
+    const token = d.token.trim(), cfg = CFG();
+    await controleerToegang(cfg.DATA_REPO, token);
+    await controleerToegang(cfg.SITE_REPO, token);
+    const g = await AUTH.maakGebruiker({naam:d.naam.trim(), email:d.email, wachtwoord:d.wachtwoord, admin:true, token});
+    const huidig = await leesGebruikers(token);
+    if(huidig.lijst.length) throw new Error('Er bestaat al een beheerder. Log in.');
+    await schrijfGebruikers(token, [g], huidig.sha, `Beheerder ${g.naam} aangemaakt`);
+    const sessie = {token, naam:g.naam, admin:true, id:g.id};
+    bewaar(SESSIE_KEY, JSON.stringify(sessie));
+    S.login = {}; S.gebruikers = [g]; start(sessie);
+  }catch(err){ S.login = {waarden, fout:err.message.replace(/^Deze code/, 'Deze sleutel')}; render(); }
+}
+
+/* gebruikers.json in de website-repository lezen en schrijven (alleen beheerders). */
+const GEBRUIKERS_PAD = 'site/gebruikers.json';
+async function leesGebruikers(token){
+  const r = await fetch(`https://api.github.com/repos/${CFG().SITE_REPO}/contents/${GEBRUIKERS_PAD}`, {cache:'no-store', headers:{Authorization:`Bearer ${token}`, Accept:'application/vnd.github+json'}});
+  if(r.status === 404) return {lijst:[], sha:null};
+  if(!r.ok) throw new Error(`Gebruikers ophalen lukte niet (${r.status}).`);
+  const j = await r.json();
+  return {lijst:JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\n/g,'')), c => c.charCodeAt(0)))).gebruikers || [], sha:j.sha};
+}
+async function schrijfGebruikers(token, lijst, sha, bericht){
+  const inhoud = JSON.stringify({gebruikers:lijst}, null, 1) + '\n';
+  const bytes = new TextEncoder().encode(inhoud); let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+  const r = await fetch(`https://api.github.com/repos/${CFG().SITE_REPO}/contents/${GEBRUIKERS_PAD}`, {method:'PUT', headers:{Authorization:`Bearer ${token}`, Accept:'application/vnd.github+json'},
+    body:JSON.stringify({message:bericht, content:btoa(bin), ...(sha ? {sha} : {})})});
+  if(r.status === 409) throw new Error('Iemand anders wijzigde tegelijk de gebruikers. Probeer het opnieuw.');
+  if(!r.ok) throw new Error(`Opslaan lukte niet (${r.status}). Heeft de sleutel schrijfrechten op ${CFG().SITE_REPO}?`);
+  return (await r.json()).content.sha;
+}
+
+function beheerView(){
+  const b = S.beheer;
+  if(!b) { laadBeheer(); return `<section class="section"><div class="section-title"><h2>Gebruikers</h2></div><p class="sub">Laden…</p></section>`; }
+  return `<section class="section"><div class="section-title"><h2>Gebruikers</h2><span class="sub num">${b.lijst.length}</span></div>
+    ${b.fout ? `<p class="chip warn" style="white-space:normal">${esc(b.fout)}</p>` : ''}
+    <div class="rows">${b.lijst.map(g => `<div class="row" style="cursor:default"><span class="row-top"><b>${esc(g.naam)}</b>${g.admin?'<span class="chip">beheerder</span>':''}</span>
+      ${g.id!==S.gebruiker.id ? `<span class="btns"><button class="btn small danger" data-act="gebruikerWeg" data-id="${esc(g.id)}">Toegang intrekken</button></span>` : '<span class="meta">Dit ben jij</span>'}</div>`).join('')}</div>
+    <form id="gebruiker-form" class="card">
+      <h3>Gebruiker toevoegen of wachtwoord resetten</h3>
+      <p class="hint">Vul een bestaand e-mailadres in om een nieuw wachtwoord in te stellen.</p>
+      <div class="grid2"><label class="f"><span>Naam</span><input id="ng-naam" name="naam" required autocomplete="off" value="${esc(b.waarden?.naam||'')}"></label>
+      <label class="f"><span>E-mailadres</span><input id="ng-email" name="email" type="email" required autocomplete="off" value="${esc(b.waarden?.email||'')}"></label></div>
+      <label class="f"><span>Wachtwoord (minimaal 10 tekens)</span><input id="ng-ww" name="wachtwoord" type="text" required minlength="10" autocomplete="off"></label>
+      <label class="check"><input type="checkbox" id="ng-admin" name="admin"><span>Beheerder (mag gebruikers beheren)</span></label>
+      <div class="sheet-actions"><button class="btn primary" type="submit" ${b.bezig?'disabled':''}>${b.bezig?'Opslaan…':'Opslaan'}</button></div>
+    </form>
+    <p class="hint">Na opslaan duurt het ongeveer een minuut voordat de nieuwe gebruiker kan inloggen. Deel daarna de link en het wachtwoord met hem of haar.</p>
+  </section>`;
+}
+let beheerLaden = false;
+async function laadBeheer(){
+  if(beheerLaden) return; beheerLaden = true;
+  try{ S.beheer = await leesGebruikers(S.sessie.token); }
+  catch(err){ S.beheer = {lijst:[], sha:null, fout:err.message}; }
+  beheerLaden = false; render();
+}
+async function gebruikerToevoegen(e){
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(e.target).entries());
+  S.beheer = {...S.beheer, bezig:true, fout:'', waarden:{naam:d.naam, email:d.email}}; render();
+  try{
+    const g = await AUTH.maakGebruiker({naam:d.naam.trim(), email:d.email, wachtwoord:d.wachtwoord, admin:!!d.admin, token:S.sessie.token});
+    const {lijst, sha} = await leesGebruikers(S.sessie.token);
+    const bestond = lijst.some(x => x.id === g.id);
+    const nieuw = [...lijst.filter(x => x.id !== g.id), g];
+    await schrijfGebruikers(S.sessie.token, nieuw, sha, bestond ? `Wachtwoord van ${g.naam} gewijzigd` : `Gebruiker ${g.naam} toegevoegd`);
+    S.beheer = null; toast(bestond ? 'Wachtwoord gewijzigd' : `${g.naam} toegevoegd`); render();
+  }catch(err){ S.beheer = {...S.beheer, bezig:false, fout:err.message}; render(); }
+}
+async function gebruikerWeg(id){
+  try{
+    const {lijst, sha} = await leesGebruikers(S.sessie.token);
+    const g = lijst.find(x => x.id === id);
+    await schrijfGebruikers(S.sessie.token, lijst.filter(x => x.id !== id), sha, `Toegang van ${g?.naam||'gebruiker'} ingetrokken`);
+    S.beheer = null; toast('Toegang ingetrokken'); render();
+  }catch(err){ toast(err.message); }
 }
 
 /* ---------- instellingen ---------- */
@@ -1219,7 +1328,8 @@ const ACT = {
   beheerWeergaven: d => openSheet('Weergaven', `<div class="section">${S.weergaven.filter(w=>w.kopje===d.kopje).map(w=>`<div class="row-top"><span>${esc(w.naam)}</span><button class="btn small danger" data-act="verwijderWeergave" data-id="${w.id}">Verwijderen</button></div>`).join('')}</div>`),
   verwijderWeergave: d => veilig(() => db.collection('weergaven').doc(d.id).delete(), 'Verwijderd').then(closeSheet),
   export: d => exportSheet(d.kopje),
-  uitloggen: () => { bewaar(TOKEN_KEY, null); location.reload(); },
+  uitloggen: () => { bewaar(SESSIE_KEY, null); location.reload(); },
+  gebruikerWeg: d => { const g = S.beheer?.lijst.find(x => x.id === d.id); bevestig('Toegang intrekken', `${g?.naam||'Deze gebruiker'} kan daarna niet meer inloggen. Wil je zeker weten dat iemand er niet meer bij kan, maak dan ook een nieuwe GitHub-sleutel (zie README).`, 'Intrekken', () => gebruikerWeg(d.id)); },
   opnieuwInloggen: () => { S.login = {}; render(); }
 };
 
@@ -1244,12 +1354,13 @@ document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#sheet').
 
 /* ---------- opstarten ---------- */
 let gestart = false;
-function start(token, wie){
-  S.gebruiker = wie;
+function start(sessie){
+  S.sessie = sessie;
+  S.gebruiker = {naam:sessie.naam, admin:sessie.admin, id:sessie.id};
   if(gestart){ render(); return; } gestart = true;
-  db = makeDb({repo:window.DESKO_CONFIG.DATA_REPO, token, gebruiker:wie.naam});
+  db = makeDb({repo:CFG().DATA_REPO, token:sessie.token, gebruiker:sessie.naam});
   const fout = e => {
-    if(e?.code==='auth'){ bewaar(TOKEN_KEY, null); toast('Je toegangscode werkt niet meer. Log opnieuw in.'); setTimeout(() => location.reload(), 1500); }
+    if(e?.code==='auth'){ bewaar(SESSIE_KEY, null); toast('Je bent uitgelogd. Log opnieuw in.'); setTimeout(() => location.reload(), 1500); }
     else toast('Gegevens laden lukte niet. Controleer je internet.');
   };
   db.collection('bedrijven').onSnapshot(s => { S.bedrijven = s.docs.map(d => ({id:d.id, ...d.data()})); S.laden = false; render(); }, e => { S.laden = false; render(); fout(e); });
@@ -1260,13 +1371,17 @@ function start(token, wie){
   render();
 }
 (async () => {
-  const cfg = window.DESKO_CONFIG || {};
-  if(!cfg.DATA_REPO){ S.laden = false; S.geenDb = true; render(); return; }
-  const token = lees(TOKEN_KEY);
-  if(!token){ S.laden = false; render(); return; }
+  const cfg = CFG();
+  if(!cfg.DATA_REPO || !cfg.SITE_REPO || !window.crypto?.subtle){ S.laden = false; S.geenDb = true; render(); return; }
   render();
-  try{ start(token, await controleerToegang(cfg.DATA_REPO, token)); }
-  catch(err){ bewaar(TOKEN_KEY, null); S.laden = false; S.login = {fout:err.message}; render(); }
+  try{ const r = await fetch('gebruikers.json', {cache:'no-store'}); S.gebruikers = r.ok ? ((await r.json()).gebruikers || []) : []; }
+  catch{ S.gebruikers = []; }
+  let sessie = null; try{ sessie = JSON.parse(lees(SESSIE_KEY) || 'null'); }catch{}
+  // Ingetrokken gebruikers worden bij het openen uitgelogd.
+  if(sessie && S.gebruikers.length && !S.gebruikers.some(g => g.id === sessie.id)){ bewaar(SESSIE_KEY, null); sessie = null; }
+  if(!sessie){ S.laden = false; render(); return; }
+  try{ await controleerToegang(cfg.DATA_REPO, sessie.token); start(sessie); }
+  catch(err){ bewaar(SESSIE_KEY, null); S.laden = false; S.login = {fout:'Je sessie is verlopen. Log opnieuw in.'}; render(); }
 })();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
