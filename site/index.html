@@ -14,7 +14,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="db.js"></script>
 <style>
@@ -220,7 +219,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
 <script>
 /* ============================================================
    Desko CRM — eenvoudige versie
-   Opslag: Supabase (zie db.js en supabase/schema.sql). Collecties:
+   Opslag: privé GitHub-repository (zie db.js). Collecties:
    bedrijven, activiteiten, deals, weergaven, exportlog, instellingen.
    ============================================================ */
 
@@ -334,7 +333,10 @@ function merge(base, extra){
 }
 
 /* ---------- state ---------- */
-let db = null, sb = null;
+let db = null;
+const TOKEN_KEY = 'desko-crm-github-token';
+const lees = k => { try{ return localStorage.getItem(k); }catch{ return null; } };
+const bewaar = (k,v) => { try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch{} };
 const S = {bedrijven:[], deals:[], weergaven:[], exportlog:[], inst:clone(DEFAULT_INST), laden:true, geenDb:false, gebruiker:null, login:{}};
 const V = {tab:'vandaag', detail:null, zoek:{}, filters:{}, filterOpen:false, terugNaar:'vandaag'};
 let acts = [], actUnsub = null;
@@ -706,8 +708,8 @@ function meerView(){
       <p class="note">Mail versturen en ontvangen via Microsoft 365, de Outlook-agenda, spraakmemo's en pushmeldingen komen later. Leg een mail die je zelf stuurt vast met "Mail gestuurd" en een antwoord met "Reactie". De opvolging telt die mee.</p>
     </section>
     <section class="section"><div class="section-title"><h2>Account</h2></div>
-      <p class="sub">Ingelogd als ${esc(S.gebruiker?.email||'')}</p>
-      <div class="btns"><button class="btn" data-act="uitloggen">Uitloggen</button></div>
+      <p class="sub">Ingelogd als ${esc(S.gebruiker?.naam||'')}</p>
+      <div class="btns"><a class="btn" href="https://github.com/${esc(window.DESKO_CONFIG?.DATA_REPO||'')}/commits/main" target="_blank" rel="noopener">Wijzigingsgeschiedenis</a><button class="btn" data-act="uitloggen">Uitloggen</button></div>
     </section>
   </div>`;
 }
@@ -716,7 +718,7 @@ function meerView(){
 function render(){
   const a = document.activeElement, id = a?.id, pos = a?.selectionStart;
   let html;
-  if(S.geenDb) html = `<div class="wrap"><h1>Desko CRM</h1><div class="empty"><p>De database is nog niet gekoppeld. Vul SUPABASE_URL en SUPABASE_ANON_KEY in (zie de README).</p></div></div>`;
+  if(S.geenDb) html = `<div class="wrap"><h1>Desko CRM</h1><div class="empty"><p>De opslag is niet ingesteld. Vul DATA_REPO in config.js in (zie de README).</p></div></div>`;
   else if(!S.gebruiker && !S.laden) html = loginView();
   else if(S.laden) html = `<div class="wrap"><h1>Desko CRM</h1><p class="sub">Gegevens laden…</p></div>`;
   else if(V.detail) html = detailView(bedrijf(V.detail));
@@ -1111,7 +1113,7 @@ function exportSheet(kopje){
         bewaarBestand(naam, data, fmt==='csv' ? 'text/csv;charset=utf-8' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         const f = V.filters[kopje] || {};
         const filt = [V.zoek[kopje] && `zoek "${V.zoek[kopje]}"`, ...Object.entries(f).filter(([,v])=>v).map(([k,v])=>`${k}=${v}`)].filter(Boolean).join(', ');
-        await db.collection('exportlog').add({datum:new Date().toISOString(), lijst:kopje==='alle'?'Alle':KOPJES[kopje].naam, door:S.gebruiker?.email||'', filters:filt, kolommen:kols.map(k=>k[1]).join(', '), aantal:lijst.length, formaat:fmt});
+        await db.collection('exportlog').add({datum:new Date().toISOString(), lijst:kopje==='alle'?'Alle':KOPJES[kopje].naam, door:S.gebruiker?.naam||'', filters:filt, kolommen:kols.map(k=>k[1]).join(', '), aantal:lijst.length, formaat:fmt});
         closeSheet(); toast('Export klaar');
       }catch(err){ console.error(err); toast('Exporteren lukte niet.'); }
     };
@@ -1126,25 +1128,36 @@ function bewaarBestand(naam, data, type){
 
 /* ---------- inloggen ---------- */
 function loginView(){
-  const l = S.login;
-  return `<div class="wrap" style="max-width:420px;padding-top:12vh">
+  const l = S.login, repo = window.DESKO_CONFIG.DATA_REPO;
+  const tokenUrl = 'https://github.com/settings/personal-access-tokens/new';
+  return `<div class="wrap" style="max-width:480px;padding-top:8vh">
     <header class="page-head"><p class="eyebrow">Desko Kantoormeubelen</p><h1>Desko CRM</h1></header>
-    ${l.verstuurd ? `<div class="card"><h2>Check je mail</h2><p>We hebben een inloglink gestuurd naar <b>${esc(l.email)}</b>. Open die link op dit apparaat.</p><button class="btn" data-act="opnieuwInloggen">Ander e-mailadres</button></div>`
-    : `<form id="login-form" class="card">
-      <label class="f"><span>Je e-mailadres</span><input id="login-email" name="email" type="email" required autocomplete="email" value="${esc(l.email||'')}" placeholder="ferry@desko.nl"></label>
+    <form id="login-form" class="card">
+      <p>Log eenmalig in op dit apparaat met je GitHub-toegangscode.</p>
+      <label class="f"><span>GitHub-toegangscode</span><input id="login-token" name="token" type="password" required autocomplete="off" placeholder="github_pat_…"></label>
       ${l.fout ? `<p class="chip warn" style="white-space:normal">${esc(l.fout)}</p>` : ''}
-      <button class="btn primary" type="submit" ${l.bezig?'disabled':''}>${l.bezig?'Versturen…':'Stuur inloglink'}</button>
-      <p class="hint">Alleen e-mailadressen die de beheerder heeft toegevoegd kunnen inloggen.</p>
-    </form>`}
+      <button class="btn primary" type="submit" ${l.bezig?'disabled':''}>${l.bezig?'Controleren…':'Inloggen'}</button>
+      <details><summary class="sub" style="cursor:pointer">Hoe kom ik aan een toegangscode?</summary>
+        <ol class="sub" style="padding-left:1.2em;margin:8px 0 0;display:flex;flex-direction:column;gap:4px">
+          <li>Open <a href="${tokenUrl}" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
+          <li>Naam: <b>Desko CRM</b>, vervaldatum: zo lang mogelijk</li>
+          <li>Resource owner: <b>${esc(repo.split('/')[0])}</b></li>
+          <li>Repository access: <b>Only select repositories</b> → <b>${esc(repo.split('/')[1])}</b></li>
+          <li>Permissions → Repository permissions → <b>Contents: Read and write</b></li>
+          <li>Klik <b>Generate token</b>, kopieer de code en plak hem hierboven</li>
+        </ol></details>
+    </form>
   </div>`;
 }
 async function stuurInloglink(e){
   e.preventDefault();
-  const email = String(new FormData(e.target).get('email')).trim().toLowerCase();
-  S.login = {email, bezig:true}; render();
-  const {error} = await sb.auth.signInWithOtp({email, options:{shouldCreateUser:false, emailRedirectTo:location.origin + location.pathname}});
-  S.login = error ? {email, fout: /signup|not allowed|not found/i.test(error.message) ? 'Dit e-mailadres heeft geen toegang. Vraag de beheerder om je toe te voegen.' : 'Versturen lukte niet. Probeer het over een minuut opnieuw.'} : {email, verstuurd:true};
-  render();
+  const token = String(new FormData(e.target).get('token')).trim();
+  S.login = {bezig:true}; render();
+  try{
+    const wie = await controleerToegang(window.DESKO_CONFIG.DATA_REPO, token);
+    bewaar(TOKEN_KEY, token);
+    S.login = {}; start(token, wie);
+  }catch(err){ S.login = {fout:err.message}; render(); }
 }
 
 /* ---------- instellingen ---------- */
@@ -1206,7 +1219,7 @@ const ACT = {
   beheerWeergaven: d => openSheet('Weergaven', `<div class="section">${S.weergaven.filter(w=>w.kopje===d.kopje).map(w=>`<div class="row-top"><span>${esc(w.naam)}</span><button class="btn small danger" data-act="verwijderWeergave" data-id="${w.id}">Verwijderen</button></div>`).join('')}</div>`),
   verwijderWeergave: d => veilig(() => db.collection('weergaven').doc(d.id).delete(), 'Verwijderd').then(closeSheet),
   export: d => exportSheet(d.kopje),
-  uitloggen: async () => { await sb.auth.signOut(); location.reload(); },
+  uitloggen: () => { bewaar(TOKEN_KEY, null); location.reload(); },
   opnieuwInloggen: () => { S.login = {}; render(); }
 };
 
@@ -1231,29 +1244,29 @@ document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#sheet').
 
 /* ---------- opstarten ---------- */
 let gestart = false;
-function startData(){
-  if(gestart) return; gestart = true;
-  db = makeDb(sb);
-  const fout = () => toast('Verbinding met de database is verbroken. Herlaad de pagina.');
-  db.collection('bedrijven').onSnapshot(s => { S.bedrijven = s.docs.map(d => ({id:d.id, ...d.data()})); S.laden = false; render(); }, fout);
+function start(token, wie){
+  S.gebruiker = wie;
+  if(gestart){ render(); return; } gestart = true;
+  db = makeDb({repo:window.DESKO_CONFIG.DATA_REPO, token, gebruiker:wie.naam});
+  const fout = e => {
+    if(e?.code==='auth'){ bewaar(TOKEN_KEY, null); toast('Je toegangscode werkt niet meer. Log opnieuw in.'); setTimeout(() => location.reload(), 1500); }
+    else toast('Gegevens laden lukte niet. Controleer je internet.');
+  };
+  db.collection('bedrijven').onSnapshot(s => { S.bedrijven = s.docs.map(d => ({id:d.id, ...d.data()})); S.laden = false; render(); }, e => { S.laden = false; render(); fout(e); });
   db.collection('deals').onSnapshot(s => { S.deals = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('weergaven').onSnapshot(s => { S.weergaven = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('exportlog').orderBy('datum','desc').limit(50).onSnapshot(s => { S.exportlog = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.doc('instellingen/algemeen').onSnapshot(s => { S.inst = merge(DEFAULT_INST, s.exists ? s.data() : {}); render(); }, () => {});
+  render();
 }
 (async () => {
-  render();
   const cfg = window.DESKO_CONFIG || {};
-  if(!window.supabase || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY){ S.laden = false; S.geenDb = true; render(); return; }
-  sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
-  const zet = session => {
-    S.gebruiker = session?.user || null;
-    if(S.gebruiker) startData(); else S.laden = false;
-    render();
-  };
-  sb.auth.onAuthStateChange((_ev, session) => zet(session));
-  const {data} = await sb.auth.getSession();
-  zet(data.session);
+  if(!cfg.DATA_REPO){ S.laden = false; S.geenDb = true; render(); return; }
+  const token = lees(TOKEN_KEY);
+  if(!token){ S.laden = false; render(); return; }
+  render();
+  try{ start(token, await controleerToegang(cfg.DATA_REPO, token)); }
+  catch(err){ bewaar(TOKEN_KEY, null); S.laden = false; S.login = {fout:err.message}; render(); }
 })();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
