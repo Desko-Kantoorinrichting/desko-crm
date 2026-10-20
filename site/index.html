@@ -2606,8 +2606,38 @@ function leesKaartje(tekst){
 }
 
 /* ---------- navigatie ---------- */
-function openDetail(id){
+/* ---------- terugknop ----------
+   Elk scherm heeft een adres (#/agenda, #/b/<id>), zodat de terugknop van telefoon en browser
+   binnen de app terug gaat en een melding direct een klantprofiel kan openen. Staat er een
+   venster (sheet) open, dan sluit terug alleen dat venster en blijf je op hetzelfde scherm. */
+const routeHash = r => r.detail ? '#/b/' + r.detail : '#/' + (r.tab || 'vandaag');
+function leesHash(){
+  const h = location.hash.replace(/^#\/?/, '');
+  if(h.startsWith('b/')) return {detail:decodeURIComponent(h.slice(2))};
+  return {tab:h || 'vandaag'};
+}
+function navTo(r){
+  const hash = routeHash(r);
+  if(location.hash !== hash) history.pushState({tab:r.tab || null, detail:r.detail || null, vanApp:true}, '', hash);
+}
+function toonRoute(r){
+  if(r.detail && bedrijf(r.detail)){ if(V.detail !== r.detail) openDetail(r.detail, {stil:true}); return; }
+  if(V.detail){ actUnsub && actUnsub(); actUnsub = null; V.detail = null; }
+  V.selectie = null; V.tab = r.tab || V.terugNaar || 'vandaag'; V.filterOpen = false; render(); window.scrollTo(0,0);
+}
+window.addEventListener('popstate', e => {
+  if(!$('#sheet').hidden){
+    closeSheet();
+    const r = V.detail ? {detail:V.detail} : {tab:V.tab};     // blijf op dit scherm
+    history.pushState({tab:r.tab || null, detail:r.detail || null, vanApp:true}, '', routeHash(r));
+    return;
+  }
+  toonRoute(e.state || leesHash());
+});
+
+function openDetail(id, {stil} = {}){
   if(!V.detail) V.terugNaar = V.tab;
+  if(!stil) navTo({detail:id});
   V.detail = id; acts = [];
   actUnsub && actUnsub();
   actUnsub = db.collection('activiteiten').where('bedrijfId','==',id).onSnapshot(s => {
@@ -2616,10 +2646,13 @@ function openDetail(id){
   }, () => {});
   closeSheet(); render(); window.scrollTo(0,0);
 }
-function sluitDetail(){ actUnsub && actUnsub(); actUnsub = null; V.detail = null; V.tab = V.terugNaar || 'vandaag'; render(); window.scrollTo(0,0); }
+function sluitDetail(){
+  if(history.state?.detail === V.detail && history.state?.vanApp){ history.back(); return; }   // popstate doet de rest
+  actUnsub && actUnsub(); actUnsub = null; V.detail = null; V.tab = V.terugNaar || 'vandaag'; navTo({tab:V.tab}); render(); window.scrollTo(0,0);
+}
 
 const ACT = {
-  tab: d => { V.selectie = null; if(V.detail){ actUnsub && actUnsub(); actUnsub = null; V.detail = null; } V.tab = d.tab; V.filterOpen = false; render(); window.scrollTo(0,0); },
+  tab: d => { V.selectie = null; if(V.detail){ actUnsub && actUnsub(); actUnsub = null; V.detail = null; } V.tab = d.tab; V.filterOpen = false; navTo({tab:d.tab}); render(); window.scrollTo(0,0); },
   open: d => openDetail(d.id),
   sluitDetail,
   closeSheet,
@@ -2662,7 +2695,7 @@ const ACT = {
   naBezoek: d => naBezoek(bedrijf(d.id)),
   routeStop2: () => bevestig('Route wissen', 'De dagroute verdwijnt van dit toestel. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => { zetRoute(null); render(); }),
   buurtHier: () => { V.buurt = {...V.buurt, status:null, zoek:''}; buurtStart(); },
-  toonStil: () => { V.filters.alle = {contact:'stil'}; V.zoek.alle = ''; V.tab = 'alle'; V.detail = null; render(); window.scrollTo(0,0); },
+  toonStil: () => { V.filters.alle = {contact:'stil'}; V.zoek.alle = ''; V.tab = 'alle'; V.detail = null; navTo({tab:'alle'}); render(); window.scrollTo(0,0); },
   selecteer: d => { V.selectie = V.selectie?.kopje===d.kopje ? null : {kopje:d.kopje, ids:new Set()}; render(); },
   kies: d => { const ids = V.selectie.ids; ids.has(d.id) ? ids.delete(d.id) : ids.add(d.id); render(); },
   kiesAlles: d => { const lijst = gefilterd(d.kopje); V.selectie.ids = V.selectie.ids.size===lijst.length ? new Set() : new Set(lijst.map(b => b.id)); render(); },
@@ -2694,7 +2727,7 @@ const ACT = {
   verwijderWeergave: d => veilig(() => db.collection('weergaven').doc(d.id).delete(), 'Verwijderd').then(closeSheet),
   export: d => exportSheet(d.kopje),
   wachtwoord: () => wachtwoordWijzigen(),
-  uitloggen: () => { bewaar(SESSIE_KEY, null); location.reload(); },
+  uitloggen: () => { bewaar(SESSIE_KEY, null); history.replaceState(null, '', '#/vandaag'); location.reload(); },
   gebruikerWeg: d => { const g = S.beheer?.lijst.find(x => x.id === d.id); bevestig('Toegang intrekken', `${g?.naam||'Deze gebruiker'} kan daarna niet meer inloggen. Wil je zeker weten dat iemand er niet meer bij kan, maak dan ook een nieuwe GitHub-sleutel (zie README).`, 'Intrekken', () => gebruikerWeg(d.id)); },
   opnieuwInloggen: () => { S.login = {}; render(); }
 };
@@ -2730,7 +2763,10 @@ function start(sessie){
     if(e?.code==='auth'){ bewaar(SESSIE_KEY, null); toast('Je bent uitgelogd. Log opnieuw in.'); setTimeout(() => location.reload(), 1500); }
     else toast('Gegevens laden lukte niet. Controleer je internet.');
   };
-  db.collection('bedrijven').onSnapshot(s => { S.bedrijven = s.docs.map(d => ({id:d.id, ...d.data()})); S.laden = false; render(); }, e => { S.laden = false; render(); fout(e); });
+  let eersteRoute = true;
+  db.collection('bedrijven').onSnapshot(s => { S.bedrijven = s.docs.map(d => ({id:d.id, ...d.data()})); S.laden = false;
+    if(eersteRoute){ eersteRoute = false; const r = leesHash(); history.replaceState({tab:r.tab||null, detail:r.detail||null}, '', location.hash || '#/vandaag'); if(r.detail || (r.tab && r.tab!=='vandaag')){ toonRoute(r); return; } }
+    render(); }, e => { S.laden = false; render(); fout(e); });
   db.collection('deals').onSnapshot(s => { S.deals = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('weergaven').onSnapshot(s => { S.weergaven = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('mails').onSnapshot(s => { S.mails = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
