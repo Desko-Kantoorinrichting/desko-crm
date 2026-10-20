@@ -192,6 +192,33 @@ a{color:var(--accent)}
 .row.gekozen .vinkje{background:var(--ink);border-color:var(--ink);color:var(--surface)}
 .bulkbalk{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--ink);color:var(--surface);padding:10px 12px;border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .bulkbalk > span{margin-right:auto}
+.agenda-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+.agenda-nav h2{margin:0 auto 0 4px;font-size:1rem;line-height:1.2}.agenda-nav h2 small{display:block;color:var(--muted);font-size:.78rem;font-weight:650}.agenda-nav .btns{flex-wrap:nowrap;gap:6px}
+.dag{margin-top:14px}
+.dag-kop{display:flex;align-items:baseline;gap:8px;font-weight:700;padding:0 4px 6px}
+.dag-kop small{color:var(--muted);font-weight:600;text-transform:none}
+.dag.nu .dag-kop{color:var(--accent)}
+.dag-leeg{color:var(--faint);font-size:.88rem;padding:2px 4px 4px}
+.ag-item{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--kleur);border-radius:14px;padding:10px 12px;margin-bottom:6px;cursor:pointer;color:var(--ink);font:inherit}
+.ag-item:hover{border-color:var(--ink);border-left-color:var(--kleur)}
+.ag-item .tijd{font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums}
+.ag-item .tijd small{display:block;color:var(--muted);font-weight:600;font-size:.72rem}
+.ag-item .t{min-width:0}.ag-item .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-item .t span{display:block;color:var(--muted);font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-item .soort{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;color:var(--muted)}
+.ag-item.late .tijd{color:var(--warn)}
+.ag-opvolg{--kleur:#1F7A3C}.ag-mail{--kleur:var(--ink)}.ag-afspraak{--kleur:#D9CB00}.ag-commissie{--kleur:#8A8A8A}
+.maand{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.maand .wd{font-size:.72rem;font-weight:700;color:var(--muted);text-align:center;padding:2px 0}
+.maand button{aspect-ratio:1/1;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5px 2px;cursor:pointer;color:var(--ink);font:inherit;font-weight:650}
+.maand button.buiten{opacity:.4}
+.maand button.nu{border-color:var(--accent);color:var(--accent)}
+.maand button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.maand .stipjes{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;min-height:7px}
+.maand .stipjes i{width:7px;height:7px;border-radius:50%;background:var(--kleur);box-shadow:0 0 0 1px var(--surface)}
+.legenda{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--muted);margin:8px 4px}
+.legenda span{display:inline-flex;align-items:center;gap:5px}.legenda i{width:10px;height:10px;border-radius:3px;background:var(--kleur)}
+@media (min-width:960px){.maand button{aspect-ratio:auto;min-height:72px}}
 .stopnr{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);margin-right:4px}
 .stopnr.nu{background:var(--jade);border-color:transparent;color:#000}
 .row.gedaan{opacity:.6}
@@ -297,10 +324,10 @@ a{color:var(--accent)}
 
 /* nav: bottom bar on phone, sidebar on desktop */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
+nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr)}
 nav.tabs .side-brand,nav.tabs .side-foot{display:none}
 nav.tabs button{border:0;background:transparent;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7rem;font-weight:650;color:var(--faint);cursor:pointer;position:relative}
-nav.tabs button .pill{display:grid;place-items:center;width:48px;height:28px;border-radius:999px;transition:background .15s}
+nav.tabs button .pill{display:grid;place-items:center;width:44px;max-width:100%;height:28px;border-radius:999px;transition:background .15s}
 nav.tabs button[aria-current="page"]{color:var(--accent)}
 nav.tabs button[aria-current="page"] .pill{background:var(--accent-soft)}
 nav.tabs .badge{position:absolute;top:4px;left:calc(50% + 8px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--warn);color:#fff;font-size:.66rem;display:grid;place-items:center;border:2px solid var(--surface)}
@@ -534,7 +561,7 @@ function dueTekst(datum){
 }
 
 async function updBedrijf(id, patch){ await db.collection('bedrijven').doc(id).update({...patch, bijgewerkt:new Date().toISOString()}); }
-async function logAct(b, a){ await db.collection('activiteiten').add({bedrijfId:b.id, datum:new Date().toISOString(), ...a}); }
+async function logAct(b, a){ const doc = {bedrijfId:b.id, datum:new Date().toISOString(), ...a}; await db.collection('activiteiten').add(doc); if(alleActs) alleActs.push(doc); }
 async function systeem(b, tekst){ await logAct(b, {type:'systeem', tekst}); }
 
 async function startReeks(b, ci){
@@ -765,7 +792,7 @@ function vandaagView(){
         <button class="stat" data-act="tab" data-tab="prospect"><b class="num">${n('prospect')}</b><span>${ic('target')}Prospects</span></button>
         <button class="stat" data-act="tab" data-tab="commissie"><b class="num">${n('commissie')}</b><span>${ic('euro')}Commissie</span></button>
       </div>
-      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
+      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
       </div></div>
     ${routeKaart()}
     <section class="section">
@@ -981,10 +1008,11 @@ function render(){
   else if(V.tab==='mail') html = mailView();
   else if(V.tab==='cijfers') html = cijfersView();
   else if(V.tab==='buurt') html = buurtView();
+  else if(V.tab==='agenda') html = agendaView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length + commissieTaken().length;
-  const tabs = [['vandaag','sun','Vandaag'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
+  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
   const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt')) : (k===V.terugNaar);
   $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
@@ -2307,6 +2335,97 @@ async function buurtZoek(e){
   catch{ toast('Zoeken lukte niet. Controleer je internet.'); }
 }
 
+/* ---------- agenda ---------- */
+const AG_SOORT = {opvolg:{naam:'Opvolging', ic:'phone'}, mail:{naam:'Mail', ic:'mail'}, afspraak:{naam:'Afspraak', ic:'calendar'}, commissie:{naam:'Commissie', ic:'euro'}};
+const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+/* Alles wat gepland staat, per dag: opvolgingen, ingeplande mails, afspraken en commissie. */
+function agendaItems(){
+  const uit = [];
+  S.bedrijven.forEach(b => {
+    const s = opvolgStatus(b); if(!s || s.gepauzeerd) return;
+    if(s.stap==='mail' && geplandeMail(b)) return;   // de mail zelf staat al in de agenda
+    const o = b.opvolging, c = contactVan(b, o.contact);
+    const wat = o.stap==='actie' ? (o.actie || 'Opvolgen') : s.max && s.pogingen >= s.max && s.due ? 'Beslissen hoe verder' : STAP_NAAM[o.stap] || 'Opvolgen';
+    uit.push({soort:'opvolg', datum:o.datum, b, titel:wat, wie:c?.naam || ''});
+  });
+  S.mails.filter(m => m.status==='gepland').forEach(m => { const b = bedrijf(m.bedrijfId); if(b) uit.push({soort:'mail', datum:m.datum, tijd:m.tijd||'09:30', b, titel:`Mail${m.reeks ? ' '+(m.stap+1) : ''}: ${m.onderwerp}`, wie:m.aan, m}); });
+  (alleActs || []).filter(a => a.type==='afspraak' && a.afspraakOp).forEach(a => { const b = bedrijf(a.bedrijfId); if(b) uit.push({soort:'afspraak', datum:ds(new Date(a.afspraakOp)), tijd:hhmm(a.afspraakOp), b, titel:a.tekst || 'Afspraak', wie:a.contactNaam || '', a}); });
+  commissieTaken().forEach(t => uit.push({soort:'commissie', datum:t.datum, b:t.b, titel:t.soort==='factureren' ? `Factureren: ${euro(t.d.commissie)}` : `Betaling navragen: ${euro(t.d.commissie)}`, wie:t.d.omschrijving || ''}));
+  S.deals.filter(d => d.status==='gefactureerd' && d.gefactureerdOp).forEach(d => { const b = bedrijf(d.bedrijfId); if(!b) return;
+    const vervalt = addDays(d.gefactureerdOp, Number(T(b).betaaltermijnDagen)||30);
+    if(vervalt > today()) uit.push({soort:'commissie', datum:vervalt, b, titel:`Betaling verwacht: ${euro(d.commissie)}`, wie:d.omschrijving || ''}); });
+  return uit.sort((x,y) => x.datum.localeCompare(y.datum) || (x.tijd||'99').localeCompare(y.tijd||'99'));
+}
+function agItem(x, i){
+  const late = x.datum < today() && x.soort!=='afspraak';
+  return `<button class="ag-item ag-${x.soort} ${late?'late':''}" data-act="agendaOpen" data-i="${i}">
+    <span class="tijd">${x.tijd ? esc(x.tijd) : late ? esc(fmtDag(x.datum)) : 'Hele dag'}${late ? '<small>te laat</small>' : ''}</span>
+    <span class="t"><span class="soort">${ic(AG_SOORT[x.soort].ic,'sm')}${AG_SOORT[x.soort].naam}</span><b>${esc(x.b.naam)}${x.wie ? ' · '+esc(x.wie) : ''}</b><span>${esc(x.titel)}</span></span>${ic('right','sm')}</button>`;
+}
+function agendaView(){
+  const v = V.agenda = V.agenda || {modus:'week', filter:'alle'};
+  if(!alleActs && !actsLaden) setTimeout(() => laadAlleActiviteiten(), 0);
+  const basis = v.datum || today();
+  const alle = agendaItems().filter(x => v.filter==='alle' || x.soort===v.filter);
+  V._ag = alle;   // voor de klik-afhandeling
+  const perDag = new Map(); alle.forEach((x,i) => { if(!perDag.has(x.datum)) perDag.set(x.datum, []); perDag.get(x.datum).push([x,i]); });
+  const dagKop = d => { const dd = parse(d); return `<div class="dag-kop">${['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][dd.getDay()]} ${dd.getDate()} ${MAANDEN[dd.getMonth()]}${d===today() ? ' <small>vandaag</small>' : ''}</div>`; };
+  const dagLijst = d => { const l = perDag.get(d) || []; return `<div class="dag ${d===today()?'nu':''}">${dagKop(d)}${l.length ? l.map(([x,i]) => agItem(x,i)).join('') : '<p class="dag-leeg">Niets gepland</p>'}</div>`; };
+  const fk = (k,l) => `<button class="keuze ${v.filter===k?'on':''}" data-act="agendaFilter" data-f="${k}">${l}</button>`;
+  let kop, inhoud;
+  if(v.modus==='week'){
+    const ma = weekStart(basis), dagen = Array.from({length:7}, (_,i) => addDays(ma, i));
+    const te = dagen.filter((d,i) => i < 5 || (perDag.get(d)||[]).length);   // weekend alleen als er iets is
+    const laat = ma <= today() && today() <= dagen[6] ? alle.map((x,i) => [x,i]).filter(([x]) => x.datum < today() && x.soort!=='afspraak') : [];
+    kop = `<small>Week ${weekNr(ma)}</small>${parse(ma).getDate()} ${MAANDEN[parse(ma).getMonth()]} – ${parse(dagen[6]).getDate()} ${MAANDEN[parse(dagen[6]).getMonth()]}`;
+    inhoud = `${laat.length ? `<div class="dag"><div class="dag-kop" style="color:var(--warn)">Te laat <small>${laat.length}</small></div>${laat.map(([x,i]) => agItem(x,i)).join('')}</div>` : ''}${te.map(dagLijst).join('')}`;
+  } else {
+    const p = parse(basis), eerste = ds(new Date(p.getFullYear(), p.getMonth(), 1)), start = weekStart(eerste);
+    const gekozen = v.dag && parse(v.dag).getMonth()===p.getMonth() ? v.dag : (p.getMonth()===parse(today()).getMonth() ? today() : eerste);
+    const cellen = Array.from({length:42}, (_,i) => addDays(start, i)).filter((d,i) => i < 35 || parse(d).getMonth()===p.getMonth());
+    kop = `<small>${p.getFullYear()}</small>${['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'][p.getMonth()]}`;
+    inhoud = `<div class="maand" role="grid">${['ma','di','wo','do','vr','za','zo'].map(d => `<span class="wd">${d}</span>`).join('')}${cellen.map(d => { const l = perDag.get(d) || [];
+      return `<button data-act="agendaDag" data-dag="${d}" class="${parse(d).getMonth()!==p.getMonth()?'buiten':''} ${d===today()?'nu':''} ${d===gekozen?'on':''}" aria-label="${fmtDag(d)}: ${l.length} gepland"><span>${parse(d).getDate()}</span><span class="stipjes">${l.slice(0,4).map(([x]) => `<i class="ag-${x.soort}"></i>`).join('')}</span></button>`; }).join('')}</div>
+      <div class="legenda">${Object.entries(AG_SOORT).map(([k,s]) => `<span class="ag-${k}"><i></i>${s.naam}</span>`).join('')}</div>
+      ${dagLijst(gekozen)}`;
+  }
+  return `<div class="wrap">
+    <header class="page-head"><p class="eyebrow">Planning</p><h1>Agenda</h1><p class="sub">Wie wanneer een opvolging, mail of afspraak heeft.</p></header>
+    <div class="keuzes"><div class="seg" style="flex:0 0 auto">${['week','maand'].map(m => `<button class="keuze ${v.modus===m?'on':''}" data-act="agendaModus" data-m="${m}">${m==='week'?'Week':'Maand'}</button>`).join('')}</div></div>
+    <div class="keuzes">${fk('alle','Alles')}${fk('opvolg','Opvolgingen')}${fk('mail','Mails')}${fk('afspraak','Afspraken')}${fk('commissie','Commissie')}</div>
+    <div class="agenda-nav"><h2>${kop}</h2>
+      <span class="btns"><button class="btn small" data-act="agendaStap" data-n="-1" aria-label="Vorige">${ic('left','sm')}</button><button class="btn small" data-act="agendaStap" data-n="0">Nu</button><button class="btn small" data-act="agendaStap" data-n="1" aria-label="Volgende">${ic('right','sm')}</button></span></div>
+    ${!alleActs ? `<p class="hint">${ic('refresh','sm')} Afspraken laden${V.actsVoortgang ? ` (${V.actsVoortgang}/${S.bedrijven.length})` : ''}…</p>` : ''}
+    ${inhoud}
+    <div class="btns" style="margin-top:16px"><button class="btn" data-act="agendaIcs">${ic('download','sm')}Komende 4 weken in mijn agenda</button></div>
+    <p class="hint">Zet de planning als agenda-bestand in Outlook of je telefoon. Wijzigingen daarna komen er niet vanzelf in; download dan opnieuw.</p>
+  </div>`;
+}
+function agendaStap(n){
+  const v = V.agenda, b = v.datum || today();
+  if(!n) v.datum = today();
+  else if(v.modus==='week') v.datum = addDays(b, 7*n);
+  else { const p = parse(b); v.datum = ds(new Date(p.getFullYear(), p.getMonth()+n, 1)); v.dag = null; }
+  render();
+}
+/* Agenda-bestand met alles van de komende 4 weken. */
+function agendaIcs(){
+  const t = d => new Date(d).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const x = v => String(v||'').replace(/\\/g,'\\\\').replace(/([,;])/g,'\\$1').replace(/\n/g,'\\n');
+  const tot = addDays(today(), 28);
+  const items = agendaItems().filter(i => i.datum >= today() && i.datum <= tot);
+  if(!items.length){ toast('Niets gepland in de komende 4 weken.'); return; }
+  const ev = items.map((i, n) => {
+    const adres = [i.b.adres, [i.b.postcode, i.b.plaats].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const tijd = i.tijd ? parse(i.datum) : null; if(tijd){ const [h,m] = i.tijd.split(':').map(Number); tijd.setHours(h, m); }
+    const wanneer = tijd ? [`DTSTART:${t(tijd)}`, `DTEND:${t(new Date(tijd.getTime() + (i.soort==='afspraak' ? 60 : 15)*60000))}`]
+      : [`DTSTART;VALUE=DATE:${i.datum.replace(/-/g,'')}`, `DTEND;VALUE=DATE:${addDays(i.datum,1).replace(/-/g,'')}`, 'TRANSP:TRANSPARENT'];
+    return ['BEGIN:VEVENT', `UID:${i.soort}-${i.b.id}-${i.datum}-${n}@desko-crm`, `DTSTAMP:${t(new Date())}`, ...wanneer,
+      `SUMMARY:${x(`${AG_SOORT[i.soort].naam}: ${i.b.naam}${i.wie ? ' – '+i.wie : ''}`)}`, `DESCRIPTION:${x(i.titel)}`, adres ? `LOCATION:${x(adres)}` : '', 'END:VEVENT'].filter(Boolean).join('\r\n');
+  });
+  bewaarBestand(`desko-planning-${today()}.ics`, ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Desko//CRM//NL','CALSCALE:GREGORIAN','METHOD:PUBLISH', ...ev, 'END:VCALENDAR'].join('\r\n'), 'text/calendar;charset=utf-8');
+}
+
 /* ---------- dagroute ---------- */
 /* De dagroute is een persoonlijk plan en staat alleen op dit toestel. Google Maps krijgt
    alleen de coördinaten van de stops, geen namen. */
@@ -2527,6 +2646,12 @@ const ACT = {
   dashExport: () => dashExport(),
   dashVernieuw: () => laadAlleActiviteiten(true),
   buurtFilter: d => { V.buurt = {...V.buurt, filter:d.f}; render(); },
+  agendaModus: d => { V.agenda.modus = d.m; render(); },
+  agendaFilter: d => { V.agenda.filter = d.f; render(); },
+  agendaStap: d => agendaStap(Number(d.n)),
+  agendaDag: d => { V.agenda.dag = d.dag; render(); },
+  agendaIcs,
+  agendaOpen: d => { const x = V._ag?.[Number(d.i)]; if(!x) return; if(x.soort==='mail') geplandeMailSheet(x.m); else if(x.soort==='opvolg') planActie(x.b, {titel:'Opvolging verzetten'}); else openDetail(x.b.id); },
   routeKiezen: () => { const k = !V.buurt?.kiezen; V.buurt = {...V.buurt, kiezen:k, sel:[]}; render(); },
   routeStop: d => { const sel = [...(V.buurt.sel||[])], i = sel.indexOf(d.id);
     if(i>=0) sel.splice(i,1); else if(sel.length >= ROUTE_MAX){ toast(`Maximaal ${ROUTE_MAX} stops.`); return; } else sel.push(d.id);
