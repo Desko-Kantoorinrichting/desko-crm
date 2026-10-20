@@ -22,8 +22,9 @@ export function nlNu(nu){
 
 export async function main(env = process.env, nu = new Date()){
   const {DATA_REPO, DATA_TOKEN, MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_AFZENDER} = env;
-  if(!DATA_REPO || !DATA_TOKEN) throw new Error('DATA_REPO of DATA_TOKEN ontbreekt');
   const telling = {verstuurd:0, geannuleerd:0, reacties:0, fouten:0, overgeslagen:0};
+  /* Nog niet ingesteld: stil stoppen, zodat GitHub niet elk kwartier een foutmelding mailt. */
+  if(!DATA_REPO || !DATA_TOKEN){ console.log('Mailrobot is nog niet ingesteld (DATA_TOKEN ontbreekt); niets te doen.'); return telling; }
 
   /* ---------- GitHub: gegevens lezen en schrijven ---------- */
   const gh = (pad, opts = {}) => fetch(`https://api.github.com/repos/${DATA_REPO}/contents/${pad}`, {...opts, headers:{
