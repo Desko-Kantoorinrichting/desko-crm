@@ -219,6 +219,9 @@ a{color:var(--accent)}
 .legenda{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--muted);margin:8px 4px}
 .legenda span{display:inline-flex;align-items:center;gap:5px}.legenda i{width:10px;height:10px;border-radius:3px;background:var(--kleur)}
 @media (min-width:960px){.maand button{aspect-ratio:auto;min-height:72px}}
+.opslag{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:60;background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:0 6px 20px rgba(0,0,0,.12);border-radius:999px;padding:6px 14px;font-size:.8rem;font-weight:650;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.opslag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kleur,#1F7A3C)}
+.opslag.wacht{--kleur:var(--warn)}
 .stopnr{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);margin-right:4px}
 .stopnr.nu{background:var(--jade);border-color:transparent;color:#000}
 .row.gedaan{opacity:.6}
@@ -434,6 +437,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
 <nav class="tabs" aria-label="Hoofdmenu" hidden><div class="side-brand" id="side-brand"></div><div class="in" id="tabs"></div><div class="side-foot" id="side-foot"></div></nav>
 <div id="sheet" hidden></div>
 <div id="toast" class="toast" hidden></div>
+<div id="opslag" class="opslag" role="status" hidden></div>
 
 <script>
 /* ============================================================
@@ -2732,11 +2736,22 @@ const ACT = {
   opnieuwInloggen: () => { S.login = {}; render(); }
 };
 
+/* Dubbel tikken telt als één keer: dezelfde knop binnen een halve seconde wordt genegeerd. */
+let laatsteKlik = {el:null, t:0};
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if(!el) return;
   const fn = ACT[el.dataset.act]; if(!fn) return;
-  e.preventDefault(); fn(el.dataset, el);
+  e.preventDefault();
+  if(el === laatsteKlik.el && Date.now() - laatsteKlik.t < 500) return;
+  laatsteKlik = {el, t:Date.now()};
+  fn(el.dataset, el);
 });
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if(f.dataset.bezig){ e.preventDefault(); e.stopImmediatePropagation(); return; }
+  f.dataset.bezig = '1'; setTimeout(() => { delete f.dataset.bezig; }, 1000);
+}, true);
+document.addEventListener('input', e => { const f = e.target.closest?.('form'); if(f) delete f.dataset.bezig; }, true);   // iets aangepast: opnieuw versturen mag
 document.addEventListener('input', e => {
   const z = e.target.dataset?.zoek; if(z==null) return;
   V.zoek[z] = e.target.value; render();
@@ -2763,6 +2778,16 @@ function start(sessie){
     if(e?.code==='auth'){ bewaar(SESSIE_KEY, null); toast('Je bent uitgelogd. Log opnieuw in.'); setTimeout(() => location.reload(), 1500); }
     else toast('Gegevens laden lukte niet. Controleer je internet.');
   };
+  /* Opslaan gebeurt op de achtergrond; laat zien als dat even duurt of niet lukt. */
+  let opslagTimer = null;
+  db.status(st => {
+    const el = $('#opslag'); clearTimeout(opslagTimer); el.dataset.open = st.open;
+    if(st.fout === 'auth'){ fout({code:'auth'}); return; }
+    if(st.fout === 'mislukt'){ toast('Een wijziging kon niet worden opgeslagen. Probeer het opnieuw.'); }
+    if(!st.open){ el.hidden = true; return; }
+    const toon = () => { el.className = 'opslag' + (st.fout === 'wacht' ? ' wacht' : ''); el.textContent = st.fout === 'wacht' ? `${st.open} wijziging${st.open>1?'en':''} nog niet opgeslagen, wordt opnieuw geprobeerd` : 'Opslaan…'; el.hidden = false; };
+    if(st.fout === 'wacht') toon(); else opslagTimer = setTimeout(toon, 2500);
+  });
   let eersteRoute = true;
   db.collection('bedrijven').onSnapshot(s => { S.bedrijven = s.docs.map(d => ({id:d.id, ...d.data()})); S.laden = false;
     if(eersteRoute){ eersteRoute = false; const r = leesHash(); history.replaceState({tab:r.tab||null, detail:r.detail||null}, '', location.hash || '#/vandaag'); if(r.detail || (r.tab && r.tab!=='vandaag')){ toonRoute(r); return; } }
