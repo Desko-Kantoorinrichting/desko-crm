@@ -874,7 +874,7 @@ function meerView(){
     ${S.gebruiker?.admin ? beheerView() : ''}
     <section class="section"><div class="section-title"><h2>Account</h2></div>
       <p class="sub">Ingelogd als ${esc(S.gebruiker?.naam||'')}${S.gebruiker?.admin?' (beheerder)':''}</p>
-      <div class="btns"><a class="btn" href="https://github.com/${esc(window.DESKO_CONFIG?.DATA_REPO||'')}/commits/main" target="_blank" rel="noopener">Wijzigingsgeschiedenis</a><button class="btn" data-act="uitloggen">Uitloggen</button></div>
+      <div class="btns"><a class="btn" href="https://github.com/${esc(window.DESKO_CONFIG?.DATA_REPO||'')}/commits/main" target="_blank" rel="noopener">Wijzigingsgeschiedenis</a><button class="btn" data-act="wachtwoord">Wachtwoord wijzigen</button><button class="btn" data-act="uitloggen">Uitloggen</button></div>
     </section>
   </div>`;
 }
@@ -1758,7 +1758,7 @@ function beheerView(){
       <label class="check"><input type="checkbox" id="ng-admin" name="admin"><span>Beheerder (mag gebruikers beheren)</span></label>
       <div class="sheet-actions"><button class="btn primary" type="submit" ${b.bezig?'disabled':''}>${b.bezig?'Opslaan…':'Opslaan'}</button></div>
     </form>
-    <p class="hint">Na opslaan duurt het ongeveer een minuut voordat de nieuwe gebruiker kan inloggen. Deel daarna de link en het wachtwoord met hem of haar.</p>
+    <p class="hint">Na opslaan krijg je een uitnodiging om te versturen. Het duurt ongeveer een minuut voordat de nieuwe collega kan inloggen.</p>
   </section>`;
 }
 let beheerLaden = false;
@@ -1778,8 +1778,54 @@ async function gebruikerToevoegen(e){
     const bestond = lijst.some(x => x.id === g.id);
     const nieuw = [...lijst.filter(x => x.id !== g.id), g];
     await schrijfGebruikers(S.sessie.token, nieuw, sha, bestond ? `Wachtwoord van ${g.naam} gewijzigd` : `Gebruiker ${g.naam} toegevoegd`);
-    S.beheer = null; toast(bestond ? 'Wachtwoord gewijzigd' : `${g.naam} toegevoegd`); render();
+    S.beheer = null; render();
+    uitnodiging(g.naam, AUTH.normEmail(d.email), bestond);
   }catch(err){ S.beheer = {...S.beheer, bezig:false, fout:err.message}; render(); }
+}
+/* Tekst om naar een nieuwe collega te sturen. Het wachtwoord staat er bewust niet in. */
+function uitnodiging(naam, email, bestond){
+  const link = location.origin + location.pathname;
+  const tekst = bestond
+    ? `Hoi ${naam.split(' ')[0]},\n\nJe wachtwoord voor het Desko CRM is opnieuw ingesteld. Je nieuwe wachtwoord krijg je apart van mij.\n\nInloggen: ${link}\nE-mailadres: ${email}\n\nKies daarna een eigen wachtwoord via Meer → Account → Wachtwoord wijzigen.`
+    : `Hoi ${naam.split(' ')[0]},\n\nJe hebt nu toegang tot het Desko CRM.\n\nInloggen: ${link}\nE-mailadres: ${email}\nJe wachtwoord krijg je apart van mij.\n\nKies na de eerste keer inloggen een eigen wachtwoord via Meer → Account → Wachtwoord wijzigen. Op je telefoon kun je de site via "Toevoegen aan beginscherm" als app gebruiken.`;
+  openSheet(bestond ? 'Wachtwoord opnieuw ingesteld' : `${naam} is toegevoegd`, `<div class="section">
+    <p>Stuur ${esc(naam.split(' ')[0])} deze tekst. Geef het wachtwoord apart door, bijvoorbeeld via een berichtje of telefonisch, niet in dezelfde mail.</p>
+    <label class="f"><span>Uitnodiging</span><textarea id="uit-tekst" readonly style="min-height:220px">${esc(tekst)}</textarea></label>
+    <p class="hint">Over ongeveer een minuut kan ${esc(naam.split(' ')[0])} inloggen.</p>
+    <div class="sheet-actions">
+      <a class="btn" href="${esc(mailtoLink(email, 'Toegang Desko CRM', tekst))}">${ic('mail','sm')}Mailen</a>
+      <button type="button" class="btn primary" id="uit-kopie">${ic('note','sm')}Kopieer tekst</button>
+    </div></div>`, s => {
+    s.querySelector('#uit-kopie').onclick = () => navigator.clipboard?.writeText(tekst).then(() => toast('Uitnodiging gekopieerd'), () => { s.querySelector('#uit-tekst').select(); toast('Selecteer en kopieer de tekst'); });
+  });
+}
+
+/* Eigen wachtwoord wijzigen: de sleutel opnieuw versleutelen met het nieuwe wachtwoord. */
+function wachtwoordWijzigen(){
+  openSheet('Wachtwoord wijzigen', `<form id="ww" class="section">
+    <label class="f"><span>Je e-mailadres</span><input id="ww-email" name="email" type="email" required autocomplete="username"></label>
+    <label class="f"><span>Huidig wachtwoord</span><input id="ww-oud" name="oud" type="password" required autocomplete="current-password"></label>
+    <div class="grid2"><label class="f"><span>Nieuw wachtwoord</span><input id="ww-nieuw" name="nieuw" type="password" required minlength="10" autocomplete="new-password"></label>
+    <label class="f"><span>Herhaal nieuw wachtwoord</span><input id="ww-nieuw2" name="nieuw2" type="password" required minlength="10" autocomplete="new-password"></label></div>
+    <p class="hint">Minimaal 10 tekens. Een paar losse woorden is sterk en makkelijk te onthouden.</p>
+    <p class="chip warn" id="ww-fout" hidden style="white-space:normal"></p>
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
+  </form>`, s => {
+    const fout = t => { const f = s.querySelector('#ww-fout'); f.textContent = t; f.hidden = false; };
+    s.querySelector('#ww').onsubmit = async e => {
+      e.preventDefault(); const d = Object.fromEntries(new FormData(e.target).entries());
+      if(d.nieuw !== d.nieuw2) return fout('De nieuwe wachtwoorden zijn niet gelijk.');
+      try{
+        const {lijst, sha} = await leesGebruikers(S.sessie.token);
+        const ik = await AUTH.inloggen(lijst, d.email, d.oud).catch(() => null);
+        if(!ik || ik.id !== S.sessie.id) return fout('E-mailadres of huidig wachtwoord klopt niet.');
+        const oud = lijst.find(x => x.id === ik.id);
+        const g = await AUTH.maakGebruiker({naam:oud.naam, email:d.email, wachtwoord:d.nieuw, admin:oud.admin, token:S.sessie.token});
+        await schrijfGebruikers(S.sessie.token, lijst.map(x => x.id === g.id ? g : x), sha, `Wachtwoord van ${g.naam} gewijzigd door gebruiker`);
+        closeSheet(); toast('Wachtwoord gewijzigd');
+      }catch(err){ fout(err.message); }
+    };
+  });
 }
 async function gebruikerWeg(id){
   try{
@@ -1854,6 +1900,7 @@ const ACT = {
   beheerWeergaven: d => openSheet('Weergaven', `<div class="section">${S.weergaven.filter(w=>w.kopje===d.kopje).map(w=>`<div class="row-top"><span>${esc(w.naam)}</span><button class="btn small danger" data-act="verwijderWeergave" data-id="${w.id}">Verwijderen</button></div>`).join('')}</div>`),
   verwijderWeergave: d => veilig(() => db.collection('weergaven').doc(d.id).delete(), 'Verwijderd').then(closeSheet),
   export: d => exportSheet(d.kopje),
+  wachtwoord: () => wachtwoordWijzigen(),
   uitloggen: () => { bewaar(SESSIE_KEY, null); location.reload(); },
   gebruikerWeg: d => { const g = S.beheer?.lijst.find(x => x.id === d.id); bevestig('Toegang intrekken', `${g?.naam||'Deze gebruiker'} kan daarna niet meer inloggen. Wil je zeker weten dat iemand er niet meer bij kan, maak dan ook een nieuwe GitHub-sleutel (zie README).`, 'Intrekken', () => gebruikerWeg(d.id)); },
   opnieuwInloggen: () => { S.login = {}; render(); }
