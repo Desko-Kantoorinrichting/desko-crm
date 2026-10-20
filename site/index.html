@@ -318,6 +318,8 @@ a{color:var(--accent)}
 .ev .head b{font-weight:650}
 .ev .head span{color:var(--faint);white-space:nowrap;font-size:.82rem}
 .ev p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.93rem}
+.ev-edit{border:0;background:none;color:var(--accent);font:inherit;font-size:.8rem;font-weight:650;cursor:pointer;padding:4px 0 4px 10px;text-decoration:underline;text-underline-offset:2px}
+.ev .bewerkt{color:var(--faint);font-size:.75rem}
 .ev.sys p{color:var(--muted);font-size:.86rem}
 .deal{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--line)}
 .deal:first-of-type{border-top:0;padding-top:0}
@@ -937,8 +939,9 @@ function detailView(b){
         const t = ACT_TYPES[a.type] || ACT_TYPES.notitie;
         const kop = a.type==='bel' ? `Telefoon · ${a.uitkomst||''}` : t.naam;
         return `<div class="ev t-${esc(a.type)} ${a.type==='systeem'?'sys':''}"><span class="ico">${ic(ACT_ICON[a.type]||'note')}</span><div class="body">
-          <div class="head"><b>${esc(kop)}${a.contactNaam?' · '+esc(a.contactNaam):''}</b><span>${esc(fmtTijd(a.datum))}</span></div>
-          ${a.tekst?`<p>${esc(a.tekst)}</p>`:''}${a.afspraakOp?`<p>Gepland: ${esc(fmtTijd(a.afspraakOp))}</p><span class="btns"><button class="btn small" data-act="ics" data-id="${b.id}" data-akt="${a.id}">${ic('calendar','sm')}Zet in agenda</button></span>`:''}</div></div>`;
+          <div class="head"><b>${esc(kop)}${a.contactNaam?' · '+esc(a.contactNaam):''}</b><span>${esc(fmtTijd(a.datum))}<button class="ev-edit" data-act="actBewerk" data-akt="${a.id}" aria-label="${esc(kop)} aanpassen">Aanpassen</button></span></div>
+          ${a.tekst?`<p>${esc(a.tekst)}</p>`:''}${a.afspraakOp?`<p>Gepland: ${esc(fmtTijd(a.afspraakOp))}</p><span class="btns"><button class="btn small" data-act="ics" data-id="${b.id}" data-akt="${a.id}">${ic('calendar','sm')}Zet in agenda</button></span>`:''}
+          ${a.bewerkt?`<small class="bewerkt">Aangepast${a.bewerktDoor?' door '+esc(a.bewerktDoor):''} op ${esc(fmtTijd(a.bewerkt))}</small>`:''}</div></div>`;
       }).join('')}</div>` : `<p class="sub">Nog niets vastgelegd. Begin met een bezoek of telefoontje.</p>`}
     </section>`;
   return `<div class="wrap">
@@ -1195,6 +1198,36 @@ function contactForm(b, ci){
   });
 }
 
+/* Een regel in de tijdlijn achteraf aanpassen of verwijderen. */
+function actBewerk(b, a){
+  const soorten = Object.entries(ACT_TYPES).filter(([k]) => k!=='systeem' || a.type==='systeem');
+  const namen = [...new Set([...(b.contacten||[]).map(c => c.naam), a.contactNaam].filter(Boolean))];
+  openSheet('Tijdlijn aanpassen', `<form id="ab" class="section">
+    ${a.type==='systeem' ? '' : `<label class="f"><span>Soort</span><select name="type" id="ab-type">${soorten.map(([k,t]) => `<option value="${k}" ${k===a.type?'selected':''}>${esc(t.naam)}</option>`).join('')}</select></label>
+    <div class="f" id="ab-bel" ${a.type==='bel'?'':'hidden'}><span>Uitkomst</span><div class="seg"><label><input type="radio" name="uitkomst" value="gesproken" ${a.uitkomst!=='niet opgenomen'?'checked':''}><span>Gesproken</span></label><label><input type="radio" name="uitkomst" value="niet opgenomen" ${a.uitkomst==='niet opgenomen'?'checked':''}><span>Niet opgenomen</span></label></div></div>
+    <label class="f"><span>Wanneer</span><input name="datum" type="datetime-local" value="${localDT(new Date(a.datum))}" required></label>
+    <label class="f" id="ab-afspraak" ${a.type==='afspraak'?'':'hidden'}><span>Datum en tijd van de afspraak</span><input name="afspraakOp" type="datetime-local" value="${a.afspraakOp ? localDT(new Date(a.afspraakOp)) : ''}"></label>
+    ${namen.length ? `<label class="f"><span>Contactpersoon</span><select name="contactNaam"><option value="">Geen</option>${namen.map(n => `<option ${n===a.contactNaam?'selected':''}>${esc(n)}</option>`).join('')}</select></label>` : ''}`}
+    <label class="f"><span>Tekst</span><textarea name="tekst" id="ab-tekst">${esc(a.tekst||'')}</textarea></label>
+    <div class="sheet-actions"><button type="button" class="btn danger" id="ab-weg">Verwijderen</button><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
+  </form>`, s => {
+    const type = s.querySelector('#ab-type');
+    if(type) type.onchange = () => { s.querySelector('#ab-bel').hidden = type.value!=='bel'; s.querySelector('#ab-afspraak').hidden = type.value!=='afspraak'; };
+    s.querySelector('#ab-weg').onclick = () => bevestig('Uit tijdlijn verwijderen', 'Deze regel verdwijnt uit de tijdlijn. Opvolgingen en mails blijven zoals ze zijn.', 'Verwijderen',
+      () => veilig(() => db.collection('activiteiten').doc(a.id).delete(), 'Verwijderd'));
+    s.querySelector('#ab').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target);
+      const patch = {tekst:d.tekst.trim(), bewerkt:new Date().toISOString(), bewerktDoor:S.gebruiker?.naam || ''};
+      if(a.type!=='systeem'){
+        Object.assign(patch, {type:d.type, datum:new Date(d.datum).toISOString(), contactNaam:d.contactNaam ?? a.contactNaam ?? ''});
+        patch.uitkomst = d.type==='bel' ? d.uitkomst : null;
+        patch.afspraakOp = d.type==='afspraak' && d.afspraakOp ? new Date(d.afspraakOp).toISOString() : null;
+      }
+      if(await veilig(() => db.collection('activiteiten').doc(a.id).update(patch), 'Aangepast')) closeSheet();
+    };
+  });
+}
+
 function actForm(b, type, ci){
   const t = ACT_TYPES[type];
   const reeksMogelijk = type==='bezoek' && b.kopje!=='klant';
@@ -1208,6 +1241,7 @@ function actForm(b, type, ci){
       <p class="hint">Een nieuwe contactpersoon wordt meteen de persoon voor de opvolging.</p></div></details>` : ''}
     ${type==='afspraak' ? `<label class="f"><span>Datum en tijd van de afspraak</span><input id="af-op" name="afspraakOp" type="datetime-local" value="${localDT(new Date(Date.now()+86400000))}"></label>` : ''}
     <label class="f"><span>${type==='bezoek'?'Uitkomst':'Opmerking'}</span><textarea id="af-tekst" name="tekst" placeholder="${esc(placeholders[type]||'')}"></textarea></label>
+    <details><summary class="sub" style="cursor:pointer">Was het eerder? Datum aanpassen</summary><label class="f" style="padding-top:8px"><span>Wanneer</span><input id="af-wanneer" name="wanneer" type="datetime-local" value="${localDT()}" max="${localDT()}"></label></details>
     ${type==='bezoek' ? tagField(b.tags||[]) : ''}
     ${type==='bezoek' ? reeksKeuze(b, 'af') : planVelden({id:'af', metGeen:true, titel:'Volgende stap'})}
     ${reeksMogelijk ? `<label class="check"><input type="checkbox" id="af-reeks" name="reeks" checked><span>Opvolging starten</span></label>` : ''}
@@ -1232,6 +1266,7 @@ function actForm(b, type, ci){
         }
         const c = contactVan(bb, idx);
         const a = {type, tekst:d.tekst.trim(), contactNaam:c?.naam||''};
+        if(d.wanneer && d.wanneer < localDT()) a.datum = new Date(d.wanneer).toISOString();
         if(type==='afspraak' && d.afspraakOp){ a.afspraakOp = new Date(d.afspraakOp).toISOString(); afspraak = a; }
         await verwerkActiviteit(bb, a, {startReeks: !!d.reeks && !!c, contact: idx});
         const plan = type!=='bezoek' ? leesPlan(d) : null;
@@ -2705,6 +2740,7 @@ const ACT = {
   kiesAlles: d => { const lijst = gefilterd(d.kopje); V.selectie.ids = V.selectie.ids.size===lijst.length ? new Set() : new Set(lijst.map(b => b.id)); render(); },
   bulk: d => bulkSheet(d.doe),
   ics: d => { const b = bedrijf(d.id), a = acts.find(x => x.id===d.akt); if(b && a) bewaarIcs(b, a); },
+  actBewerk: d => { const a = acts.find(x => x.id===d.akt), b = bedrijf(V.detail); if(a && b) actBewerk(b, a); },
   snel: () => snelMenu(),
   snelKies: d => kiesBedrijf(d.doel),
   snelDoel: d => { const b = bedrijf(d.id); closeSheet(); if(d.doel==='bezoek') actForm(b, 'bezoek'); else if(d.doel==='bel') belSheet(b); else planActie(b); },
