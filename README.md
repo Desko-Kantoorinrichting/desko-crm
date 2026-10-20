@@ -67,6 +67,6 @@ De robot verstuurt alleen op werkdagen binnen kantoortijd, controleert vlak voor
 | `site/config.js` | Welke repositories worden gebruikt |
 | `site/reeks.js` | Gedeelde logica: werkdagen, mailreeksen, inplannen (app en mailrobot) |
 | `scripts/mailrobot.mjs` | Mailrobot: verstuurt ingeplande mails, herkent antwoorden |
-| `tests/` | Tests voor de mailrobot: `node --test tests/` |
+| `tests/` | Tests voor de mailrobot: `node --test tests/*.mjs` |
 | `.github/workflows/pages.yml` | Automatisch publiceren |
 | `.github/workflows/mailrobot.yml` | Mailrobot elk kwartier op werkdagen |
