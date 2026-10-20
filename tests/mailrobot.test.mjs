@@ -8,8 +8,8 @@ const R = createRequire(import.meta.url)('../site/reeks.js');
 
 const INST = {algemeen:{
   mailreeksen:[{id:'koud', naam:'Koude acquisitie', tag:'door to door', stappen:[{sjabloon:'koud-1', werkdagenNa:1},{sjabloon:'koud-2', dagenNa:7}]}],
-  sjablonen:[{id:'koud-1', kopje:'prospect', naam:'1', onderwerp:'Je collega wees me jouw kant op', tekst:'Hi {voornaam},\nGroet,\n{mijnnaam}'},
-             {id:'koud-2', kopje:'prospect', naam:'2', onderwerp:'Re: Je collega wees me jouw kant op', tekst:'Hi {voornaam}, nog even...'}]}};
+  sjablonen:[{id:'koud-1', kopje:'prospect', naam:'1', onderwerp:'Testonderwerp', tekst:'Hi {voornaam},\nGroet,\n{mijnnaam}'},
+             {id:'koud-2', kopje:'prospect', naam:'2', onderwerp:'Re: Testonderwerp', tekst:'Hi {voornaam}, nog even...'}]}};
 const ENV = {DATA_REPO:'o/data', DATA_TOKEN:'t', MS_TENANT_ID:'x', MS_CLIENT_ID:'x', MS_CLIENT_SECRET:'x', MS_AFZENDER:'ferry@desko.nl'};
 
 function wereld({bedrijf = {}, mail = {}, acts = {}, inbox = []} = {}){
@@ -17,7 +17,7 @@ function wereld({bedrijf = {}, mail = {}, acts = {}, inbox = []} = {}){
     contacten:[{naam:'Aukje de Vries', email:'aukje@hoek.nl'}],
     opvolging:{actief:true, stap:'mail', reeks:'koud', contact:0, pogingen:0, datum:'2026-10-21', gestart:'2026-10-20'}, ...bedrijf};
   const m = {status:'gepland', bedrijfId:'b1', bedrijf:b.naam, kopje:'prospect', reeks:'koud', stap:0, contact:0, aan:'Aukje de Vries',
-    email:'aukje@hoek.nl', onderwerp:'Je collega wees me jouw kant op', tekst:'Hi Aukje', datum:'2026-10-21', tijd:'09:30', afzender:'Ferry',
+    email:'aukje@hoek.nl', onderwerp:'Testonderwerp', tekst:'Hi Aukje', datum:'2026-10-21', tijd:'09:30', afzender:'Ferry',
     aangemaakt:'2026-10-20T12:00:00.000Z', ...mail};
   const files = {
     'data/instellingen.json': INST,
