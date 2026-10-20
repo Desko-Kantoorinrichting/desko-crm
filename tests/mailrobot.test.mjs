@@ -67,7 +67,7 @@ test('mail 1 gaat op tijd en mail 2 wordt een week later ingepland', async () =>
   assert.ok(w.acts().some(a => a.type === 'mail_uit'));
 });
 
-test('laatste mail verstuurd: daarna wacht op reactie en herinnering na 7 dagen', async () => {
+test('laatste mail verstuurd: daarna wacht op reactie en herinnering na 5 werkdagen', async () => {
   const w = wereld({mail:{stap:1, onderwerp:'Re: x', datum:'2026-10-28'}, bedrijf:{opvolging:{actief:true, stap:'mail', reeks:'koud', contact:0, pogingen:1, datum:'2026-10-28', gestart:'2026-10-20'}}});
   const t = await main(ENV, op('2026-10-28T09:00:00Z'));
   assert.equal(t.verstuurd, 1, JSON.stringify(t));

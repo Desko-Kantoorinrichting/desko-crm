@@ -45,9 +45,9 @@
   /* ---------- standaardinstellingen ---------- */
   const DEFAULT_INST = {
     termijnen: {
-      prospect:  {opvolgWerkdagen:2, geenReactieDagen:7, nietOpgenomenWerkdagen:2, maxPogingen:4},
-      commissie: {opvolgWerkdagen:2, geenReactieDagen:7, nietOpgenomenWerkdagen:2, maxPogingen:4, betaaltermijnDagen:30},
-      klant:     {opvolgWerkdagen:2, geenReactieDagen:7, nietOpgenomenWerkdagen:2, maxPogingen:4}
+      prospect:  {opvolgWerkdagen:2, geenReactieWerkdagen:5, nietOpgenomenWerkdagen:2, maxPogingen:4},
+      commissie: {opvolgWerkdagen:2, geenReactieWerkdagen:5, nietOpgenomenWerkdagen:2, maxPogingen:4, betaaltermijnDagen:30},
+      klant:     {opvolgWerkdagen:2, geenReactieWerkdagen:5, nietOpgenomenWerkdagen:2, maxPogingen:4}
     },
     kantoortijden: {van:'08:30', tot:'17:00', verzendtijd:'09:30'},
     regios: [
@@ -102,11 +102,11 @@
   /* Na het versturen van een (reeks)mail: nieuwe opvolging en eventueel de volgende mail. */
   function naVerzending(b, mail, inst, vandaag){
     const t = termijn(inst, b.kopje);
-    const o = Object.assign({}, b.opvolging, {actief:true, gepauzeerd:false, pogingen:((b.opvolging && b.opvolging.pogingen) || 0) + 1});
+    const o = Object.assign({}, b.opvolging, {actief:true, gepauzeerd:false, tijd:null, pogingen:((b.opvolging && b.opvolging.pogingen) || 0) + 1});
     const reeks = mail && mail.reeks ? (inst.mailreeksen || []).find(r => r.id === mail.reeks) : null;
     const volgende = reeks ? planMail(b, reeks, mail.stap + 1, vandaag, inst, mail.afzender, mail.contact) : null;
     if(volgende){ o.stap = 'mail'; o.datum = volgende.datum; }
-    else { o.stap = 'wacht'; o.datum = addDays(vandaag, t.geenReactieDagen); }
+    else { o.stap = 'wacht'; o.datum = addWerkdagen(vandaag, t.geenReactieWerkdagen ?? 5); }   // herinnering om op te volgen
     return {opvolging:o, volgende};
   }
   /* Is er sinds `sinds` (ISO) contact geweest waardoor er geen automatische mail meer mag? */

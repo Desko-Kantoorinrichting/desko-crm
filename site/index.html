@@ -524,7 +524,7 @@ const bedrijf = id => S.bedrijven.find(b => b.id===id);
 const T = b => S.inst.termijnen[b?.kopje] || S.inst.termijnen.prospect;
 const contactVan = (b,i) => (b.contacten||[])[i ?? 0] || null;
 const voornaam = c => (c?.naam||'').trim().split(/\s+/)[0] || '';
-function alleTags(){ const m = new Map(); S.bedrijven.forEach(b => (b.tags||[]).forEach(t => m.set(t.toLowerCase(), t))); m.set(COMMISSIE_TAG, COMMISSIE_TAG); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
+function alleTags(){ const m = new Map(); S.bedrijven.forEach(b => (b.tags||[]).forEach(t => m.set(t.toLowerCase(), t))); m.set(COMMISSIE_TAG, COMMISSIE_TAG); (S.inst?.mailreeksen || []).forEach(r => r.tag && m.set(r.tag.toLowerCase(), r.tag)); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
 function normTags(list){
   const bestaand = new Map(alleTags().map(t => [t.toLowerCase(), t]));
   const out = new Map();
@@ -558,7 +558,8 @@ function opvolgStatus(b){
     case 'terug':  label = due ? `${wie} nog niet bereikt. Nog een keer proberen?` : `${wie} niet bereikt, wacht op terugbellen`; knoppen = ['bel','mail']; break;
     default:       label = o.actie || 'Opvolgen'; knoppen = ['klaar'];
   }
-  return {label, due, datum:o.datum, knoppen, stap:o.gepauzeerd?'gepauzeerd':o.stap, pogingen:pog, max, gepauzeerd:!!o.gepauzeerd};
+  if(!o.gepauzeerd && !knoppen.includes('einde')) knoppen.push('uitstel');
+  return {label, due, datum:o.datum, tijd:o.tijd || (o.stap==='mail' ? geplandeMail(b)?.tijd : null) || null, knoppen, stap:o.gepauzeerd?'gepauzeerd':o.stap, pogingen:pog, max, gepauzeerd:!!o.gepauzeerd};
 }
 function dueTekst(datum){
   const d = diffDays(datum, today());
@@ -592,9 +593,9 @@ async function annuleerGepland(b, reden){
   }
 }
 async function naPoging(b, soort){
-  const o = {...clone(b.opvolging), gepauzeerd:false}, t = T(b);
+  const o = {...clone(b.opvolging), gepauzeerd:false, tijd:null}, t = T(b);
   o.pogingen = (o.pogingen||0) + 1;
-  if(soort==='mail'){ o.stap = 'wacht'; o.datum = addDays(today(), t.geenReactieDagen); }
+  if(soort==='mail'){ o.stap = 'wacht'; o.datum = addWerkdagen(today(), t.geenReactieWerkdagen ?? 5); }
   else { o.stap = 'terug'; o.datum = addWerkdagen(today(), t.nietOpgenomenWerkdagen); }
   await updBedrijf(b.id, {opvolging:o});
   await systeem(b, `Poging ${o.pogingen} van ${t.maxPogingen}. Volgende check: ${fmtDag(o.datum)}.`);
@@ -752,7 +753,8 @@ function taakKnoppen(b, s){
     bel:    `<button class="btn primary" data-act="bel" data-id="${id}" data-ci="${ci}">${ic('phone','sm')}Bellen</button>`,
     mail:   `<button class="btn" data-act="mailen" data-id="${id}" data-ci="${ci}">${ic('mail','sm')}Mailen</button>`,
     einde:  `<button class="btn primary" data-act="doorgaan" data-id="${id}">Doorgaan</button><button class="btn" data-act="later" data-id="${id}">Later opnieuw</button><button class="btn danger" data-act="verloren" data-id="${id}">Op verloren zetten</button>`,
-    klaar:  `<button class="btn primary" data-act="actieKlaar" data-id="${id}">${ic('check','sm')}Afgerond</button><button class="btn" data-act="snooze" data-id="${id}">Morgen</button><button class="btn" data-act="planActie" data-id="${id}">${ic('calendar','sm')}Verzetten</button>`,
+    klaar:  `<button class="btn primary" data-act="actieKlaar" data-id="${id}">${ic('check','sm')}Afgerond</button><button class="btn" data-act="planActie" data-id="${id}">${ic('calendar','sm')}Wijzigen</button>`,
+    uitstel:`<button class="btn" data-act="uitstellen" data-id="${id}">${ic('clock','sm')}Uitstellen</button>`,
     hervat: `<button class="btn primary" data-act="hervat" data-id="${id}">Hervatten</button>`,
     bekijkmail: (() => { const m = geplandeMail(b); return m ? `<button class="btn primary" data-act="mailen" data-id="${id}" data-mail="${m.id}">${ic('mail','sm')}Mailen</button><button class="btn" data-act="geplandeMail" data-mail="${m.id}">Tekst bekijken</button><button class="btn" data-act="bel" data-id="${id}" data-ci="${ci}">${ic('phone','sm')}Liever bellen</button>` : ''; })()
   }[k])).join('');
@@ -783,7 +785,7 @@ function vandaagView(){
       : `<button class="btn primary" data-act="dealStatus" data-deal="${t.d.id}" data-status="ontvangen">${ic('check','sm')}Ontvangen</button>`;
     return `<article class="task">
       <div class="task-head">${mono(t.b)}<div class="t">
-        <div class="top">${chipKopje(t.b.kopje)}<span class="due ${late?'late':''}">${ic('clock')}${esc(dueTekst(t.datum))}</span></div>
+        <div class="top">${chipKopje(t.b.kopje)}<span class="due ${late?'late':''}">${ic('clock')}${esc(dueTekst(t.datum))}${t.s?.tijd ? ' · ' + esc(t.s.tijd) : ''}</span></div>
         <h3><button data-act="open" data-id="${t.b.id}">${esc(t.b.naam)}</button></h3>
         <p class="what">${esc(t.soort==='opvolg' ? t.s.label : t.label)}</p></div></div>
       <div class="btns">${knoppen}</div></article>`;
@@ -880,7 +882,7 @@ function detailView(b){
       <p class="label">${ic(s.gepauzeerd?'pause':s.due?'bolt':'clock')}${esc(s.gepauzeerd?'Gepauzeerd':STAP_NAAM[b.opvolging.stap]||'Opvolging')}${b.opvolging.stap!=='actie'?` · poging ${s.pogingen} van ${s.max}`:''}</p>
       <p class="big">${esc(s.label)}</p>
       ${stappen}
-      <p class="sub">${s.gepauzeerd ? 'Er komen geen herinneringen tot je hervat.' : s.due ? 'Volgende actie: '+dueTekst(s.datum) : 'Volgende actie: '+fmtDag(s.datum)}</p>
+      <p class="sub">${s.gepauzeerd ? 'Er komen geen herinneringen tot je hervat.' : 'Volgende actie: '+(s.due ? dueTekst(s.datum) : fmtDag(s.datum))+(s.tijd ? ' om '+s.tijd : '')}</p>
       <div class="btns">${taakKnoppen(b,s)}${b.opvolging.stap!=='actie' && !s.gepauzeerd ? `<button class="btn ghost" data-act="pauzeer" data-id="${b.id}">${ic('pause','sm')}Pauzeren</button>`:''}${b.opvolging.stap!=='actie' ? `<button class="btn ghost" data-act="planActie" data-id="${b.id}">${ic('calendar','sm')}Zelf inplannen</button>` : ''}<button class="btn ghost" data-act="stopReeks" data-id="${b.id}">${ic('x','sm')}Stoppen</button></div>
     </section>`
     : `<section class="opvolg idle"><p class="label">${ic('clock')}Opvolging</p><p>Geen opvolging actief.</p>
@@ -962,7 +964,7 @@ function meerView(){
   const t = S.inst.termijnen;
   const veld = (k, key, label, suffix) => `<label class="f"><span>${label}</span><input type="number" min="0" id="t-${k}-${key}" name="${k}.${key}" value="${esc(t[k][key])}" inputmode="numeric"><span class="hint">${suffix}</span></label>`;
   const blok = k => `<fieldset class="card" style="margin:0"><legend class="eyebrow" style="padding:0 4px">${KOPJES[k].naam}</legend>
-    <div class="grid2">${veld(k,'opvolgWerkdagen','Eerste opvolging na','werkdagen na het bezoek')}${veld(k,'geenReactieDagen','Geen reactie na','dagen na een mail')}
+    <div class="grid2">${veld(k,'opvolgWerkdagen','Eerste opvolging na','werkdagen na het bezoek')}${veld(k,'geenReactieWerkdagen','Geen reactie na','werkdagen na een mail: herinnering om op te volgen')}
     ${veld(k,'nietOpgenomenWerkdagen','Niet opgenomen, opnieuw na','werkdagen')}${veld(k,'maxPogingen','Maximaal aantal pogingen','daarna kies je hoe verder')}
     ${k==='commissie'?veld(k,'betaaltermijnDagen','Betaaltermijn commissie','dagen na factureren'):''}</div></fieldset>`;
   // eenvoudige cijfers: conversie per tag
@@ -1061,7 +1063,7 @@ function bevestig(title, tekst, knop, fn){
 const formData = form => Object.fromEntries(new FormData(form).entries());
 
 function tagField(waarde){
-  return `<label class="f"><span>Tags</span><input id="tags-in" name="tags" value="${esc(waarde.join(', '))}" placeholder="bijv. door to door" autocomplete="off"><span class="hint">Scheid tags met een komma.</span></label><div class="sugg" id="tag-sugg"></div>`;
+  return `<label class="f"><span>Tags</span><input id="tags-in" name="tags" value="${esc(waarde.join(', '))}" placeholder="bijv. netwerk, deuren intrappen" autocomplete="off"><span class="hint">Scheid tags met een komma.</span></label><div class="sugg" id="tag-sugg"></div>`;
 }
 function mountTags(s){
   const inp = s.querySelector('#tags-in'), box = s.querySelector('#tag-sugg'); if(!inp) return;
@@ -1611,7 +1613,7 @@ function mailView(){
         <span class="cal"><span>${DAGEN[parse(m.datum).getDay()]}</span><b>${parse(m.datum).getDate()}</b></span>
         <span class="t"><span class="row-top"><b>${esc(m.onderwerp)}</b><span class="chip ${m.datum<=today()?'warn':''}">${m.datum<=today()?(robotActief()?'vandaag':'klaar'):esc(m.tijd||'09:30')}</span></span>
           <span class="meta">${esc(m.bedrijf)} · ${esc(m.aan)}${m.reeks?` · mail ${m.stap+1}`:''}</span></span>${ic('right')}</button>`).join('')}</div>`
-        : `<div class="empty">${ic('calendar')}<p>Geen ingeplande mails. Geef een prospect de tag #door to door of #netwerk en leg een bezoek vast, dan wordt de eerste mail ingepland.</p></div>`}
+        : `<div class="empty">${ic('calendar')}<p>Geen ingeplande mails. Geef een prospect de tag #deuren intrappen of #netwerk en leg een bezoek vast, dan wordt de eerste mail ingepland.</p></div>`}
     </section>
     <section class="section">
       <div class="section-title"><h2>Verstuurd en ontvangen</h2><span class="count num">${verstuurd.length}</span></div>
@@ -1687,6 +1689,7 @@ function planVelden({id='pl', wat='Bellen', datum=null, metGeen=false, titel=''}
     <div class="f"><span>Wanneer?</span>
       <div class="keuzes">${metGeen ? `<button type="button" class="keuze on" data-dag="">Niet plannen</button>` : ''}${opties.map(([l,d]) => `<button type="button" class="keuze ${d===gekozen ? 'on' : ''}" data-dag="${d}">${l}<small>${fmtDag(d)}</small></button>`).join('')}</div>
       <input id="${id}-datum" name="planDatum" type="date" value="${gekozen}" min="${today()}" aria-label="Of kies een datum"></div>
+    <label class="f"><span>Hoe laat? <small style="font-weight:500">(optioneel)</small></span><input id="${id}-tijd" name="planTijd" type="time" value=""></label>
   </div>`;
 }
 function mountPlan(s, id='pl'){
@@ -1701,11 +1704,11 @@ function mountPlan(s, id='pl'){
   actie.oninput = () => zet('[data-wat]', [...box.querySelectorAll('[data-wat]')].find(x => x.dataset.wat === actie.value));
   datum.onchange = () => zet('[data-dag]', [...box.querySelectorAll('[data-dag]')].find(x => x.dataset.dag === datum.value));
 }
-const leesPlan = d => d.planDatum ? {actie:(d.planActie||'').trim() || 'Opvolgen', datum:d.planDatum} : null;
+const leesPlan = d => d.planDatum ? {actie:(d.planActie||'').trim() || 'Opvolgen', datum:d.planDatum, tijd:d.planTijd || null} : null;
 async function slaPlanOp(b, plan, ci){
   if(S.mails.some(m => m.bedrijfId===b.id && m.status==='gepland')) await annuleerGepland(b, 'je plande zelf een opvolging');
-  await updBedrijf(b.id, {opvolging:{actief:true, stap:'actie', actie:plan.actie, datum:plan.datum, contact:ci ?? b.opvolging?.contact ?? 0, pogingen:0, gepauzeerd:false}});
-  await systeem(b, `Opvolging gepland op ${fmtDag(plan.datum)}: ${plan.actie}.`);
+  await updBedrijf(b.id, {opvolging:{actief:true, stap:'actie', actie:plan.actie, datum:plan.datum, tijd:plan.tijd || null, contact:ci ?? b.opvolging?.contact ?? 0, pogingen:0, gepauzeerd:false}});
+  await systeem(b, `Opvolging gepland op ${fmtDag(plan.datum)}${plan.tijd ? ' om '+plan.tijd : ''}: ${plan.actie}.`);
 }
 
 function planActie(b, {titel='Opvolging inplannen', metGeen=false} = {}){
@@ -1726,6 +1729,41 @@ function planActie(b, {titel='Opvolging inplannen', metGeen=false} = {}){
   });
 }
 /* Eén tik: actie een werkdag later. */
+/* Opvolging (en een ingeplande mail) uitstellen naar een dag en eventueel tijd naar keuze. */
+function uitstellen(b){
+  const o = b.opvolging; if(!o?.actief) return;
+  const m = o.stap==='mail' ? geplandeMail(b) : null;
+  const opties = [['Morgen', addWerkdagen(today(),1)], ['Over 2 dagen', addWerkdagen(today(),2)], ['Volgende week', REEKS.volgendeWerkdag(addDays(today(),7))], ['Over 2 weken', REEKS.volgendeWerkdag(addDays(today(),14))], ['Over een maand', REEKS.volgendeWerkdag(addDays(today(),30))]];
+  const tijden = ['09:00','11:00','13:30','15:30'];
+  const huidigeTijd = o.tijd || m?.tijd || '';
+  openSheet('Uitstellen', `<form id="us" class="section">
+    <p class="sub">${esc(b.naam)}${m ? ` · mail "${esc(m.onderwerp)}" schuift mee` : ''}</p>
+    <div class="f"><span>Naar wanneer?</span>
+      <div class="keuzes">${opties.map(([l,d],i) => `<button type="button" class="keuze ${i?'':'on'}" data-dag="${d}">${l}<small>${fmtDag(d)}</small></button>`).join('')}</div>
+      <input id="us-datum" name="datum" type="date" value="${opties[0][1]}" min="${today()}" required aria-label="Of kies een datum"></div>
+    <div class="f"><span>Hoe laat? <small style="font-weight:500">(optioneel)</small></span>
+      <div class="keuzes"><button type="button" class="keuze ${huidigeTijd?'':'on'}" data-tijd="">Hele dag</button>${tijden.map(t => `<button type="button" class="keuze ${t===huidigeTijd?'on':''}" data-tijd="${t}">${t}</button>`).join('')}</div>
+      <input id="us-tijd" name="tijd" type="time" value="${esc(huidigeTijd)}" aria-label="Of kies een tijd"></div>
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">${ic('clock','sm')}Uitstellen</button></div>
+  </form>`, s => {
+    const datum = s.querySelector('#us-datum'), tijd = s.querySelector('#us-tijd');
+    const zet = (sel, el) => s.querySelectorAll(sel).forEach(x => x.classList.toggle('on', x===el));
+    s.querySelectorAll('[data-dag]').forEach(k => k.onclick = () => { datum.value = k.dataset.dag; zet('[data-dag]', k); });
+    s.querySelectorAll('[data-tijd]').forEach(k => k.onclick = () => { tijd.value = k.dataset.tijd; zet('[data-tijd]', k); });
+    datum.onchange = () => zet('[data-dag]', [...s.querySelectorAll('[data-dag]')].find(x => x.dataset.dag===datum.value));
+    tijd.oninput = () => zet('[data-tijd]', [...s.querySelectorAll('[data-tijd]')].find(x => x.dataset.tijd===tijd.value));
+    s.querySelector('#us').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target); if(!d.datum) return;
+      const wanneer = fmtDag(d.datum) + (d.tijd ? ' om ' + d.tijd : '');
+      const ok = await veilig(async () => {
+        await updBedrijf(b.id, {opvolging:{...clone(o), datum:d.datum, tijd:d.tijd || null}});
+        if(m) await db.collection('mails').doc(m.id).update({datum:d.datum, ...(d.tijd ? {tijd:d.tijd} : {})});
+        await systeem(b, `Opvolging uitgesteld naar ${wanneer}.`);
+      }, `Uitgesteld naar ${wanneer}`);
+      if(ok) closeSheet();
+    };
+  });
+}
 async function snooze(b){
   const o = b.opvolging; if(!o?.actief) return;
   const nieuw = addWerkdagen(o.datum > today() ? o.datum : today(), 1);
@@ -2385,7 +2423,7 @@ function agendaItems(){
     if(s.stap==='mail' && geplandeMail(b)) return;   // de mail zelf staat al in de agenda
     const o = b.opvolging, c = contactVan(b, o.contact);
     const wat = o.stap==='actie' ? (o.actie || 'Opvolgen') : s.max && s.pogingen >= s.max && s.due ? 'Beslissen hoe verder' : STAP_NAAM[o.stap] || 'Opvolgen';
-    uit.push({soort:'opvolg', datum:o.datum, b, titel:wat, wie:c?.naam || ''});
+    uit.push({soort:'opvolg', datum:o.datum, tijd:o.tijd || null, b, titel:wat, wie:c?.naam || ''});
   });
   S.mails.filter(m => m.status==='gepland').forEach(m => { const b = bedrijf(m.bedrijfId); if(b) uit.push({soort:'mail', datum:m.datum, tijd:m.tijd||'09:30', b, titel:`Mail${m.reeks ? ' '+(m.stap+1) : ''}: ${m.onderwerp}`, wie:m.aan, m}); });
   (alleActs || []).filter(a => a.type==='afspraak' && a.afspraakOp).forEach(a => { const b = bedrijf(a.bedrijfId); if(b) uit.push({soort:'afspraak', datum:ds(new Date(a.afspraakOp)), tijd:hhmm(a.afspraakOp), b, titel:a.tekst || 'Afspraak', wie:a.contactNaam || '', a}); });
@@ -2714,6 +2752,7 @@ const ACT = {
       planActie(bedrijf(d.id) || b, {titel:'Afgerond. Volgende stap?', metGeen:true});
   },
   snooze: d => snooze(bedrijf(d.id)),
+  uitstellen: d => uitstellen(bedrijf(d.id)),
   scan: () => { closeSheet(); scanKaartje(); },
   dashExport: () => dashExport(),
   dashVernieuw: () => laadAlleActiviteiten(true),
