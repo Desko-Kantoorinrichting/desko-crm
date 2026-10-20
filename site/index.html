@@ -187,6 +187,44 @@ a{color:var(--accent)}
 .row .next .ic{width:14px;height:14px}
 .row > .ic{color:var(--faint)}
 .row.static{cursor:default;grid-template-columns:1fr auto}
+.row.gekozen{background:var(--accent-soft)}
+.vinkje{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;margin:0 8px}
+.row.gekozen .vinkje{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.bulkbalk{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--ink);color:var(--surface);padding:10px 12px;border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.bulkbalk > span{margin-right:auto}
+.bulkbalk .btn:not(.primary){background:transparent;color:var(--surface);border-color:color-mix(in srgb,var(--surface) 35%,transparent)}
+@media (min-width:960px){.bulkbalk{bottom:20px}}
+.heroknop{background:rgba(255,255,255,.1)!important;color:var(--brand-ink)!important;border-color:rgba(255,255,255,.18)!important}
+.heroknop:hover{background:rgba(255,255,255,.18)!important}
+.tegels{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.tegel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow)}
+.tegel b{font-family:var(--font-display);font-size:1.7rem;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
+.tegel span{font-size:.8rem;color:var(--muted)}
+.grafiek{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;gap:8px 10px;align-items:center;font-size:.9rem}
+.grafiek .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.grafiek .baan{height:12px;background:var(--sunk);border-radius:0 4px 4px 0;position:relative}
+.grafiek .staaf{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
+.grafiek .w{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.84rem;text-align:right;white-space:nowrap}
+.grafiek .rij{display:contents}
+.grafiek .rij:hover .staaf{filter:brightness(1.15)}
+.kolommen{display:flex;align-items:flex-end;gap:3px;height:110px;padding-top:16px;border-bottom:1px solid var(--line);position:relative}
+.kolommen .k{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;position:relative}
+.kolommen .k i{display:block;width:100%;max-width:26px;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px}
+.kolommen .k:hover i{filter:brightness(1.15)}
+.kolommen .k.leeg i{background:var(--line)}
+.kolommen .k em{position:absolute;bottom:calc(100% - 14px);font-style:normal;font-size:.7rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.kolom-labels{display:flex;gap:3px;font-size:.68rem;color:var(--muted);margin-top:4px}
+.kolom-labels span{flex:1;min-width:0;text-align:center;overflow:visible;white-space:nowrap}
+.multiples{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.multiples .card h3{font-size:.95rem;display:flex;justify-content:space-between;align-items:baseline}
+.multiples .card h3 span{font-family:var(--font-body);font-size:.85rem;color:var(--muted);font-weight:600}
+.held{font-family:var(--font-display);font-size:2.4rem;font-weight:800;line-height:1}
+.balk-filters{display:flex;flex-wrap:wrap;gap:8px}
+.balk-filters select{height:38px;border-radius:999px;border:1px solid var(--line);background:var(--surface);padding:0 12px;font-weight:600}
+.afstand{font-family:var(--font-display);font-weight:800;font-size:1.05rem;min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
+.afstand small{display:block;font-family:var(--font-body);font-weight:600;font-size:.7rem;color:var(--muted)}
+.dubbel{background:var(--warn-soft);color:var(--ink);border-radius:12px;padding:10px 12px;font-size:.9rem;display:flex;flex-direction:column;gap:6px}
+.dubbel button{all:unset;cursor:pointer;color:var(--warn);font-weight:700;text-decoration:underline}
 .row.static:hover{background:transparent}
 @media (max-width:440px){.row .lbl{display:none}.row .btn.small{padding:0 10px}}
 .row .meta.wrap{white-space:normal}
@@ -593,7 +631,7 @@ function filterDefs(kopje){
   defs.push({k:'tag', naam:'Tag', opts:uniq(bs.flatMap(b=>b.tags||[])).map(x=>[x,x])});
   if(kopje==='prospect' || kopje==='alle') defs.push({k:'status', naam:'Status', opts:STATUSSEN.map(x=>[x,x])});
   defs.push({k:'stap', naam:'Opvolging', opts:[['geen','Geen opvolging'],['eerste','Eerste opvolging'],['wacht','Wacht op reactie'],['terug','Niet opgenomen'],['actie','Geplande actie'],['gepauzeerd','Gepauzeerd'],['nu','Nu te doen']]});
-  defs.push({k:'contact', naam:'Laatste contact', opts:[['30','Minder dan 30 dagen'],['30-90','30 tot 90 dagen'],['90','Meer dan 90 dagen'],['nooit','Nog nooit']]});
+  defs.push({k:'contact', naam:'Laatste contact', opts:[['30','Minder dan 30 dagen'],['30-90','30 tot 90 dagen'],['90','Meer dan 90 dagen'],['nooit','Nog nooit'],['stil','Al lang niets van gehoord']]});
   if(kopje==='commissie') defs.push({k:'dealstatus', naam:'Commissiestatus', opts:DEALSTATUS.map(x=>[x,x])});
   return defs;
 }
@@ -611,6 +649,7 @@ function matches(b, f, zoek){
   }
   if(f.contact){
     const lc = b.laatsteContact, d = lc ? diffDays(lc, today()) : null;
+    if(f.contact==='stil' && !isStil(b)) return false;
     if(f.contact==='nooit' && lc) return false;
     if(f.contact==='30' && !(lc && d<30)) return false;
     if(f.contact==='30-90' && !(lc && d>=30 && d<=90)) return false;
@@ -653,7 +692,11 @@ const ICONS = {
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   star:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/>',
   bolt:'<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>', pause:'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
-  dot:'<circle cx="12" cy="12" r="3"/>'
+  dot:'<circle cx="12" cy="12" r="3"/>',
+  bars:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.5"/>',
+  route:'<circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>'
 };
 const ic = (n, cls='') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`;
 const LOGO = `<span class="brand"><img class="logo" src="logo-wit.png" alt="Desko"><span class="tag">CRM</span></span>`;
@@ -679,6 +722,14 @@ function taakKnoppen(b, s){
   }[k])).join('');
 }
 
+/* Geen opvolging gepland en al 60 dagen geen contact (of 14 dagen na toevoegen nog nooit). */
+const STIL_DAGEN = 60;
+function isStil(b){
+  if(opvolgStatus(b) || b.status==='verloren') return false;
+  if(b.laatsteContact) return diffDays(b.laatsteContact, today()) >= STIL_DAGEN;
+  return !!b.aangemaakt && diffDays(b.aangemaakt.slice(0,10), today()) >= 14;
+}
+
 function vandaagView(){
   const taken = [];
   S.bedrijven.forEach(b => { const s = opvolgStatus(b); if(s) taken.push({soort:'opvolg', b, s, datum:s.datum}); });
@@ -688,6 +739,7 @@ function vandaagView(){
   const n = k => S.bedrijven.filter(b => b.kopje===k).length;
   const d = new Date();
   const voor = (S.gebruiker?.naam||'').split(' ')[0];
+  const stil = S.bedrijven.filter(isStil).sort((a,b) => (a.laatsteContact||a.aangemaakt||'').localeCompare(b.laatsteContact||b.aangemaakt||''));
   const kaart = t => {
     const late = diffDays(t.datum, today()) > 0;
     const knoppen = t.soort==='opvolg' ? taakKnoppen(t.b, t.s)
@@ -709,13 +761,21 @@ function vandaagView(){
         <button class="stat" data-act="tab" data-tab="klant"><b class="num">${n('klant')}</b><span>${ic('building')}Klanten</span></button>
         <button class="stat" data-act="tab" data-tab="prospect"><b class="num">${n('prospect')}</b><span>${ic('target')}Prospects</span></button>
         <button class="stat" data-act="tab" data-tab="commissie"><b class="num">${n('commissie')}</b><span>${ic('euro')}Commissie</span></button>
-      </div></div></div>
+      </div>
+      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
+      </div></div>
     <section class="section">
       <div class="section-title"><h2>Vandaag opvolgen</h2><span class="count num">${nu.length}</span></div>
       ${nu.length ? `<div class="tasks">${nu.map(kaart).join('')}</div>` : `<div class="empty">${ic('check')}<p>Niets openstaand. Leg een bezoek vast om een opvolging te starten.</p><button class="btn primary" data-act="nieuw">${ic('plus','sm')}Nieuw bedrijf</button></div>`}
     </section>
     ${straks.length ? `<section class="section"><div class="section-title"><h2>Komende 7 dagen</h2><span class="count num">${straks.length}</span></div>
       <div class="soon">${straks.map(t => { const dd = parse(t.datum); return `<button data-act="open" data-id="${t.b.id}"><span class="cal"><span>${DAGEN[dd.getDay()]}</span><b>${dd.getDate()}</b></span><span class="t"><b>${esc(t.b.naam)}</b><span>${esc(t.s.label)}</span></span>${ic('right')}</button>`; }).join('')}</div></section>` : ''}
+    ${stil.length ? `<section class="section"><div class="section-title"><h2>Al lang niets van gehoord</h2><span class="count num">${stil.length}</span></div>
+      <p class="hint">Geen opvolging gepland en ${STIL_DAGEN} dagen of langer geen contact.</p>
+      <div class="rows">${stil.slice(0,5).map(b => `<div class="row static" style="grid-template-columns:auto 1fr auto">${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
+        <span class="meta">${b.laatsteContact ? 'Laatste contact '+esc(fmtDag(b.laatsteContact))+' ('+diffDays(b.laatsteContact, today())+' dagen)' : 'Nog nooit contact gehad'}</span></span>
+        <span class="btns" style="flex-wrap:nowrap"><button class="btn small" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button><button class="btn small primary" data-act="planActie" data-id="${b.id}">${ic('calendar','sm')}<span class="lbl">Inplannen</span></button></span></div>`).join('')}</div>
+      ${stil.length > 5 ? `<button class="btn small ghost" data-act="toonStil">Alle ${stil.length} bekijken</button>` : ''}</section>` : ''}
   </div>`;
 }
 
@@ -729,12 +789,14 @@ function lijstView(kopje){
     const ids = new Set(lijst.map(b=>b.id)), t = commissieTotalen(S.deals.filter(d=>ids.has(d.bedrijfId)));
     geld = `<div class="money"><div><span>Verwacht</span><b>${euro(t.verwacht)}</b></div><div><span>Verdiend</span><b>${euro(t.verdiend)}</b></div><div><span>Gefactureerd</span><b>${euro(t.gefactureerd)}</b></div><div><span>Ontvangen</span><b>${euro(t.ontvangen)}</b></div></div>`;
   }
+  const kiezen = V.selectie?.kopje === kopje;
   const rij = b => {
     const s = opvolgStatus(b);
+    const gekozen = kiezen && V.selectie.ids.has(b.id);
     const extra = b.kopje==='prospect' ? `<span class="chip ${b.status==='verloren'?'warn':''}">${esc(b.status||'nieuw')}</span>` : kopje==='alle' ? chipKopje(b.kopje) : '';
     const c = contactVan(b,0);
-    return `<button class="row" data-act="open" data-id="${b.id}">
-      ${mono(b)}
+    return `<button class="row ${gekozen?'gekozen':''}" data-act="${kiezen?'kies':'open'}" data-id="${b.id}" ${kiezen?`aria-pressed="${gekozen}"`:''}>
+      ${kiezen ? `<span class="vinkje" aria-hidden="true">${gekozen?ic('check','sm'):''}</span>` : mono(b)}
       <span class="t">
         <span class="row-top"><b>${esc(b.naam)}</b>${extra}</span>
         <span class="meta">${esc([c?.naam, b.plaats, b.grootte && b.grootte+' mw', b.branche].filter(Boolean).join(' · ') || 'Nog geen gegevens')}</span>
@@ -758,7 +820,15 @@ function lijstView(kopje){
         ${views.length?`<button class="btn small ghost" data-act="beheerWeergaven" data-kopje="${kopje}">Weergaven beheren</button>`:''}
       </div></div>` : ''}
     ${geld}
-    <div class="listbar"><span class="sub num">${lijst.length} ${lijst.length===1?'bedrijf':'bedrijven'}${aantalF?' gefilterd':''}</span><button class="btn small ghost" data-act="export" data-kopje="${kopje}">${ic('download','sm')}Exporteren</button></div>
+    <div class="listbar"><span class="sub num">${lijst.length} ${lijst.length===1?'bedrijf':'bedrijven'}${aantalF?' gefilterd':''}</span><span class="btns"><button class="btn small ${kiezen?'on':'ghost'}" data-act="selecteer" data-kopje="${kopje}">${ic('check','sm')}${kiezen?'Klaar met selecteren':'Selecteren'}</button><button class="btn small ghost" data-act="export" data-kopje="${kopje}">${ic('download','sm')}Exporteren</button></span></div>
+    ${kiezen ? `<div class="bulkbalk" role="toolbar" aria-label="Acties voor selectie">
+      <span class="num"><b>${V.selectie.ids.size}</b> gekozen</span>
+      <button class="btn small" data-act="kiesAlles" data-kopje="${kopje}">${V.selectie.ids.size===lijst.length && lijst.length?'Niets':'Alles'}</button>
+      <button class="btn small primary" data-act="bulk" data-doe="plan" ${V.selectie.ids.size?'':'disabled'}>${ic('calendar','sm')}Opvolging</button>
+      <button class="btn small" data-act="bulk" data-doe="tag" ${V.selectie.ids.size?'':'disabled'}>#&nbsp;Tag</button>
+      ${kopje==='prospect' && (S.inst.mailreeksen||[]).length ? `<button class="btn small" data-act="bulk" data-doe="reeks" ${V.selectie.ids.size?'':'disabled'}>${ic('mail','sm')}Mailreeks</button>` : ''}
+      <button class="btn small" data-act="bulk" data-doe="verplaats" ${V.selectie.ids.size?'':'disabled'}>Verplaatsen</button>
+    </div>` : ''}
     ${lijst.length ? `<div class="rows">${lijst.map(rij).join('')}</div>` :
       `<div class="empty">${ic(KOPJE_ICON[kopje]||'search')}<p>${S.bedrijven.some(b=>kopje==='alle'||b.kopje===kopje) ? 'Geen bedrijven gevonden met deze zoekopdracht of filters.' : `Nog geen ${titel.toLowerCase()}.`}</p>${kopje!=='alle'?`<button class="btn primary" data-act="nieuw" data-kopje="${kopje}">${ic('plus','sm')}${KOPJES[kopje].enk} toevoegen</button>`:''}</div>`}
   </div>`;
@@ -833,7 +903,7 @@ function detailView(b){
         const kop = a.type==='bel' ? `Telefoon · ${a.uitkomst||''}` : t.naam;
         return `<div class="ev t-${esc(a.type)} ${a.type==='systeem'?'sys':''}"><span class="ico">${ic(ACT_ICON[a.type]||'note')}</span><div class="body">
           <div class="head"><b>${esc(kop)}${a.contactNaam?' · '+esc(a.contactNaam):''}</b><span>${esc(fmtTijd(a.datum))}</span></div>
-          ${a.tekst?`<p>${esc(a.tekst)}</p>`:''}${a.afspraakOp?`<p>Gepland: ${esc(fmtTijd(a.afspraakOp))}</p>`:''}</div></div>`;
+          ${a.tekst?`<p>${esc(a.tekst)}</p>`:''}${a.afspraakOp?`<p>Gepland: ${esc(fmtTijd(a.afspraakOp))}</p><span class="btns"><button class="btn small" data-act="ics" data-id="${b.id}" data-akt="${a.id}">${ic('calendar','sm')}Zet in agenda</button></span>`:''}</div></div>`;
       }).join('')}</div>` : `<p class="sub">Nog niets vastgelegd. Begin met een bezoek of telefoontje.</p>`}
     </section>`;
   return `<div class="wrap">
@@ -864,7 +934,7 @@ function meerView(){
   }));
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Instellingen en overzicht</p><h1>Meer</h1></header>
-    <div class="btns"><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
+    <div class="btns"><button class="btn primary" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
     <section class="section"><div class="section-title"><h2>Conversie per tag</h2></div>
       ${perTag.size ? `<div class="card scroll-x"><table class="mini"><thead><tr><th>Tag</th><th class="r">Prospects</th><th class="r">Klant geworden</th><th class="r">Conversie</th></tr></thead><tbody>
       ${[...perTag.entries()].sort((a,b)=>b[1].tot-a[1].tot).map(([tag,r])=>`<tr><td>${esc(tag)}</td><td class="r">${r.tot}</td><td class="r">${r.klant}</td><td class="r">${Math.round(r.klant/r.tot*100)}%</td></tr>`).join('')}
@@ -905,11 +975,13 @@ function render(){
   else if(V.tab==='vandaag') html = vandaagView();
   else if(V.tab==='meer') html = meerView();
   else if(V.tab==='mail') html = mailView();
+  else if(V.tab==='cijfers') html = cijfersView();
+  else if(V.tab==='buurt') html = buurtView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length + commissieTaken().length;
   const tabs = [['vandaag','sun','Vandaag'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
-  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&V.tab==='alle')) : (k===V.terugNaar);
+  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt')) : (k===V.terugNaar);
   $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
   const ini = esc(initialen(S.gebruiker?.naam||''));
@@ -918,11 +990,12 @@ function render(){
   $('#topbar').innerHTML = `<div class="in">${LOGO}${ingelogd?`<button class="avatar" data-act="tab" data-tab="meer" aria-label="Account en instellingen">${ini}</button>`:''}</div>`;
   $('#topbar').hidden = !ingelogd || S.laden;
   $('#fab').innerHTML = `${ic('plus')}Nieuw`;
-  $('#fab').hidden = S.laden || !ingelogd || !!V.detail || V.tab==='meer' || V.tab==='mail';
+  $('#fab').hidden = S.laden || !ingelogd || !!V.detail || ['meer','mail','cijfers'].includes(V.tab);
   $('nav.tabs').hidden = !ingelogd;
   if(id){ const el = document.getElementById(id); if(el && el!==document.activeElement){ el.focus(); try{ if(pos!=null) el.setSelectionRange(pos,pos); }catch{} } }
   const form = $('#inst-form'); if(form) form.onsubmit = bewaarInstellingen;
   const lf = $('#login-form'); if(lf) lf.onsubmit = inloggen;
+  const bf2 = $('#buurt-form'); if(bf2) bf2.onsubmit = buurtZoek;
   const sf = $('#setup-form'); if(sf) sf.onsubmit = eersteKeer;
   const bf = $('#gebruiker-form'); if(bf) bf.onsubmit = gebruikerToevoegen;
 }
@@ -969,12 +1042,27 @@ function contactSelect(b, ci, id='ci'){
   return `<label class="f"><span>Contactpersoon</span><select id="${id}" name="ci">${cs.map((c,i)=>`<option value="${i}" ${String(i)===String(ci??0)?'selected':''}>${esc(c.naam)}${c.functie?' – '+esc(c.functie):''}</option>`).join('')}</select></label>`;
 }
 
-function bedrijfForm(b, kopje){
-  const nieuw = !b; b = b || {kopje: kopje || 'prospect', status:'nieuw', tags:[]};
+/* Bestaande bedrijven die op een nieuw bedrijf lijken (naam of e-maildomein). */
+const VRIJE_DOMEINEN = /^(gmail|hotmail|outlook|live|yahoo|icloud|me|kpnmail|ziggo|planet|xs4all|home|casema|upcmail|telfort|online)\./i;
+const naamKern = n => String(n||'').toLowerCase().replace(/\b(b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|holding|groep|group|de|het|en|the)\b/g,'').replace(/[^a-z0-9]/g,'');
+function mogelijkDubbel(naam, email){
+  const k = naamKern(naam), mail = String(email||'').trim().toLowerCase(), dom = mail.split('@')[1] || '';
+  return S.bedrijven.filter(b => {
+    const bk = naamKern(b.naam);
+    if(k.length >= 4 && bk && (bk.includes(k) || k.includes(bk))) return true;
+    return mail && (b.contacten||[]).some(c => { const e = (c.email||'').toLowerCase(); return e && (e===mail || (dom && !VRIJE_DOMEINEN.test(dom) && e.endsWith('@'+dom))); });
+  }).slice(0, 4);
+}
+
+function bedrijfForm(b, kopje, voor){
+  const nieuw = !b; b = b || {kopje: kopje || 'prospect', status:'nieuw', tags:[], ...(voor?.bedrijf || {})};
+  const vc = voor?.contact || {};
   const branches = [...new Set([...BRANCHES, ...S.bedrijven.map(x=>x.branche).filter(Boolean)])].sort();
   const ca = b.commissie || {};
-  openSheet(nieuw ? 'Nieuw bedrijf' : 'Gegevens bewerken', `<form id="bf" class="section">
+  openSheet(nieuw ? (voor ? 'Controleer en sla op' : 'Nieuw bedrijf') : 'Gegevens bewerken', `<form id="bf" class="section">
+    ${voor?.ruw ? `<p class="note">Gelezen van het kaartje. Controleer de velden; niet alles wordt altijd goed herkend.</p><details><summary class="sub" style="cursor:pointer">Herkende tekst bekijken</summary><pre style="white-space:pre-wrap;font:inherit;font-size:.85rem;color:var(--muted);margin:8px 0 0">${esc(voor.ruw)}</pre></details>` : ''}
     <label class="f"><span>Bedrijfsnaam *</span><input id="bf-naam" name="naam" required value="${esc(b.naam)}" autocomplete="off"></label>
+    <div class="dubbel" id="bf-dubbel" hidden></div>
     <div class="grid2">
       <label class="f"><span>Kopje</span><select id="bf-kopje" name="kopje" ${nieuw?'':'disabled'}>${Object.entries(KOPJES).map(([k,v])=>`<option value="${k}" ${b.kopje===k?'selected':''}>${v.naam}</option>`).join('')}</select>${nieuw?'':'<span class="hint">Wijzig met "Verplaatsen".</span>'}</label>
       <label class="f" id="bf-status-wrap" ${b.kopje==='prospect'?'':'hidden'}><span>Status</span><select id="bf-status" name="status">${STATUSSEN.map(x=>`<option ${b.status===x?'selected':''}>${x}</option>`).join('')}</select></label>
@@ -1000,13 +1088,22 @@ function bedrijfForm(b, kopje){
       <label class="f"><span>Overige afspraken</span><textarea id="bf-cafspr" name="cafspraken">${esc(ca.afspraken)}</textarea></label>
     </div>
     ${nieuw ? `<h3>Contactpersoon</h3>
-      <div class="grid2"><label class="f"><span>Naam</span><input id="bf-cnaam" name="cnaam" autocomplete="off"></label><label class="f"><span>Functie</span><input id="bf-cfunctie" name="cfunctie" autocomplete="off"></label></div>
-      <div class="grid2"><label class="f"><span>Telefoon</span><input id="bf-ctel" name="ctel" type="tel" autocomplete="off"></label><label class="f"><span>E-mail</span><input id="bf-cmail" name="cmail" type="email" autocomplete="off"></label></div>` : ''}
+      <div class="grid2"><label class="f"><span>Naam</span><input id="bf-cnaam" name="cnaam" autocomplete="off" value="${esc(vc.naam||'')}"></label><label class="f"><span>Functie</span><input id="bf-cfunctie" name="cfunctie" autocomplete="off" value="${esc(vc.functie||'')}"></label></div>
+      <div class="grid2"><label class="f"><span>Telefoon</span><input id="bf-ctel" name="ctel" type="tel" autocomplete="off" value="${esc(vc.telefoon||'')}"></label><label class="f"><span>E-mail</span><input id="bf-cmail" name="cmail" type="email" autocomplete="off" value="${esc(vc.email||'')}"></label></div>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">${nieuw?'Opslaan':'Wijzigingen opslaan'}</button></div>
   </form>`, s => {
     mountTags(s);
     const k = s.querySelector('#bf-kopje');
     k.onchange = () => { s.querySelector('#bf-status-wrap').hidden = k.value!=='prospect'; s.querySelector('#bf-comm').hidden = k.value!=='commissie'; };
+    if(nieuw){
+      const box = s.querySelector('#bf-dubbel'), naamIn = s.querySelector('#bf-naam'), mailIn = s.querySelector('#bf-cmail');
+      const toon = () => {
+        const lijst = mogelijkDubbel(naamIn.value, mailIn?.value);
+        box.hidden = !lijst.length;
+        box.innerHTML = lijst.length ? `<b>Staat dit bedrijf er al in?</b>${lijst.map(x => `<span><button type="button" data-act="open" data-id="${x.id}">${esc(x.naam)}</button> · ${esc(KOPJES[x.kopje].enk.toLowerCase())}${x.plaats?' · '+esc(x.plaats):''}</span>`).join('')}` : '';
+      };
+      naamIn.addEventListener('input', toon); mailIn?.addEventListener('input', toon);
+    }
     s.querySelector('#bf-pc').oninput = e => { s.querySelector('#bf-prov').textContent = [provincie(e.target.value), regio({postcode:e.target.value})].filter(Boolean).join(' · '); };
     s.querySelector('#bf').onsubmit = async e => {
       e.preventDefault();
@@ -1025,7 +1122,8 @@ function bedrijfForm(b, kopje){
           const nu = new Date().toISOString();
           const contacten = d.cnaam?.trim() ? [{naam:d.cnaam.trim(), functie:d.cfunctie.trim(), afdeling:'', telefoon:d.ctel.trim(), email:d.cmail.trim()}] : [];
           await ref.set({...data, kopje, status:kopje==='prospect'?(data.status||'nieuw'):'', contacten, aangemaakt:nu, bijgewerkt:nu, laatsteContact:'', opvolging:{actief:false}});
-          await db.collection('activiteiten').add({bedrijfId:newId, datum:nu, type:'systeem', tekst:`Aangemaakt als ${KOPJES[kopje].enk.toLowerCase()}.`});
+          await db.collection('activiteiten').add({bedrijfId:newId, datum:nu, type:'systeem', tekst:`Aangemaakt als ${KOPJES[kopje].enk.toLowerCase()}${voor?.bron?' ('+voor.bron+')':''}.`});
+          if(voor?.notitie) await db.collection('activiteiten').add({bedrijfId:newId, datum:nu, type:'notitie', door:S.gebruiker?.naam||'', tekst:voor.notitie});
         } else {
           const gewijzigd = Object.keys(data).filter(k => JSON.stringify(data[k]??'')!==JSON.stringify(b[k]??''));
           await updBedrijf(b.id, data);
@@ -1082,6 +1180,7 @@ function actForm(b, type, ci){
     if(type==='bezoek') mountTags(s); else mountPlan(s, 'af');
     s.querySelector('#af').onsubmit = async e => {
       e.preventDefault(); const d = formData(e.target);
+      let afspraak = null;
       const ok = await veilig(async () => {
         let bb = b, idx = d.ci!=null ? Number(d.ci) : 0;
         if(type==='bezoek'){
@@ -1097,14 +1196,35 @@ function actForm(b, type, ci){
         }
         const c = contactVan(bb, idx);
         const a = {type, tekst:d.tekst.trim(), contactNaam:c?.naam||''};
-        if(type==='afspraak' && d.afspraakOp) a.afspraakOp = new Date(d.afspraakOp).toISOString();
+        if(type==='afspraak' && d.afspraakOp){ a.afspraakOp = new Date(d.afspraakOp).toISOString(); afspraak = a; }
         await verwerkActiviteit(bb, a, {startReeks: !!d.reeks && !!c, contact: idx});
         const plan = type!=='bezoek' ? leesPlan(d) : null;
         if(plan) await slaPlanOp(bedrijf(b.id) || bb, plan, idx);
       }, 'Vastgelegd');
       if(ok) closeSheet();
+      if(ok && afspraak) openSheet('Afspraak vastgelegd', `<div class="section">
+        <p>Zet de afspraak met ${esc(afspraak.contactNaam || b.naam)} op ${esc(fmtTijd(afspraak.afspraakOp))} ook in je agenda.</p>
+        <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Niet nu</button><button type="button" class="btn primary" id="ics-ja">${ic('calendar','sm')}Zet in agenda</button></div></div>`,
+        s2 => s2.querySelector('#ics-ja').onclick = () => { bewaarIcs(b, afspraak); closeSheet(); });
     };
   });
+}
+
+/* Agenda-bestand (.ics): opent in Outlook, Apple Agenda of Google Agenda. */
+function bewaarIcs(b, a){
+  const t = d => new Date(d).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const x = v => String(v||'').replace(/\\/g,'\\\\').replace(/([,;])/g,'\\$1').replace(/\n/g,'\\n');
+  const start = new Date(a.afspraakOp), eind = new Date(start.getTime() + 60*60*1000);
+  const adres = [b.adres, [b.postcode, b.plaats].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const c = (b.contacten||[]).find(c => c.naam===a.contactNaam);
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Desko//CRM//NL','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+    `UID:${a.id || Date.now()}-${b.id}@desko-crm`, `DTSTAMP:${t(new Date())}`, `DTSTART:${t(start)}`, `DTEND:${t(eind)}`,
+    `SUMMARY:${x(`Afspraak ${b.naam}${a.contactNaam ? ' – '+a.contactNaam : ''}`)}`,
+    adres ? `LOCATION:${x(adres)}` : '',
+    `DESCRIPTION:${x([a.tekst, c?.telefoon && 'Tel: '+c.telefoon, c?.email && 'E-mail: '+c.email].filter(Boolean).join('\n'))}`,
+    'BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:Afspraak','END:VALARM',
+    'END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n');
+  bewaarBestand(`afspraak-${b.naam.replace(/[^\w-]+/g,'-').toLowerCase()}.ics`, ics, 'text/calendar;charset=utf-8');
 }
 
 function belSheet(b, ci){
@@ -1548,6 +1668,8 @@ function snelMenu(){
     <button type="button" data-act="snelKies" data-doel="plan">${ic('calendar')}<b>Opvolging inplannen</b><span>Bellen, mailen of langsgaan</span></button>
     <button type="button" data-act="snelKies" data-doel="bel">${ic('phone')}<b>Telefoontje vastleggen</b><span>Met uitkomst en notitie</span></button>
     <button type="button" data-act="nieuw">${ic('plus')}<b>Nieuw bedrijf</b><span>Prospect, klant of commissie</span></button>
+    <button type="button" data-act="scan">${ic('camera')}<b>Kaartje scannen</b><span>Foto van een visitekaartje</span></button>
+    <button type="button" data-act="tab" data-tab="buurt">${ic('pin')}<b>In de buurt</b><span>Prospects en klanten dichtbij</span></button>
   </div>`);
 }
 function kiesBedrijf(doel){
@@ -1668,7 +1790,10 @@ function verplaatsSheet(b){
   });
 }
 async function verplaats(b, naar){
-  return veilig(async () => {
+  return veilig(() => verplaatsIntern(b, naar), `Verplaatst naar ${KOPJES[naar].naam}`);
+}
+async function verplaatsIntern(b, naar){
+  {
     const patch = {kopje:naar};
     if(naar==='prospect') patch.status = b.status && b.status!=='gewonnen' ? b.status : 'nieuw';
     if(b.kopje==='prospect' && naar==='klant') patch.wasProspect = true;
@@ -1677,7 +1802,49 @@ async function verplaats(b, naar){
     await annuleerGepland(b, 'verplaatst naar een ander kopje');
     await updBedrijf(b.id, patch);
     await systeem(b, `Verplaatst van ${KOPJES[b.kopje].naam} naar ${KOPJES[naar].naam}${patch.opvolging?'; opvolging gestopt':''}.`);
-  }, `Verplaatst naar ${KOPJES[naar].naam}`);
+  }
+}
+
+/* ---------- meerdere bedrijven tegelijk ---------- */
+const gekozenBedrijven = () => [...(V.selectie?.ids||[])].map(bedrijf).filter(Boolean);
+function bulkSheet(doe){
+  const lijst = gekozenBedrijven(), n = lijst.length;
+  const klaar = async (fn, melding) => { if(await veilig(async () => { for(const b of lijst) await fn(b); }, melding)){ closeSheet(); V.selectie = null; render(); } };
+  if(doe==='plan') openSheet(`Opvolging voor ${n} bedrijven`, `<form id="bk" class="section">${planVelden({id:'bk'})}
+      <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">${ic('calendar','sm')}Inplannen voor ${n}</button></div></form>`, s => {
+    mountPlan(s, 'bk');
+    s.querySelector('#bk').onsubmit = e => { e.preventDefault(); const plan = leesPlan(formData(e.target)); if(!plan){ toast('Kies een datum.'); return; }
+      klaar(b => slaPlanOp(b, plan, b.opvolging?.contact ?? 0), `${n} opvolgingen ingepland voor ${fmtDag(plan.datum)}`); };
+  });
+  if(doe==='tag') openSheet(`Tag voor ${n} bedrijven`, `<form id="bk" class="section">${tagField([])}
+      <div class="seg"><label><input type="radio" name="hoe" value="erbij" id="bk-erbij" checked><span>Toevoegen</span></label><label><input type="radio" name="hoe" value="eraf" id="bk-eraf"><span>Weghalen</span></label></div>
+      <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div></form>`, s => {
+    mountTags(s);
+    s.querySelector('#bk').onsubmit = e => { e.preventDefault(); const d = formData(e.target), tags = normTags(String(d.tags||'').split(','));
+      if(!tags.length){ toast('Vul een tag in.'); return; }
+      const weg = new Set(tags.map(t => t.toLowerCase()));
+      klaar(async b => {
+        const nieuw = d.hoe==='eraf' ? (b.tags||[]).filter(t => !weg.has(t.toLowerCase())) : normTags([...(b.tags||[]), ...tags]);
+        if(JSON.stringify(nieuw)!==JSON.stringify(b.tags||[])) await updBedrijf(b.id, {tags:nieuw});
+      }, d.hoe==='eraf' ? 'Tags weggehaald' : 'Tags toegevoegd'); };
+  });
+  if(doe==='reeks') openSheet(`Mailreeks voor ${n} prospects`, `<form id="bk" class="section">
+      <div class="seg">${(S.inst.mailreeksen||[]).map((r,i) => `<label><input type="radio" name="reeks" value="${esc(r.id)}" id="bk-${esc(r.id)}" ${i?'':'checked'}><span>${esc(r.naam)} <small style="opacity:.7">#${esc(r.tag)}</small></span></label>`).join('')}</div>
+      <p class="hint">Bij iedereen met een e-mailadres wordt mail 1 ingepland; je ziet ze onder Mail en kunt ze nog aanpassen. Zonder e-mailadres krijg je een belherinnering.</p>
+      <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Starten voor ${n}</button></div></form>`, s => {
+    s.querySelector('#bk').onsubmit = e => { e.preventDefault(); const id = formData(e.target).reeks;
+      klaar(async b => {
+        const tags = tagsMetReeks(b.tags||[], id); if(JSON.stringify(tags)!==JSON.stringify(b.tags||[])) await updBedrijf(b.id, {tags});
+        const cs = b.contacten||[], ci = Math.max(0, cs.findIndex(c => c.email));
+        if(cs.length) await startReeks({...b, tags}, ci);
+      }, 'Mailreeksen gestart'); };
+  });
+  if(doe==='verplaats') openSheet(`${n} bedrijven verplaatsen`, `<form id="bk" class="section">
+      <div class="seg">${Object.entries(KOPJES).map(([k,v],i) => `<label><input type="radio" name="naar" value="${k}" id="bk-${k}" ${i?'':'checked'}><span>${v.naam}</span></label>`).join('')}</div>
+      <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Verplaatsen</button></div></form>`, s => {
+    s.querySelector('#bk').onsubmit = e => { e.preventDefault(); const naar = formData(e.target).naar;
+      klaar(b => b.kopje===naar ? null : verplaatsIntern(b, naar), `Verplaatst naar ${KOPJES[naar].naam}`); };
+  });
 }
 async function verwijderBedrijf(b){
   await veilig(async () => {
@@ -1938,6 +2105,259 @@ async function bewaarInstellingen(e){
   await veilig(() => db.doc('instellingen/algemeen').set(inst), 'Instellingen opgeslagen');
 }
 
+/* ---------- cijfers (dashboard) ---------- */
+const PERIODES = [['4','4 weken'],['13','13 weken'],['26','half jaar'],['52','jaar']];
+let alleActs = null, actsLaden = false;
+async function laadAlleActiviteiten(forceer){
+  if(actsLaden || (alleActs && !forceer)) return;
+  actsLaden = true; alleActs = alleActs && !forceer ? alleActs : null; V.actsVoortgang = 0; render();
+  const ids = S.bedrijven.map(b => b.id), uit = [];
+  let i = 0;
+  const werker = async () => { while(i < ids.length){ const id = ids[i++]; try{ const r = await db.collection('activiteiten').where('bedrijfId','==',id).get(); r.docs.forEach(d => uit.push({id:d.id, ...d.data()})); }catch{} V.actsVoortgang++; if(V.actsVoortgang % 10 === 0) render(); } };
+  await Promise.all(Array.from({length:6}, werker));
+  alleActs = uit; actsLaden = false; render();
+}
+const weekStart = s => { const d = parse(s); const w = (d.getDay()+6)%7; d.setDate(d.getDate()-w); return ds(d); };
+function weekNr(s){ const d = parse(s); d.setDate(d.getDate()+3-((d.getDay()+6)%7)); const j = new Date(d.getFullYear(),0,4); return 1+Math.round(((d-j)/86400000-3+((j.getDay()+6)%7))/7); }
+
+function staafLijst(items, fmt = n => n){
+  const max = Math.max(1, ...items.map(x => x.waarde));
+  if(!items.length) return `<p class="sub">Nog geen gegevens.</p>`;
+  return `<div class="grafiek" role="table">${items.map(x => `<div class="rij" role="row" title="${esc(x.label)}: ${esc(fmt(x.waarde))}${x.sub?' ('+esc(x.sub)+')':''}">
+    <span class="lbl" role="cell">${esc(x.label)}</span><span class="baan" role="cell" aria-hidden="true"><span class="staaf" style="width:${(x.waarde/max*100).toFixed(1)}%"></span></span><span class="w" role="cell">${esc(fmt(x.waarde))}${x.sub?` <small>${esc(x.sub)}</small>`:''}</span></div>`).join('')}</div>`;
+}
+function weekKolommen(reeks){
+  const max = Math.max(1, ...reeks.map(x => x.waarde)), stap = Math.max(1, Math.ceil(reeks.length/5));
+  return `<div class="kolommen" role="img" aria-label="${reeks.map(x => `week ${x.wk}: ${x.waarde}`).join(', ')}">${reeks.map((x,i) => `<span class="k ${x.waarde?'':'leeg'}" title="Week ${x.wk} (vanaf ${fmtDag(x.start)}): ${x.waarde}">${x.waarde && (i===reeks.length-1 || x.waarde===max) ? `<em>${x.waarde}</em>` : ''}<i style="height:${(x.waarde/max*100).toFixed(1)}%"></i></span>`).join('')}</div>
+    <div class="kolom-labels" aria-hidden="true">${reeks.map((x,i) => `<span>${(reeks.length-1-i) % stap === 0 ? 'wk '+x.wk : ''}</span>`).join('')}</div>`;
+}
+const telPer = (lijst, sleutel, top = 8) => {
+  const m = new Map(); lijst.forEach(b => { const k = sleutel(b) || 'Onbekend'; m.set(k, (m.get(k)||0)+1); });
+  let r = [...m.entries()].map(([label, waarde]) => ({label, waarde})).sort((a,b) => b.waarde-a.waarde);
+  if(r.length > top){ const rest = r.slice(top-1).reduce((t,x) => t+x.waarde, 0); r = [...r.slice(0, top-1), {label:'Overig', waarde:rest}]; }
+  return r;
+};
+
+function cijfers(){
+  const f = V.filters.dash || {}, weken = Number(f.periode || 13);
+  const bs = S.bedrijven.filter(b => matches(b, {...f, periode:undefined}, ''));
+  const ids = new Set(bs.map(b => b.id));
+  const n = k => bs.filter(b => b.kopje===k).length;
+  const gewonnen = bs.filter(b => b.kopje==='klant' && b.wasProspect).length;
+  const conv = (sleutel) => {
+    const m = new Map();
+    bs.filter(b => b.kopje==='prospect' || (b.kopje==='klant' && b.wasProspect)).forEach(b => (sleutel(b)).forEach(k => {
+      const r = m.get(k) || {tot:0, klant:0}; r.tot++; if(b.kopje==='klant') r.klant++; m.set(k, r); }));
+    return [...m.entries()].map(([label, r]) => ({label, waarde: r.tot ? Math.round(r.klant/r.tot*100) : 0, sub:`${r.klant} van ${r.tot}`})).sort((a,b) => b.waarde-a.waarde || a.label.localeCompare(b.label)).slice(0, 10);
+  };
+  const convPer = f.conversie || 'tag';
+  const convLijst = conv(convPer==='regio' ? b => [regio(b) || provincie(b.postcode) || 'Onbekend'] : convPer==='grootte' ? b => [b.grootte || 'Onbekend'] : b => (b.tags||[]).length ? b.tags : ['(geen tag)']);
+  // activiteit per week
+  const eind = weekStart(today()), begin = addDays(eind, -7*(weken-1));
+  const wekenLijst = Array.from({length:weken}, (_,i) => addDays(begin, 7*i));
+  const acts = (alleActs || []).filter(a => ids.has(a.bedrijfId) && a.datum && ds(new Date(a.datum)) >= begin);
+  const perWeek = filt => wekenLijst.map(w => ({start:w, wk:weekNr(w), waarde: acts.filter(a => filt(a) && weekStart(ds(new Date(a.datum)))===w).length}));
+  const soorten = [['Bezoeken', a => a.type==='bezoek'], ['Telefoontjes', a => a.type==='bel'], ['Mails verstuurd', a => a.type==='mail_uit'], ['Afspraken', a => a.type==='afspraak']]
+    .map(([naam, filt]) => ({naam, reeks:perWeek(filt)}));
+  // reactie op mails: bedrijven met een verstuurde mail in de periode, en of er binnen 14 dagen contact terugkwam
+  const verstuurd = S.mails.filter(m => m.status==='verstuurd' && ids.has(m.bedrijfId) && (m.verstuurdOp||'').slice(0,10) >= begin);
+  const perBedrijf = new Map(); verstuurd.forEach(m => { const t = m.verstuurdOp; if(!perBedrijf.has(m.bedrijfId) || t < perBedrijf.get(m.bedrijfId)) perBedrijf.set(m.bedrijfId, t); });
+  const terug = [...perBedrijf.entries()].filter(([id, t]) => (alleActs||[]).some(a => a.bedrijfId===id && a.datum > t && a.datum <= new Date(new Date(t).getTime()+14*864e5).toISOString() &&
+    (a.type==='mail_in' || a.type==='afspraak' || (a.type==='bel' && a.uitkomst==='gesproken'))) || S.mails.some(m => m.bedrijfId===id && m.status==='ontvangen' && (m.verstuurdOp||'') > t)).length;
+  // commissie
+  const deals = S.deals.filter(d => ids.has(d.bedrijfId) && (!d.datum || d.datum >= begin || d.status!=='ontvangen'));
+  const ct = commissieTotalen(deals);
+  const perRelatie = [...new Set(deals.map(d => d.bedrijfId))].map(id => ({label: bedrijf(id)?.naam || '?', waarde: deals.filter(d => d.bedrijfId===id).reduce((t,d) => t+(Number(d.commissie)||0), 0)})).sort((a,b) => b.waarde-a.waarde).slice(0,8);
+  return {f, weken, begin, bs, n, gewonnen, convPer, convLijst, soorten, mailsVerstuurd:perBedrijf.size, terug, ct, perRelatie,
+    perRegio: telPer(bs, b => regio(b) || provincie(b.postcode)), perGrootte: telPer(bs, b => b.grootte, 6), perBranche: telPer(bs, b => b.branche),
+    open: bs.filter(b => opvolgStatus(b)?.due).length};
+}
+
+function cijfersView(){
+  if(!alleActs && !actsLaden) setTimeout(() => laadAlleActiviteiten(), 0);
+  const c = cijfers(), f = c.f;
+  const sel = (k, opts, waarde) => `<select id="dash-${k}" data-dash="${k}" aria-label="${k}">${opts.map(([v,l]) => `<option value="${esc(v)}" ${String(waarde??'')===String(v)?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
+  const uniq = arr => [...new Set(arr.filter(Boolean))].sort((a,b) => a.localeCompare(b));
+  const laden = actsLaden ? `<p class="hint">${ic('refresh','sm')} Activiteiten laden… ${V.actsVoortgang||0} van ${S.bedrijven.length}</p>` : '';
+  return `<div class="wrap">
+    <header class="page-head"><button class="btn ghost back" data-act="tab" data-tab="meer">${ic('left','sm')}Meer</button><p class="eyebrow">Overzicht</p><h1>Cijfers</h1></header>
+    <div class="balk-filters" role="group" aria-label="Filters">
+      ${sel('periode', PERIODES, f.periode || '13')}
+      ${sel('kopje', [['','Alle kopjes'], ...Object.entries(KOPJES).map(([k,v]) => [k, v.naam])], f.kopje)}
+      ${sel('regio', [['','Alle regio\'s'], ...uniq(S.bedrijven.map(regio)).map(x => [x,x])], f.regio)}
+      ${sel('grootte', [['','Alle groottes'], ...GROOTTES.map(x => [x, x+' mw'])], f.grootte)}
+      ${sel('tag', [['','Alle tags'], ...uniq(S.bedrijven.flatMap(b => b.tags||[])).map(x => [x,'#'+x])], f.tag)}
+      <button class="btn small" data-act="dashExport">${ic('download','sm')}Exporteren</button>
+    </div>
+    <div class="tegels">
+      <div class="tegel"><b>${c.n('klant')}</b><span>Klanten</span></div>
+      <div class="tegel"><b>${c.n('prospect')}</b><span>Prospects</span></div>
+      <div class="tegel"><b>${c.n('commissie')}</b><span>Commissierelaties</span></div>
+      <div class="tegel"><b>${c.gewonnen}</b><span>Prospect → klant</span></div>
+      <div class="tegel"><b>${c.open}</b><span>Nu op te volgen</span></div>
+    </div>
+    <section class="section"><div class="section-title"><h2>Activiteit per week</h2><span class="sub">laatste ${c.weken} weken</span></div>${laden}
+      <div class="multiples">${c.soorten.map(x => `<div class="card"><h3>${esc(x.naam)}<span>${x.reeks.reduce((t,y) => t+y.waarde, 0)} totaal</span></h3>${alleActs ? weekKolommen(x.reeks) : '<p class="sub">Laden…</p>'}</div>`).join('')}</div>
+    </section>
+    <section class="section"><div class="section-title"><h2>Reactie op mails</h2></div>
+      <div class="card"><div class="held">${c.mailsVerstuurd ? Math.round(c.terug/c.mailsVerstuurd*100)+'%' : '–'}</div>
+        <p class="sub">${c.mailsVerstuurd ? `${c.terug} van de ${c.mailsVerstuurd} gemailde bedrijven reageerde binnen 14 dagen (antwoord, gesprek of afspraak).` : 'Nog geen mails verstuurd in deze periode.'}</p></div>
+    </section>
+    <section class="section"><div class="section-title"><h2>Waar komen klanten vandaan?</h2>${sel('conversie', [['tag','per tag'],['regio','per regio'],['grootte','per grootte']], c.convPer)}</div>
+      <div class="card">${staafLijst(c.convLijst, v => v+'%')}<p class="hint">Percentage prospects dat klant is geworden.</p></div>
+    </section>
+    <div class="multiples">
+      <section class="card"><h3>Per regio</h3>${staafLijst(c.perRegio)}</section>
+      <section class="card"><h3>Per grootte</h3>${staafLijst(c.perGrootte)}</section>
+      <section class="card"><h3>Per branche</h3>${staafLijst(c.perBranche)}</section>
+    </div>
+    <section class="section"><div class="section-title"><h2>Commissie</h2></div>
+      <div class="money"><div><span>Verwacht</span><b>${euro(c.ct.verwacht)}</b></div><div><span>Verdiend</span><b>${euro(c.ct.verdiend)}</b></div><div><span>Gefactureerd</span><b>${euro(c.ct.gefactureerd)}</b></div><div><span>Ontvangen</span><b>${euro(c.ct.ontvangen)}</b></div></div>
+      <div class="card"><h3>Per relatie</h3>${staafLijst(c.perRelatie, euro)}</div>
+    </section>
+    <p class="hint">Activiteiten van alle bedrijven worden bij het openen geladen. <button class="btn small ghost" data-act="dashVernieuw">${ic('refresh','sm')}Vernieuwen</button></p>
+  </div>`;
+}
+async function dashExport(){
+  if(!window.XLSX){ toast('Excel is niet beschikbaar. Probeer het opnieuw.'); return; }
+  const c = cijfers(), wb = XLSX.utils.book_new();
+  const blad = (naam, rijen) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rijen), naam);
+  blad('Overzicht', [['Onderdeel','Aantal'],['Klanten',c.n('klant')],['Prospects',c.n('prospect')],['Commissierelaties',c.n('commissie')],['Prospect → klant',c.gewonnen],['Nu op te volgen',c.open],
+    [],['Gemailde bedrijven (periode)',c.mailsVerstuurd],['Reactie binnen 14 dagen',c.terug],[],['Periode vanaf',c.begin],['Filters',JSON.stringify(c.f)]]);
+  blad('Activiteit per week', [['Week','Start', ...c.soorten.map(x => x.naam)], ...c.soorten[0].reeks.map((w,i) => [w.wk, w.start, ...c.soorten.map(x => x.reeks[i].waarde)])]);
+  blad('Conversie', [[`Conversie ${c.convPer}`,'Percentage','Klant / totaal'], ...c.convLijst.map(x => [x.label, x.waarde, x.sub])]);
+  blad('Per regio', [['Regio','Aantal'], ...c.perRegio.map(x => [x.label, x.waarde])]);
+  blad('Per grootte', [['Grootte','Aantal'], ...c.perGrootte.map(x => [x.label, x.waarde])]);
+  blad('Per branche', [['Branche','Aantal'], ...c.perBranche.map(x => [x.label, x.waarde])]);
+  blad('Commissie', [['Status','Bedrag'],['Verwacht',c.ct.verwacht],['Verdiend',c.ct.verdiend],['Gefactureerd',c.ct.gefactureerd],['Ontvangen',c.ct.ontvangen],[],['Relatie','Commissie'], ...c.perRelatie.map(x => [x.label, x.waarde])]);
+  bewaarBestand(`desko-cijfers-${today()}.xlsx`, new Uint8Array(XLSX.write(wb, {type:'array', bookType:'xlsx'})), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  await db.collection('exportlog').add({datum:new Date().toISOString(), lijst:'Cijfers', door:S.gebruiker?.naam||'', filters:JSON.stringify(c.f), aantal:c.bs.length, formaat:'xlsx'});
+  toast('Cijfers geëxporteerd');
+}
+
+/* ---------- in de buurt ---------- */
+/* Adressen worden omgezet naar coördinaten via de PDOK Locatieserver (Rijksoverheid, alleen het bedrijfsadres). */
+async function geocode(q){
+  const r = await fetch(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?rows=1&fl=centroide_ll&q=${encodeURIComponent(q)}`);
+  if(!r.ok) throw new Error('Adres opzoeken lukte niet');
+  const doc = (await r.json()).response?.docs?.[0];
+  const m = doc?.centroide_ll?.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
+  return m ? {lng:Number(m[1]), lat:Number(m[2])} : null;
+}
+const adresVan = b => [b.adres, b.postcode, b.plaats].filter(Boolean).join(' ').replace(/\(.*?\)/g,'').trim();
+function afstandKm(a, b){ const R = 6371, r = x => x*Math.PI/180, dLat = r(b.lat-a.lat), dLng = r(b.lng-a.lng);
+  const h = Math.sin(dLat/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+let geoBezig = false;
+async function geocodeOntbrekend(){
+  if(geoBezig) return; geoBezig = true;
+  const todo = S.bedrijven.filter(b => b.plaats && adresVan(b) && (!b.geo || b.geo.q !== adresVan(b))).slice(0, 60);
+  V.buurt = {...V.buurt, todo:todo.length}; render();
+  for(const b of todo){
+    try{ const g = await geocode(adresVan(b)); await updBedrijf(b.id, {geo: g ? {...g, q:adresVan(b)} : {q:adresVan(b), mis:true}}); }catch{ break; }
+  }
+  geoBezig = false; V.buurt = {...V.buurt, todo:0}; render();
+}
+function buurtStart(){
+  V.buurt = {...(V.buurt||{}), status:'zoeken'}; render();
+  geocodeOntbrekend();
+  if(!navigator.geolocation){ V.buurt.status = 'geen'; render(); return; }
+  navigator.geolocation.getCurrentPosition(p => { V.buurt = {...V.buurt, status:'ok', hier:{lat:p.coords.latitude, lng:p.coords.longitude}, plek:'Je huidige locatie'}; render(); },
+    () => { V.buurt = {...V.buurt, status:'geen'}; render(); }, {enableHighAccuracy:false, timeout:10000, maximumAge:300000});
+}
+function buurtView(){
+  const v = V.buurt || {};
+  if(!v.status) setTimeout(buurtStart, 0);
+  const filter = v.filter || 'alle';
+  let lijst = [];
+  if(v.hier) lijst = S.bedrijven.filter(b => b.geo?.lat && (filter==='alle' || (filter==='actie' ? opvolgStatus(b) : b.kopje===filter)))
+    .map(b => ({b, km:afstandKm(v.hier, b.geo)})).sort((a,b) => a.km-b.km).slice(0, 30);
+  const zonder = S.bedrijven.filter(b => !b.plaats).length;
+  const kiesFilter = (k,l) => `<button class="keuze ${filter===k?'on':''}" data-act="buurtFilter" data-f="${k}">${l}</button>`;
+  return `<div class="wrap">
+    <header class="page-head"><button class="btn ghost back" data-act="tab" data-tab="vandaag">${ic('left','sm')}Vandaag</button><p class="eyebrow">Onderweg</p><h1>In de buurt</h1>
+      <p class="sub">${v.hier ? `Vanaf ${esc(v.plek)}.` : v.status==='geen' ? 'Je locatie is niet beschikbaar. Typ een plaats of postcode.' : 'Locatie bepalen…'}</p></header>
+    <form id="buurt-form" class="toolbar"><label class="search">${ic('pin')}<input id="buurt-plek" name="plek" placeholder="Of zoek vanaf een plaats of postcode" autocomplete="off" value="${esc(v.zoek||'')}" aria-label="Plaats of postcode"></label><button class="btn" type="submit">Zoeken</button><button class="btn" type="button" data-act="buurtHier" aria-label="Mijn locatie">${ic('pin','sm')}</button></form>
+    <div class="keuzes">${kiesFilter('alle','Alles')}${kiesFilter('prospect','Prospects')}${kiesFilter('klant','Klanten')}${kiesFilter('commissie','Commissie')}${kiesFilter('actie','Met openstaande actie')}</div>
+    ${v.todo ? `<p class="hint">${ic('refresh','sm')} Adressen opzoeken (${v.todo})…</p>` : ''}
+    ${lijst.length ? `<div class="rows">${lijst.map(({b,km}) => { const s = opvolgStatus(b); return `<div class="row static" style="grid-template-columns:auto 1fr auto">
+      <span class="afstand">${km < 10 ? km.toFixed(1).replace('.',',') : Math.round(km)}<small>km</small></span>
+      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
+        <span class="meta">${esc([b.adres, b.plaats].filter(Boolean).join(', '))}</span>
+        ${s ? `<span class="next ${s.due?'late':''}">${ic(s.due?'bolt':'clock')}<span>${esc(s.due ? s.label : fmtDag(s.datum)+' · '+(STAP_NAAM[s.stap]||s.label))}</span></span>` : ''}</span>
+      <span class="btns" style="flex-wrap:nowrap"><a class="btn small" href="https://www.google.com/maps/dir/?api=1&destination=${b.geo.lat},${b.geo.lng}" target="_blank" rel="noopener" aria-label="Route naar ${esc(b.naam)}">${ic('route','sm')}<span class="lbl">Route</span></a><button class="btn small primary" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button></span></div>`; }).join('')}</div>`
+      : v.hier ? `<div class="empty">${ic('pin')}<p>Geen bedrijven met een bekend adres gevonden.</p></div>` : ''}
+    ${zonder ? `<p class="hint">${zonder} bedrijven hebben nog geen plaats en staan hier niet tussen.</p>` : ''}
+  </div>`;
+}
+async function buurtZoek(e){
+  e.preventDefault(); const q = String(new FormData(e.target).get('plek')||'').trim(); if(!q) return;
+  try{ const g = await geocode(q); if(!g){ toast('Die plaats kan ik niet vinden.'); return; } V.buurt = {...V.buurt, status:'ok', hier:g, plek:q, zoek:q}; render(); }
+  catch{ toast('Zoeken lukte niet. Controleer je internet.'); }
+}
+
+/* ---------- visitekaartje scannen ---------- */
+/* Tekstherkenning draait op het apparaat zelf (Tesseract); de foto wordt niet verstuurd. */
+function laadScript(src){ return new Promise((ok, fout) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fout(new Error('Laden mislukt')); document.head.appendChild(s); }); }
+function scanKaartje(){
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'environment');
+  inp.onchange = async () => {
+    const f = inp.files?.[0]; if(!f) return;
+    openSheet('Kaartje lezen', `<div class="section"><p>Even geduld, de tekst wordt gelezen…</p><p class="hint" id="scan-voortgang">Voorbereiden</p></div>`);
+    try{
+      if(!window.Tesseract) await laadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+      const r = await Tesseract.recognize(f, 'nld+eng', {logger: m => { const el = document.getElementById('scan-voortgang'); if(el && m.progress != null) el.textContent = `${m.status} ${Math.round(m.progress*100)}%`; }});
+      const k = leesKaartje(r.data.text || '');
+      closeSheet();
+      bedrijfForm(null, 'prospect', {bron:'visitekaartje', ruw:k.ruw, bedrijf:{naam:k.bedrijf, adres:k.adres, postcode:k.postcode, plaats:k.plaats, tags:['netwerk']},
+        contact:k.contact, notitie:['Visitekaartje gescand.', k.extra].filter(Boolean).join('\n')});
+    }catch(err){ closeSheet(); toast('Het kaartje lezen lukte niet. Vul de gegevens zelf in.'); bedrijfForm(null, 'prospect'); }
+  };
+  inp.click();
+}
+/* Haalt bedrijf, naam, functie, telefoon, e-mail en adres uit de herkende tekst. */
+function leesKaartje(tekst){
+  const ruw = tekst.replace(/\r/g,'').trim();
+  const regels = ruw.split('\n').map(x => x.replace(/\s+/g,' ').trim()).filter(x => x.length > 1);
+  const alles = regels.join('\n');
+  const email = (alles.replace(/\s*@\s*/g,'@').match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/) || [''])[0].toLowerCase();
+  const web = (alles.replace(/[\w.+-]+@[\w.-]+/g,'').match(/\b(?:https?:\/\/)?(?:www\.)?[\w-]+\.(?:nl|com|eu|be|biz|net|org|info|de)\b/i) || [''])[0];
+  // Telefoonnummers: niet doorlopen in een postcode of ander nummer.
+  const telSchoon = t => { const max = /^(\+|00)/.test(t) ? 12 : 10; let x = t.trim(); while(x.replace(/\D/g,'').length > max && /\s\S+$/.test(x)) x = x.replace(/\s\S+$/, ''); return x.replace(/[\s\-–]+$/,''); };
+  const tels = [...alles.replace(/\b\d{4}\s?[A-Z]{2}\b/g,'|').matchAll(/(?:\+31|0031|\b0)[\d\s\-().]{8,18}\d/g)].map(m => telSchoon(m[0].replace(/\s+/g,' '))).filter(t => t.replace(/\D/g,'').length >= 9);
+  const mobiel = tels.find(t => /^(?:\+31|0031)\s*\(?0?\)?\s*6|^06/.test(t)) || '';
+  const pc = alles.match(/\b(\d{4})\s?([A-Z]{2})\b[ ,]*([A-Za-zÀ-ÿ'.\- ]{2,40})?/);
+  const STRAAT = /([A-Z][A-Za-zÀ-ÿ.'\- ]*?(?:straat|weg|laan|plein|pad|kade|gracht|singel|dijk|hof|park|steeg|dreef|baan|ring|markt|veld|haven|werf|zijde|kant|boulevard|hoek|wal|polder|erf)\s+\d+\s?[a-zA-Z]?(?:\s?-\s?\d+)?)\b/;
+  let adres = (alles.replace(/[\w.+-]+@[\w.-]+/g,'').match(STRAAT) || [''])[0].replace(/^(e-?mail|tel|telefoon|mobiel|adres)\s*:?\s*/i,'').trim();
+  if(!adres && pc){
+    const i = regels.findIndex(r => r.includes(pc[1]));
+    const voor = i >= 0 ? regels[i].slice(0, regels[i].indexOf(pc[1])).split(/[|·•]/).map(x => x.trim()).filter(Boolean).pop() || '' : '';
+    if(/[a-z]/i.test(voor) && /\d/.test(voor) && !/tel|mob|fax|@/i.test(voor)) adres = voor.replace(/[,]+$/,'');
+    else if(i > 0 && /[a-z].*\d/i.test(regels[i-1]) && !/@|www|tel|mob|fax|\+31/i.test(regels[i-1])) adres = regels[i-1];
+  }
+  const FUNCTIE = /(manager|directeur|directie|eigenaar|owner|founder|ceo|uitvoerder|adviseur|inkoop|inkoper|projectleider|projectmanager|calculator|werkvoorbereider|co[öo]rdinator|sales|editor|planner|planning|vestigingsmanager|accountmanager|boormeester|specialist|designer|secretar|office manager|facilitair)/i;
+  const BEDRIJF = /\b(b\.?v\.?|n\.?v\.?|bouw|groep|group|installatie|techniek|aannemer\w*|bedrijf|services?|transport|logistiek|verhuur|interieur|facility|makelaardij|holding)\b/i;
+  const schoon = r => !/[@\d]|www\.|https?:/i.test(r);
+  const functieRegel = regels.find(r => FUNCTIE.test(r) && r.length < 60 && !/@|www/.test(r)) || '';
+  const isNaam = r => schoon(r) && r !== functieRegel && !BEDRIJF.test(r) && r.split(' ').length <= 6 &&
+    /^(?:[A-ZÀ-Ý]\.)*\s*(?:\([A-Za-zÀ-ÿ]+\)\s*)?[A-ZÀ-Ý][\p{L}'.-]*(?:\s+(?:van|de|der|den|ter|ten|het|\([A-Za-zÀ-ÿ]+\)|[A-ZÀ-Ý][\p{L}'.)-]*))+$/u.test(r);
+  const fi = regels.indexOf(functieRegel);
+  let naam = fi > 0 && isNaam(regels[fi-1]) ? regels[fi-1] : (regels.find(isNaam) || '');
+  // "A.J.S. Duinmaijer (Arjan)" en "W.A. (Ron) van Lamoen" -> roepnaam + achternaam
+  naam = naam.replace(/^(?:[A-ZÀ-Ý]\.)+\s*\(([^)]+)\)\s*(.+)$/, '$1 $2').replace(/^(?:[A-ZÀ-Ý]\.)+\s*(.+?)\s*\(([^)]+)\)$/, '$2 $1').trim();
+  const domein = (email.split('@')[1] || web.replace(/^(https?:\/\/)?(www\.)?/i,'')).split('.')[0].toLowerCase() || '';
+  const vrij = /^(gmail|hotmail|outlook|live|yahoo|icloud|kpnmail|ziggo)$/i.test(domein);
+  const kern = r => r.toLowerCase().replace(/[^a-z0-9]/g,'');
+  let bedrijf = '';
+  if(domein && !vrij){
+    const i = regels.findIndex(r => schoon(r) && r !== naam && r !== functieRegel && kern(r).length >= 3 && (domein.includes(kern(r)) || (kern(r).includes(domein) && domein.length >= 4) || (kern(r).length >= 4 && domein.startsWith(kern(r).slice(0,4)) && kern(r).length <= domein.length + 12) || (/^([A-Z]\.){2,}/.test(r) && domein.startsWith(kern(r).slice(0,3)))));
+    if(i >= 0){ bedrijf = regels[i]; const vlg = regels[i+1]; if(vlg && schoon(vlg) && vlg.split(' ').length <= 3 && BEDRIJF.test(vlg) && bedrijf.split(' ').length <= 2) bedrijf += ' ' + vlg; }
+  }
+  if(!bedrijf) bedrijf = regels.find(r => schoon(r) && BEDRIJF.test(r) && r.length < 50 && r !== naam) || (!vrij && domein ? domein.replace(/[-_]/g,' ').replace(/\b\w/g, c => c.toUpperCase()) : '');
+  const extra = [web && 'Website: '+web, ...tels.filter(t => t !== (mobiel || tels[0])).map(t => 'Tel: '+t)].filter(Boolean).join(' · ');
+  return {ruw, bedrijf, adres, postcode: pc ? `${pc[1]} ${pc[2]}` : '', plaats: pc?.[3] ? pc[3].trim().replace(/\s+(tel|t|e|m|www)\b.*$/i,'') : '',
+    contact:{naam, functie: functieRegel, telefoon: mobiel || tels[0] || '', email}, extra};
+}
+
 /* ---------- navigatie ---------- */
 function openDetail(id){
   if(!V.detail) V.terugNaar = V.tab;
@@ -1952,7 +2372,7 @@ function openDetail(id){
 function sluitDetail(){ actUnsub && actUnsub(); actUnsub = null; V.detail = null; V.tab = V.terugNaar || 'vandaag'; render(); window.scrollTo(0,0); }
 
 const ACT = {
-  tab: d => { if(V.detail){ actUnsub && actUnsub(); actUnsub = null; V.detail = null; } V.tab = d.tab; V.filterOpen = false; render(); window.scrollTo(0,0); },
+  tab: d => { V.selectie = null; if(V.detail){ actUnsub && actUnsub(); actUnsub = null; V.detail = null; } V.tab = d.tab; V.filterOpen = false; render(); window.scrollTo(0,0); },
   open: d => openDetail(d.id),
   sluitDetail,
   closeSheet,
@@ -1975,6 +2395,17 @@ const ACT = {
       planActie(bedrijf(d.id) || b, {titel:'Afgerond. Volgende stap?', metGeen:true});
   },
   snooze: d => snooze(bedrijf(d.id)),
+  scan: () => { closeSheet(); scanKaartje(); },
+  dashExport: () => dashExport(),
+  dashVernieuw: () => laadAlleActiviteiten(true),
+  buurtFilter: d => { V.buurt = {...V.buurt, filter:d.f}; render(); },
+  buurtHier: () => { V.buurt = {...V.buurt, status:null, zoek:''}; buurtStart(); },
+  toonStil: () => { V.filters.alle = {contact:'stil'}; V.zoek.alle = ''; V.tab = 'alle'; V.detail = null; render(); window.scrollTo(0,0); },
+  selecteer: d => { V.selectie = V.selectie?.kopje===d.kopje ? null : {kopje:d.kopje, ids:new Set()}; render(); },
+  kies: d => { const ids = V.selectie.ids; ids.has(d.id) ? ids.delete(d.id) : ids.add(d.id); render(); },
+  kiesAlles: d => { const lijst = gefilterd(d.kopje); V.selectie.ids = V.selectie.ids.size===lijst.length ? new Set() : new Set(lijst.map(b => b.id)); render(); },
+  bulk: d => bulkSheet(d.doe),
+  ics: d => { const b = bedrijf(d.id), a = acts.find(x => x.id===d.akt); if(b && a) bewaarIcs(b, a); },
   snel: () => snelMenu(),
   snelKies: d => kiesBedrijf(d.doel),
   snelDoel: d => { const b = bedrijf(d.id); closeSheet(); if(d.doel==='bezoek') actForm(b, 'bezoek'); else if(d.doel==='bel') belSheet(b); else planActie(b); },
@@ -2017,6 +2448,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if(t.dataset?.dash){ V.filters.dash = {...(V.filters.dash||{}), [t.dataset.dash]: t.value}; render(); return; }
   if(t.dataset?.filter){ const k = t.dataset.kopje; V.filters[k] = {...(V.filters[k]||{}), [t.dataset.filter]: t.value}; render(); }
   if(t.dataset?.actChange==='status'){
     const b = bedrijf(t.dataset.id), nieuw = t.value;
