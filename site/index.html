@@ -461,7 +461,7 @@ function opvolgStatus(b){
       const m = geplandeMail(b), wanneer = m ? fmtDag(m.datum)+' om '+(m.tijd||'09:30') : fmtDag(o.datum);
       if(!m){ label = `Opvolgmail aan ${wie}`; knoppen = ['bel','mail']; break; }
       label = robotActief() ? `Mail ${m.stap+1} aan ${wie} gaat ${due?'vandaag':wanneer} automatisch: "${m.onderwerp}"`
-                            : due ? `Mail ${m.stap+1} aan ${wie} staat klaar om te versturen: "${m.onderwerp}"` : `Mail ${m.stap+1} aan ${wie} ingepland voor ${wanneer}`;
+                            : due ? `Tijd om ${wie} te mailen: "${m.onderwerp}"` : `Mail ${m.stap+1} aan ${wie} klaar voor ${fmtDag(m.datum)}`;
       knoppen = ['bekijkmail']; break;
     }
     case 'eerste': label = due ? `Neem contact op met ${wie}${c?.functie?' ('+c.functie+')':''}. Bellen of mailen?` : `Eerste opvolging bij ${wie}`; knoppen = ['bel','mail']; break;
@@ -656,11 +656,11 @@ function taakKnoppen(b, s){
   const ci = b.opvolging?.contact ?? 0, id = b.id;
   return s.knoppen.map(k => ({
     bel:    `<button class="btn primary" data-act="bel" data-id="${id}" data-ci="${ci}">${ic('phone','sm')}Bellen</button>`,
-    mail:   `<button class="btn" data-act="mail" data-id="${id}" data-ci="${ci}">${ic('mail','sm')}Mailen</button>`,
+    mail:   `<button class="btn" data-act="mailen" data-id="${id}" data-ci="${ci}">${ic('mail','sm')}Mailen</button>`,
     einde:  `<button class="btn primary" data-act="doorgaan" data-id="${id}">Doorgaan</button><button class="btn" data-act="later" data-id="${id}">Later opnieuw</button><button class="btn danger" data-act="verloren" data-id="${id}">Op verloren zetten</button>`,
     klaar:  `<button class="btn primary" data-act="actieKlaar" data-id="${id}">${ic('check','sm')}Afgerond</button><button class="btn" data-act="planActie" data-id="${id}">${ic('calendar','sm')}Verzetten</button>`,
     hervat: `<button class="btn primary" data-act="hervat" data-id="${id}">Hervatten</button>`,
-    bekijkmail: (() => { const m = geplandeMail(b); return m ? `<button class="btn primary" data-act="geplandeMail" data-mail="${m.id}">${ic('mail','sm')}${robotActief()?'Bekijken':'Bekijken en versturen'}</button><button class="btn" data-act="bel" data-id="${id}" data-ci="${ci}">${ic('phone','sm')}Liever bellen</button>` : ''; })()
+    bekijkmail: (() => { const m = geplandeMail(b); return m ? `<button class="btn primary" data-act="mailen" data-id="${id}" data-mail="${m.id}">${ic('mail','sm')}Mailen</button><button class="btn" data-act="geplandeMail" data-mail="${m.id}">Tekst bekijken</button><button class="btn" data-act="bel" data-id="${id}" data-ci="${ci}">${ic('phone','sm')}Liever bellen</button>` : ''; })()
   }[k])).join('');
 }
 
@@ -770,7 +770,7 @@ function detailView(b){
   const links = `
     ${opvolg}
     <div class="quick" role="group" aria-label="Vastleggen">
-      ${q('bel','phone','Bellen')}${q('actForm','door','Bezoek','data-type="bezoek"')}${q('mail','mail','Mail')}
+      ${q('bel','phone','Bellen')}${q('actForm','door','Bezoek','data-type="bezoek"')}${q('mailen','mail','Mail')}
       ${q('actForm','inbox','Reactie','data-type="mail_in"')}${q('actForm','calendar','Afspraak','data-type="afspraak"')}${q('actForm','note','Notitie','data-type="notitie"')}
     </div>
     <section class="card">
@@ -1196,11 +1196,54 @@ function mailOpstellen(b, ci){
   });
 }
 
+/* Mailen: het eigen mailprogramma opent direct met de tekst erin; daarna vastleggen. */
+function mailtoLink(email, onderwerp, tekst){
+  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(onderwerp||'')}&body=${encodeURIComponent(tekst||'')}`;
+}
+function openMailprogramma(href){ const a = document.createElement('a'); a.href = href; document.body.appendChild(a); a.click(); a.remove(); }
+function mailen(b, ci, m){
+  let c;
+  if(m) c = {naam:m.aan, email:m.email};
+  else {
+    const cs = b.contacten || [];
+    const start = ci ?? b.opvolging?.contact ?? 0;
+    c = cs[start]?.email ? cs[start] : cs.find(x => x.email);
+    ci = cs.indexOf(c);
+  }
+  if(!c?.email){ toast('Deze contactpersoon heeft nog geen e-mailadres. Voeg het toe bij Contactpersonen.'); return; }
+  let onderwerp = m?.onderwerp || '', tekst = m?.tekst || '', sjabloon = m?.sjabloon || '';
+  if(!m){ const t = standaardSjabloon(b); if(t){ onderwerp = REEKS.vul(t.onderwerp, b, c, S.gebruiker?.naam); tekst = REEKS.vul(t.tekst, b, c, S.gebruiker?.naam); sjabloon = t.id; } }
+  const href = mailtoLink(c.email, onderwerp, tekst);
+  openMailprogramma(href);
+  openSheet('Mail verstuurd?', `<div class="section">
+    <p>Je mailprogramma is geopend met een mail aan <b>${esc(c.naam)}</b> (${esc(c.email)}). Pas hem aan als je wilt en verstuur hem daar.</p>
+    <p class="sub">Onderwerp: ${esc(onderwerp || '(leeg)')}</p>
+    <p class="hint">Opende er niets? <a href="${esc(href)}">Probeer het opnieuw</a> of kopieer de tekst en plak hem in je mail.</p>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="mv-kopie">${ic('note','sm')}Kopieer tekst</button>
+      <button type="button" class="btn" data-act="closeSheet">Nog niet verstuurd</button>
+      <button type="button" class="btn primary" id="mv-ja">${ic('check','sm')}Ja, verstuurd</button>
+    </div></div>`, s => {
+    s.querySelector('#mv-kopie').onclick = () => navigator.clipboard?.writeText(`${onderwerp}\n\n${tekst}`).then(() => toast('Tekst gekopieerd'), () => toast('Kopiëren lukte niet'));
+    s.querySelector('#mv-ja').onclick = async () => {
+      const ok = await veilig(async () => {
+        if(m) return markeerVerstuurd(m);
+        await annuleerGepland(b, 'je stuurde zelf een mail');
+        const nu = new Date().toISOString();
+        await db.collection('mails').add({status:'verstuurd', handmatig:true, bedrijfId:b.id, bedrijf:b.naam, kopje:b.kopje, contact:ci, aan:c.naam, email:c.email,
+          onderwerp, tekst, sjabloon, afzender:S.gebruiker?.naam||'', door:S.gebruiker?.naam||'', aangemaakt:nu, datum:nu, verstuurdOp:nu});
+        await verwerkActiviteit(b, {type:'mail_uit', contactNaam:c.naam, aan:c.email, onderwerp, tekst:`Onderwerp: ${onderwerp}\n\n${tekst}`});
+      }, 'Mail vastgelegd');
+      if(ok) closeSheet();
+    };
+  });
+}
+
 function geplandeMailSheet(m){
   const b = bedrijf(m.bedrijfId); if(!b){ toast('Dit bedrijf bestaat niet meer.'); return; }
   const auto = robotActief();
   openSheet(`Mail ${m.reeks ? (m.stap+1)+' ' : ''}aan ${m.aan}`, `<form id="gm" class="section">
-    <p class="note">${auto ? `Deze mail gaat automatisch op ${fmtDag(m.datum)} om ${esc(m.tijd||'09:30')} vanuit je eigen mailbox. Is er voor die tijd contact geweest of reageert ${esc(voornaam({naam:m.aan}))}, dan gaat hij niet.` : `De automatische verzending is nog niet gekoppeld. Open de mail in je mailprogramma, verstuur hem en klik op "Markeer als verstuurd".`}</p>
+    <p class="note">${auto ? `Deze mail gaat automatisch op ${fmtDag(m.datum)} om ${esc(m.tijd||'09:30')} vanuit je eigen mailbox. Is er voor die tijd contact geweest of reageert ${esc(voornaam({naam:m.aan}))}, dan gaat hij niet.` : `Pas de tekst hier aan als je wilt en druk op "Mailen": je mailprogramma opent en je verstuurt hem zelf.`}</p>
     <p class="sub">${esc(b.naam)} · ${esc(m.aan)} · ${esc(m.email)}</p>
     <div class="grid2"><label class="f"><span>Verzenddatum</span><input id="gm-datum" name="datum" type="date" value="${esc(m.datum)}" min="${today()}"></label>
       <label class="f"><span>Tijd</span><input id="gm-tijd" name="tijd" type="time" value="${esc(m.tijd||'09:30')}"></label></div>
@@ -1208,11 +1251,13 @@ function geplandeMailSheet(m){
     <label class="f"><span>Bericht</span><textarea id="gm-tekst" name="tekst" required style="min-height:300px">${esc(m.tekst)}</textarea></label>
     <div class="sheet-actions">
       <button type="button" class="btn danger" id="gm-weg">${ic('x','sm')}Niet versturen</button>
-      ${auto ? '' : `<a class="btn" id="gm-open" href="#">${ic('mail','sm')}Open in mail</a><button type="button" class="btn" id="gm-klaar">${ic('check','sm')}Markeer als verstuurd</button>`}
-      <button class="btn primary" type="submit">Wijzigingen opslaan</button>
+      ${auto ? '' : `<button type="button" class="btn" id="gm-klaar">${ic('check','sm')}Markeer als verstuurd</button><a class="btn primary" id="gm-open" href="#">${ic('mail','sm')}Mailen</a>`}
+      <button class="btn ${auto?'primary':''}" type="submit">Wijzigingen opslaan</button>
     </div>
   </form>`, s => {
     const $s = q => s.querySelector(q), ond = $s('#gm-ond'), tekst = $s('#gm-tekst');
+    const open = $s('#gm-open');
+    if(open) open.onclick = e => { e.preventDefault(); const w = wijzig(); closeSheet(); mailen(bedrijf(m.bedrijfId), m.contact, {...m, ...w}); };
     const link = () => { const a = $s('#gm-open'); if(a) a.href = `mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent(ond.value)}&body=${encodeURIComponent(tekst.value)}`; };
     ond.oninput = tekst.oninput = link; link();
     const wijzig = () => ({onderwerp:ond.value, tekst:tekst.value, datum:$s('#gm-datum').value || m.datum, tijd:$s('#gm-tijd').value || m.tijd});
@@ -1306,9 +1351,31 @@ function mailDetail(m){
   });
 }
 
+/* Zoeken op bedrijf, contactpersoon, e-mail of plaats en direct mailen. */
+function mailZoekResultaten(q){
+  const woorden = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const treffers = [];
+  for(const b of S.bedrijven){
+    (b.contacten||[]).forEach((c, i) => {
+      const hooi = [b.naam, b.plaats, c.naam, c.email, c.functie, ...(b.tags||[])].join(' ').toLowerCase();
+      if(woorden.every(w => hooi.includes(w))) treffers.push({b, c, i});
+    });
+  }
+  treffers.sort((x,y) => x.b.naam.localeCompare(y.b.naam));
+  if(!treffers.length) return `<div class="empty">${ic('search')}<p>Niets gevonden voor "${esc(q)}".</p></div>`;
+  return `<div class="rows">${treffers.slice(0,15).map(({b,c,i}) => `<div class="row static" style="grid-template-columns:auto 1fr auto">
+    ${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
+      <span class="meta">${esc(c.naam)}${c.functie?' · '+esc(c.functie):''} · ${c.email?esc(c.email):'geen e-mailadres'}</span></span>
+    <span class="btns" style="flex-wrap:nowrap">${c.email
+      ? `<button class="btn small primary" data-act="mailen" data-id="${b.id}" data-ci="${i}" aria-label="${esc(c.naam)} mailen">${ic('mail','sm')}<span class="lbl">Mailen</span></button><button class="btn small" data-act="mail" data-id="${b.id}" data-ci="${i}" aria-label="Mail opstellen met sjabloon">${ic('note','sm')}<span class="lbl">Opstellen</span></button>`
+      : `<button class="btn small" data-act="open" data-id="${b.id}">Openen</button>`}</span></div>`).join('')}</div>
+    ${treffers.length > 15 ? `<p class="hint">${treffers.length - 15} meer. Typ verder om te verfijnen.</p>` : ''}`;
+}
+
 function mailView(){
+  const zoek = V.zoek.mail || '';
   const teMailen = S.bedrijven.map(b => ({b, s:opvolgStatus(b)}))
-    .filter(x => x.s && !x.s.gepauzeerd && x.s.stap!=='mail' && x.s.datum <= addDays(today(),3))
+    .filter(x => x.s && !x.s.gepauzeerd && x.s.datum <= addDays(today(),3))
     .map(x => ({...x, c:contactVan(x.b, x.b.opvolging?.contact)}))
     .filter(x => x.c?.email)
     .sort((a,b) => a.s.datum.localeCompare(b.s.datum));
@@ -1317,6 +1384,8 @@ function mailView(){
   const zonderMail = S.bedrijven.filter(b => opvolgStatus(b)?.due && !contactVan(b, b.opvolging?.contact)?.email).length;
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Mail</p><h1>Mail</h1></header>
+    <label class="search">${ic('search')}<input id="zoek-mail" type="search" placeholder="Zoek een bedrijf of contactpersoon om te mailen" value="${esc(zoek)}" data-zoek="mail" autocomplete="off" aria-label="Zoek om te mailen"></label>
+    ${zoek.trim() ? `<section class="section"><div class="section-title"><h2>Zoekresultaten</h2></div>${mailZoekResultaten(zoek.trim())}</section>` : ''}
     <div class="btns"><button class="btn primary" data-act="mail">${ic('plus','sm')}Nieuwe mail</button><button class="btn" data-act="mailHandmatig" data-richting="uit">${ic('mail','sm')}Verstuurde mail vastleggen</button><button class="btn" data-act="mailHandmatig" data-richting="in">${ic('inbox','sm')}Ontvangen mail vastleggen</button></div>
     <section class="section">
       <div class="section-title"><h2>Om te mailen</h2><span class="count num">${teMailen.length}</span></div>
@@ -1324,13 +1393,13 @@ function mailView(){
         ${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
           <span class="meta">${esc(c.naam)} · ${esc(c.email)}</span>
           <span class="next ${s.due?'late':''}">${ic(s.due?'bolt':'clock')}<span>${esc(s.due ? dueTekst(s.datum) : fmtDag(s.datum))} · ${esc(STAP_NAAM[s.stap]||s.label)}</span></span></span>
-        <button class="btn small primary" data-act="mail" data-id="${b.id}" data-ci="${b.opvolging?.contact ?? 0}" aria-label="Mail opstellen">${ic('mail','sm')}<span class="lbl">Opstellen</span></button></div>`).join('')}</div>`
+        <button class="btn small primary" data-act="mailen" data-id="${b.id}" data-ci="${b.opvolging?.contact ?? 0}" ${geplandeMail(b)?`data-mail="${geplandeMail(b).id}"`:''} aria-label="Mailen">${ic('mail','sm')}<span class="lbl">Mailen</span></button></div>`).join('')}</div>`
         : `<div class="empty">${ic('check')}<p>Er staan geen mails klaar om te sturen.</p></div>`}
       ${zonderMail ? `<p class="hint">${zonderMail} ${zonderMail===1?'bedrijf staat':'bedrijven staan'} vandaag op de lijst, maar de contactpersoon heeft geen e-mailadres. Die vind je bij Vandaag.</p>` : ''}
     </section>
     <section class="section">
       <div class="section-title"><h2>Ingepland</h2><span class="count num">${gepland.length}</span></div>
-      <p class="hint">${robotActief() ? `Automatisch versturen staat aan. Mails gaan op werkdagen vanaf de ingeplande tijd, vanuit je eigen mailbox.` : `Automatisch versturen is nog niet gekoppeld. Mails die aan de beurt zijn, open je in je mailprogramma en markeer je als verstuurd.`}</p>
+      <p class="hint">${robotActief() ? `Automatisch versturen staat aan. Mails gaan op werkdagen vanaf de ingeplande tijd, vanuit je eigen mailbox.` : `Deze mails staan klaar. Op de dag zelf druk je op "Mailen": je mailprogramma opent met de tekst en je verstuurt hem zelf.`}</p>
       ${gepland.length ? `<div class="rows">${gepland.map(m => `<button class="row" data-act="geplandeMail" data-mail="${m.id}">
         <span class="cal"><span>${DAGEN[parse(m.datum).getDay()]}</span><b>${parse(m.datum).getDate()}</b></span>
         <span class="t"><span class="row-top"><b>${esc(m.onderwerp)}</b><span class="chip ${m.datum<=today()?'warn':''}">${m.datum<=today()?(robotActief()?'vandaag':'klaar'):esc(m.tijd||'09:30')}</span></span>
@@ -1756,6 +1825,7 @@ const ACT = {
   bel: d => belSheet(bedrijf(d.id), d.ci!=null ? Number(d.ci) : undefined),
   mail: d => mailOpstellen(d.id ? bedrijf(d.id) : null, d.ci!=null ? Number(d.ci) : undefined),
   sjabloon: d => sjabloonForm(d.i!=null ? Number(d.i) : null),
+  mailen: d => { const m = d.mail ? S.mails.find(x => x.id===d.mail) : null; mailen(bedrijf(d.id || m?.bedrijfId), d.ci!=null ? Number(d.ci) : undefined, m); },
   mailHandmatig: d => mailHandmatig(d.richting, d.id ? bedrijf(d.id) : null),
   mailDetail: d => { const m = S.mails.find(x => x.id===d.mail); if(m) mailDetail(m); },
   geplandeMail: d => { const m = S.mails.find(x => x.id===d.mail); if(m) geplandeMailSheet(m); },
