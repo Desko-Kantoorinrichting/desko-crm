@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700;800&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="config.js"></script>
+<script src="reeks.js"></script>
 <script src="db.js"></script>
 <script src="auth.js"></script>
 <style>
@@ -187,6 +188,8 @@ a{color:var(--accent)}
 .row > .ic{color:var(--faint)}
 .row.static{cursor:default;grid-template-columns:1fr auto}
 .row.static:hover{background:transparent}
+@media (max-width:440px){.row .lbl{display:none}.row .btn.small{padding:0 10px}}
+.row .meta.wrap{white-space:normal}
 .money{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
 .money div{background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:3px;min-width:0}
 .money span{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
@@ -253,10 +256,10 @@ a{color:var(--accent)}
 
 /* nav: bottom bar on phone, sidebar on desktop */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
 nav.tabs .side-brand,nav.tabs .side-foot{display:none}
 nav.tabs button{border:0;background:transparent;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7rem;font-weight:650;color:var(--faint);cursor:pointer;position:relative}
-nav.tabs button .pill{display:grid;place-items:center;width:52px;height:28px;border-radius:999px;transition:background .15s}
+nav.tabs button .pill{display:grid;place-items:center;width:48px;height:28px;border-radius:999px;transition:background .15s}
 nav.tabs button[aria-current="page"]{color:var(--accent)}
 nav.tabs button[aria-current="page"] .pill{background:var(--accent-soft)}
 nav.tabs .badge{position:absolute;top:4px;left:calc(50% + 8px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--warn);color:#fff;font-size:.66rem;display:grid;place-items:center;border:2px solid var(--surface)}
@@ -377,63 +380,26 @@ const ACT_TYPES = {
 const CONTACT_TYPES = ['bezoek','bel','mail_uit','mail_in','afspraak'];
 const COMMISSIE_TAG = 'commissierelatie';
 
-const DEFAULT_INST = {
-  termijnen: {
-    prospect:  {opvolgWerkdagen:2, geenReactieDagen:7, nietOpgenomenWerkdagen:2, maxPogingen:4},
-    commissie: {opvolgWerkdagen:2, geenReactieDagen:7, nietOpgenomenWerkdagen:2, maxPogingen:4, betaaltermijnDagen:30},
-    klant:     {opvolgWerkdagen:2, geenReactieDagen:7, nietOpgenomenWerkdagen:2, maxPogingen:4}
-  },
-  regios: [
-    {naam:'Amsterdam e.o.',      postcodes:'1000-1199, 1380-1399, 1430-1439'},
-    {naam:'Noord-Holland Noord', postcodes:'1600-1899'},
-    {naam:'Randstad',            postcodes:'1200-1299, 2000-3399, 3500-3599'}
-  ]
-};
+const DEFAULT_INST = REEKS.DEFAULT_INST;
 
-/* ---------- Mail: later koppelen ----------
-   Versturen staat nu uit. Ferry stuurt zelf en legt de mail vast
-   ("Mail gestuurd"). Zet MAIL.versturen aan zodra de Microsoft 365-
-   koppeling er is; de opvolgreeks roept dan MAIL.verstuur() aan op
-   het moment dat nu een herinnering verschijnt. */
-const MAIL = {
-  versturen: false,
-  async verstuur(/* {aan, onderwerp, tekst, bedrijf} */){ throw new Error('Mail versturen is nog niet gekoppeld'); }
-};
+/* ---------- Mail ----------
+   Reeksmails worden ingepland in de collectie `mails` (status gepland). De mailrobot
+   (scripts/mailrobot.mjs, GitHub Actions) verstuurt ze vanuit de Microsoft 365-mailbox
+   zodra die gekoppeld is en meldt zich in robot/status. Zolang de robot niet actief is,
+   opent Ferry een klaarstaande mail in zijn mailprogramma en markeert hem als verstuurd. */
+const robotActief = () => !!(S.robot?.gekoppeld && S.robot.laatsteRun && Date.now() - new Date(S.robot.laatsteRun) < 2*3600*1000);
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const clone = o => JSON.parse(JSON.stringify(o));
-const pad = n => String(n).padStart(2,'0');
-const ds = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const {clone, pad, ds, parse, addDays, diffDays, addWerkdagen} = REEKS;
 const today = () => ds(new Date());
-const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return ds(d); };
-const diffDays = (a,b) => Math.round((parse(b)-parse(a))/86400000);
 const euro = n => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Number(n)||0);
 const DAGEN = ['zo','ma','di','wo','do','vr','za'];
 const MAANDEN = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
 const fmtDag = s => { if(!s) return ''; const d = parse(s); return `${DAGEN[d.getDay()]} ${d.getDate()} ${MAANDEN[d.getMonth()]}`; };
 const fmtTijd = iso => { const d = new Date(iso); return `${d.getDate()} ${MAANDEN[d.getMonth()]} ${d.getFullYear()!==new Date().getFullYear()?d.getFullYear()+' ':''}${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const localDT = (d=new Date()) => `${ds(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-
-function pasen(y){
-  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
-        h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
-        mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
-  return new Date(y,mo-1,da);
-}
-const _fd = {};
-function feestdagen(y){
-  if(_fd[y]) return _fd[y];
-  const p = pasen(y), plus = n => { const d = new Date(p); d.setDate(d.getDate()+n); return ds(d); };
-  const kd = new Date(y,3,27); if(kd.getDay()===0) kd.setDate(26);
-  const s = new Set([`${y}-01-01`, plus(1), ds(kd), plus(39), plus(50), `${y}-12-25`, `${y}-12-26`]);
-  if(y%5===0) s.add(`${y}-05-05`);
-  return _fd[y] = s;
-}
-function isWerkdag(s){ const d = parse(s), w = d.getDay(); return w!==0 && w!==6 && !feestdagen(d.getFullYear()).has(s); }
-function addWerkdagen(s,n){ let d = s; while(n>0){ d = addDays(d,1); if(isWerkdag(d)) n--; } return d; }
 
 function provincie(pc){
   const n = parseInt(String(pc||'').replace(/\D/g,'').slice(0,4),10);
@@ -456,21 +422,12 @@ function regio(b){
   }
   return '';
 }
-function merge(base, extra){
-  const out = clone(base);
-  for(const [k,v] of Object.entries(extra||{})){
-    if(v && typeof v==='object' && !Array.isArray(v) && out[k] && typeof out[k]==='object' && !Array.isArray(out[k])) out[k] = merge(out[k], v);
-    else out[k] = clone(v);
-  }
-  return out;
-}
-
 /* ---------- state ---------- */
 let db = null;
 const SESSIE_KEY = 'desko-crm-sessie';
 const lees = k => { try{ return localStorage.getItem(k); }catch{ return null; } };
 const bewaar = (k,v) => { try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch{} };
-const S = {bedrijven:[], deals:[], weergaven:[], exportlog:[], inst:clone(DEFAULT_INST), laden:true, geenDb:false, gebruiker:null, login:{}, gebruikers:null, beheer:null};
+const S = {bedrijven:[], deals:[], weergaven:[], exportlog:[], mails:[], robot:null, inst:REEKS.instellingen({}), laden:true, geenDb:false, gebruiker:null, login:{}, gebruikers:null, beheer:null};
 const V = {tab:'vandaag', detail:null, zoek:{}, filters:{}, filterOpen:false, terugNaar:'vandaag'};
 let acts = [], actUnsub = null;
 
@@ -487,7 +444,8 @@ function normTags(list){
 }
 
 /* ---------- opvolging ---------- */
-const STAP_NAAM = {eerste:'Eerste opvolging', wacht:'Wacht op reactie', terug:'Niet opgenomen', actie:'Geplande actie'};
+const STAP_NAAM = {eerste:'Eerste opvolging', mail:'Opvolgmail ingepland', wacht:'Wacht op reactie', terug:'Niet opgenomen', actie:'Geplande actie'};
+const geplandeMail = b => S.mails.find(m => m.bedrijfId===b.id && m.status==='gepland');
 
 function opvolgStatus(b){
   const o = b.opvolging;
@@ -499,6 +457,13 @@ function opvolgStatus(b){
   if(o.gepauzeerd){ label = 'Opvolging gepauzeerd'; knoppen = ['hervat']; }
   else if(due && pog >= max && (o.stap==='wacht' || o.stap==='terug')){ label = `${pog} pogingen zonder reactie van ${wie}. Hoe verder?`; knoppen = ['einde']; }
   else switch(o.stap){
+    case 'mail': {
+      const m = geplandeMail(b), wanneer = m ? fmtDag(m.datum)+' om '+(m.tijd||'09:30') : fmtDag(o.datum);
+      if(!m){ label = `Opvolgmail aan ${wie}`; knoppen = ['bel','mail']; break; }
+      label = robotActief() ? `Mail ${m.stap+1} aan ${wie} gaat ${due?'vandaag':wanneer} automatisch: "${m.onderwerp}"`
+                            : due ? `Mail ${m.stap+1} aan ${wie} staat klaar om te versturen: "${m.onderwerp}"` : `Mail ${m.stap+1} aan ${wie} ingepland voor ${wanneer}`;
+      knoppen = ['bekijkmail']; break;
+    }
     case 'eerste': label = due ? `Neem contact op met ${wie}${c?.functie?' ('+c.functie+')':''}. Bellen of mailen?` : `Eerste opvolging bij ${wie}`; knoppen = ['bel','mail']; break;
     case 'wacht':  label = due ? `${wie} heeft niet gereageerd. Bellen of mailen?` : `Wacht op reactie van ${wie}`; knoppen = ['bel','mail']; break;
     case 'terug':  label = due ? `${wie} nog niet bereikt. Nog een keer proberen?` : `${wie} niet bereikt, wacht op terugbellen`; knoppen = ['bel','mail']; break;
@@ -518,9 +483,24 @@ async function systeem(b, tekst){ await logAct(b, {type:'systeem', tekst}); }
 
 async function startReeks(b, ci){
   const c = contactVan(b, ci), t = T(b);
-  const o = {actief:true, stap:'eerste', contact:ci, pogingen:0, datum:addWerkdagen(today(), t.opvolgWerkdagen), gestart:today()};
+  await annuleerGepland(b, 'nieuwe opvolging gestart');
+  const reeks = REEKS.reeksVoor(b, S.inst);
+  const mail = reeks ? REEKS.planMail(b, reeks, 0, today(), S.inst, S.gebruiker?.naam, ci) : null;
+  if(mail){
+    await db.collection('mails').add(mail);
+    await updBedrijf(b.id, {opvolging:{actief:true, stap:'mail', reeks:reeks.id, contact:ci, pogingen:0, datum:mail.datum, gestart:today(), gepauzeerd:false}});
+    await systeem(b, `Mailreeks "${reeks.naam}" gestart voor ${c.naam}. Mail 1 ("${mail.onderwerp}") ingepland voor ${fmtDag(mail.datum)} om ${mail.tijd}.`);
+    return;
+  }
+  const o = {actief:true, stap:'eerste', contact:ci, pogingen:0, datum:addWerkdagen(today(), t.opvolgWerkdagen), gestart:today(), gepauzeerd:false};
   await updBedrijf(b.id, {opvolging:o});
-  await systeem(b, `Opvolging gestart voor ${c?.naam||'contactpersoon'}. Eerste contactmoment: ${fmtDag(o.datum)}.`);
+  await systeem(b, `Opvolging gestart voor ${c?.naam||'contactpersoon'}. Eerste contactmoment: ${fmtDag(o.datum)}.${reeks && !c?.email ? ' Geen e-mailadres, dus bellen in plaats van mailen.' : ''}`);
+}
+async function annuleerGepland(b, reden){
+  for(const m of S.mails.filter(m => m.bedrijfId===b.id && m.status==='gepland')){
+    await db.collection('mails').doc(m.id).update({status:'geannuleerd', reden, geannuleerdOp:new Date().toISOString()});
+    await systeem(b, `Ingeplande mail "${m.onderwerp}" geannuleerd: ${reden}.`);
+  }
 }
 async function naPoging(b, soort){
   const o = {...clone(b.opvolging), gepauzeerd:false}, t = T(b);
@@ -531,6 +511,7 @@ async function naPoging(b, soort){
   await systeem(b, `Poging ${o.pogingen} van ${t.maxPogingen}. Volgende check: ${fmtDag(o.datum)}.`);
 }
 async function stopReeks(b, reden){
+  await annuleerGepland(b, reden);
   if(!b.opvolging?.actief) return;
   await updBedrijf(b.id, {opvolging:{...clone(b.opvolging), actief:false, gepauzeerd:false}});
   await systeem(b, `Opvolging gestopt: ${reden}.`);
@@ -549,6 +530,10 @@ async function verwerkActiviteit(b, a, opts={}){
   if(a.type==='bezoek' && opts.startReeks){ await startReeks(fresh, opts.contact ?? 0); return; }
   if(!actief) return;
   if(a.type==='bel' && a.uitkomst==='gesproken') await stopReeks(fresh, `gesproken met ${a.contactNaam||'contactpersoon'}`);
+  else if(a.type==='bel' && a.uitkomst==='niet opgenomen' && fresh.opvolging.stap==='mail'){
+    // De ingeplande mail gaat gewoon door; de belpoging telt wel mee.
+    await updBedrijf(b.id, {opvolging:{...clone(fresh.opvolging), pogingen:(fresh.opvolging.pogingen||0)+1}});
+  }
   else if(a.type==='bel' && a.uitkomst==='niet opgenomen') await naPoging(fresh, 'bel');
   else if(a.type==='mail_uit') await naPoging(fresh, 'mail');
   else if(a.type==='mail_in') await stopReeks(fresh, 'reactie ontvangen');
@@ -671,10 +656,11 @@ function taakKnoppen(b, s){
   const ci = b.opvolging?.contact ?? 0, id = b.id;
   return s.knoppen.map(k => ({
     bel:    `<button class="btn primary" data-act="bel" data-id="${id}" data-ci="${ci}">${ic('phone','sm')}Bellen</button>`,
-    mail:   `<button class="btn" data-act="mailLog" data-id="${id}" data-ci="${ci}">${ic('mail','sm')}Mailen</button>`,
+    mail:   `<button class="btn" data-act="mail" data-id="${id}" data-ci="${ci}">${ic('mail','sm')}Mailen</button>`,
     einde:  `<button class="btn primary" data-act="doorgaan" data-id="${id}">Doorgaan</button><button class="btn" data-act="later" data-id="${id}">Later opnieuw</button><button class="btn danger" data-act="verloren" data-id="${id}">Op verloren zetten</button>`,
     klaar:  `<button class="btn primary" data-act="actieKlaar" data-id="${id}">${ic('check','sm')}Afgerond</button><button class="btn" data-act="planActie" data-id="${id}">${ic('calendar','sm')}Verzetten</button>`,
-    hervat: `<button class="btn primary" data-act="hervat" data-id="${id}">Hervatten</button>`
+    hervat: `<button class="btn primary" data-act="hervat" data-id="${id}">Hervatten</button>`,
+    bekijkmail: (() => { const m = geplandeMail(b); return m ? `<button class="btn primary" data-act="geplandeMail" data-mail="${m.id}">${ic('mail','sm')}${robotActief()?'Bekijken':'Bekijken en versturen'}</button><button class="btn" data-act="bel" data-id="${id}" data-ci="${ci}">${ic('phone','sm')}Liever bellen</button>` : ''; })()
   }[k])).join('');
 }
 
@@ -784,7 +770,7 @@ function detailView(b){
   const links = `
     ${opvolg}
     <div class="quick" role="group" aria-label="Vastleggen">
-      ${q('bel','phone','Bellen')}${q('actForm','door','Bezoek','data-type="bezoek"')}${q('mailLog','mail','Mail')}
+      ${q('bel','phone','Bellen')}${q('actForm','door','Bezoek','data-type="bezoek"')}${q('mail','mail','Mail')}
       ${q('actForm','inbox','Reactie','data-type="mail_in"')}${q('actForm','calendar','Afspraak','data-type="afspraak"')}${q('actForm','note','Notitie','data-type="notitie"')}
     </div>
     <section class="card">
@@ -883,7 +869,7 @@ function meerView(){
       ${S.exportlog.slice(0,25).map(e=>`<tr><td>${esc(fmtTijd(e.datum))}</td><td>${esc(e.lijst)}</td><td>${esc(e.filters||'geen')}</td><td class="r">${e.aantal}</td></tr>`).join('')}</tbody></table></div>` : `<p class="sub">Nog geen exports.</p>`}
     </section>
     <section class="section"><div class="section-title"><h2>Nog niet gekoppeld</h2></div>
-      <p class="note">Mail versturen en ontvangen via Microsoft 365, de Outlook-agenda, spraakmemo's en pushmeldingen komen later. Leg een mail die je zelf stuurt vast met "Mail gestuurd" en een antwoord met "Reactie". De opvolging telt die mee.</p>
+      <p class="note">Mail versturen en ontvangen via Microsoft 365, de Outlook-agenda, spraakmemo's en pushmeldingen komen later. Onder Mail stel je een mail op vanuit een sjabloon, open je hem in je mailprogramma en leg je hem vast. Een antwoord leg je vast met "Reactie". De opvolging telt beide mee.</p>
     </section>
     ${S.gebruiker?.admin ? beheerView() : ''}
     <section class="section"><div class="section-title"><h2>Account</h2></div>
@@ -903,10 +889,11 @@ function render(){
   else if(V.detail) html = detailView(bedrijf(V.detail));
   else if(V.tab==='vandaag') html = vandaagView();
   else if(V.tab==='meer') html = meerView();
+  else if(V.tab==='mail') html = mailView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length + commissieTaken().length;
-  const tabs = [['vandaag','sun','Vandaag'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['meer','menu','Meer']];
+  const tabs = [['vandaag','sun','Vandaag'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
   const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&V.tab==='alle')) : (k===V.terugNaar);
   $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
@@ -916,7 +903,7 @@ function render(){
   $('#topbar').innerHTML = `<div class="in">${LOGO}${ingelogd?`<button class="avatar" data-act="tab" data-tab="meer" aria-label="Account en instellingen">${ini}</button>`:''}</div>`;
   $('#topbar').hidden = !ingelogd || S.laden;
   $('#fab').innerHTML = `${ic('plus')}Nieuw`;
-  $('#fab').hidden = S.laden || !ingelogd || !!V.detail || V.tab==='meer';
+  $('#fab').hidden = S.laden || !ingelogd || !!V.detail || V.tab==='meer' || V.tab==='mail';
   $('nav.tabs').hidden = !ingelogd;
   if(id){ const el = document.getElementById(id); if(el && el!==document.activeElement){ el.focus(); try{ if(pos!=null) el.setSelectionRange(pos,pos); }catch{} } }
   const form = $('#inst-form'); if(form) form.onsubmit = bewaarInstellingen;
@@ -1073,7 +1060,8 @@ function actForm(b, type, ci){
     ${type==='afspraak' ? `<label class="f"><span>Datum en tijd van de afspraak</span><input id="af-op" name="afspraakOp" type="datetime-local" value="${localDT(new Date(Date.now()+86400000))}"></label>` : ''}
     <label class="f"><span>${type==='bezoek'?'Uitkomst':'Opmerking'}</span><textarea id="af-tekst" name="tekst" placeholder="${esc(placeholders[type]||'')}"></textarea></label>
     ${type==='bezoek' ? tagField(b.tags||[]) : ''}
-    ${reeksMogelijk ? `<label class="check"><input type="checkbox" id="af-reeks" name="reeks" checked><span>Opvolging starten: herinnering over ${T(b).opvolgWerkdagen} werkdagen</span></label>` : ''}
+    ${type==='bezoek' ? reeksKeuze(b, 'af') : ''}
+    ${reeksMogelijk ? `<label class="check"><input type="checkbox" id="af-reeks" name="reeks" checked><span>Opvolging starten</span></label>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
   </form>`, s => {
     if(type==='bezoek') mountTags(s);
@@ -1087,7 +1075,8 @@ function actForm(b, type, ci){
             const lijst = clone(b.contacten||[]); lijst.push({naam:d.cnaam.trim(), functie:d.cfunctie.trim(), afdeling:'', telefoon:d.ctel.trim(), email:d.cmail.trim()});
             patch.contacten = lijst; idx = lijst.length-1;
           }
-          const tags = normTags(String(d.tags||'').split(','));
+          let tags = normTags(String(d.tags||'').split(','));
+          if(d.mailreeks !== undefined) tags = tagsMetReeks(tags, d.mailreeks);
           if(JSON.stringify(tags)!==JSON.stringify(b.tags||[])) patch.tags = tags;
           if(Object.keys(patch).length){ await updBedrijf(b.id, patch); bb = {...b, ...patch}; }
         }
@@ -1134,19 +1123,270 @@ function belSheet(b, ci){
   });
 }
 
-function mailLog(b, ci){
-  const c = contactVan(b, ci ?? b.opvolging?.contact);
-  openSheet('Mail vastleggen', `<form id="ml" class="section">
-    <p class="note">Mail versturen vanuit het CRM komt later. Stuur de mail nu vanuit Outlook en leg hem hier vast; de opvolging wacht daarna ${T(b).geenReactieDagen} dagen op een reactie.</p>
-    ${contactSelect(b, ci ?? b.opvolging?.contact)}
-    ${c?.email ? `<p class="sub">E-mail: <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></p>` : ''}
-    <label class="f"><span>Waar ging de mail over?</span><textarea id="ml-tekst" name="tekst"></textarea></label>
-    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Mail is verstuurd</button></div>
+/* ---------- mail ---------- */
+const sjablonenVoor = kopje => (S.inst.sjablonen||[]).filter(t => !t.kopje || t.kopje==='alle' || t.kopje===kopje);
+function standaardSjabloon(b){
+  const lijst = sjablonenVoor(b.kopje);
+  if(b.kopje==='prospect' && (b.opvolging?.pogingen||0) > 0) return lijst.find(t => t.id==='prospect-herinnering') || lijst[0];
+  return lijst[0];
+}
+
+function mailOpstellen(b, ci){
+  const kies = !b;
+  const metMail = S.bedrijven.filter(x => (x.contacten||[]).some(c => c.email)).sort((x,y) => x.naam.localeCompare(y.naam));
+  openSheet('Mail opstellen', `<form id="mo" class="section">
+    ${kies ? `<label class="f"><span>Bedrijf</span><select id="mo-b" required><option value="">Kies een bedrijf…</option>${metMail.map(x=>`<option value="${x.id}">${esc(x.naam)} (${KOPJES[x.kopje].enk.toLowerCase()})</option>`).join('')}</select></label>` : ''}
+    <p class="hint">Al verstuurd vanuit Outlook? <a href="#" data-act="mailHandmatig" data-richting="uit" ${b?`data-id="${b.id}"`:''}>Leg hem hier vast</a>.</p>
+    <div id="mo-aan"></div>
+    <label class="f"><span>Sjabloon</span><select id="mo-sj"></select></label>
+    <label class="f"><span>Onderwerp</span><input id="mo-ond" name="onderwerp" required autocomplete="off"></label>
+    <label class="f"><span>Bericht</span><textarea id="mo-tekst" name="tekst" required style="min-height:280px"></textarea></label>
+    <p class="hint">${robotActief() ? 'Versturen gaat vanuit je eigen mailbox, binnen een kwartier. De mail komt daarna vanzelf in de tijdlijn.' : 'Klik op "Open in mail" om hem in je mailprogramma te versturen. Klik daarna op "Markeer als verstuurd", dan komt hij in de tijdlijn.'}</p>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="mo-kopie">${ic('note','sm')}Kopieer tekst</button>
+      <a class="btn" id="mo-open" href="#">${ic('mail','sm')}Open in mail</a>
+      <button class="btn primary" type="submit" id="mo-ok">${ic('check','sm')}${robotActief() ? 'Versturen' : 'Markeer als verstuurd'}</button>
+    </div>
   </form>`, s => {
-    s.querySelector('#ml').onsubmit = async e => {
-      e.preventDefault(); const d = formData(e.target); const cc = contactVan(b, d.ci!=null?Number(d.ci):0);
-      if(await veilig(() => verwerkActiviteit(b, {type:'mail_uit', tekst:d.tekst.trim(), contactNaam:cc?.naam||''}), 'Mail vastgelegd')) closeSheet();
+    let cur = b, bewerkt = false;
+    const $s = q => s.querySelector(q), ond = $s('#mo-ond'), tekst = $s('#mo-tekst'), sj = $s('#mo-sj');
+    const contact = () => cur ? contactVan(cur, Number($s('#mo-ci')?.value ?? 0)) : null;
+    const link = () => {
+      const c = contact(), a = $s('#mo-open');
+      if(a) a.href = c?.email ? `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent(ond.value)}&body=${encodeURIComponent(tekst.value)}` : '#';
     };
+    const pasToe = () => {
+      const t = (S.inst.sjablonen||[]).find(x => x.id === sj.value);
+      if(t && cur){ ond.value = REEKS.vul(t.onderwerp, cur, contact(), S.gebruiker?.naam); tekst.value = REEKS.vul(t.tekst, cur, contact(), S.gebruiker?.naam); bewerkt = false; }
+      link();
+    };
+    const kiesBedrijf = () => {
+      const cs = cur?.contacten || [];
+      const start = ci ?? cur?.opvolging?.contact ?? Math.max(0, cs.findIndex(c => c.email));
+      $s('#mo-aan').innerHTML = cur ? `<label class="f"><span>Aan</span><select id="mo-ci">${cs.map((c,i)=>`<option value="${i}" ${i===start?'selected':''} ${c.email?'':'disabled'}>${esc(c.naam)} · ${esc(c.email||'geen e-mailadres')}</option>`).join('')}</select></label>` : '';
+      const lijst = cur ? sjablonenVoor(cur.kopje) : [];
+      const std = cur && standaardSjabloon(cur);
+      sj.innerHTML = lijst.map(t => `<option value="${esc(t.id)}" ${t===std?'selected':''}>${esc(t.naam)}</option>`).join('') + '<option value="">Leeg bericht</option>';
+      const sel = $s('#mo-ci'); if(sel) sel.onchange = () => { if(!bewerkt) pasToe(); else link(); };
+      pasToe();
+    };
+    if(kies) $s('#mo-b').onchange = e => { cur = bedrijf(e.target.value); ci = undefined; kiesBedrijf(); };
+    sj.onchange = () => { if(!sj.value){ ond.value=''; tekst.value=''; } pasToe(); };
+    ond.oninput = tekst.oninput = () => { bewerkt = true; link(); };
+    $s('#mo-kopie').onclick = () => navigator.clipboard?.writeText(`${ond.value}\n\n${tekst.value}`).then(() => toast('Tekst gekopieerd'), () => toast('Kopiëren lukte niet'));
+    kiesBedrijf();
+    $s('#mo').onsubmit = async e => {
+      e.preventDefault();
+      const c = contact();
+      if(!cur || !c?.email){ toast('Kies een contactpersoon met een e-mailadres.'); return; }
+      const ok = await veilig(async () => {
+        await annuleerGepland(cur, 'je stuurde zelf een mail');
+        const mail = {bedrijfId:cur.id, bedrijf:cur.naam, kopje:cur.kopje, contact:Number($s('#mo-ci')?.value ?? 0), aan:c.naam, email:c.email,
+          onderwerp:ond.value, tekst:tekst.value, sjabloon:sj.value, afzender:S.gebruiker?.naam||'', door:S.gebruiker?.naam||'', aangemaakt:new Date().toISOString()};
+        if(robotActief()){
+          const nu = new Date();
+          await db.collection('mails').add({...mail, status:'gepland', handmatig:true, datum:today(), tijd:`${pad(nu.getHours())}:${pad(nu.getMinutes())}`});
+        } else {
+          await db.collection('mails').add({...mail, status:'verstuurd', handmatig:true, datum:new Date().toISOString(), verstuurdOp:new Date().toISOString()});
+          await verwerkActiviteit(cur, {type:'mail_uit', contactNaam:c.naam, aan:c.email, onderwerp:ond.value, tekst:`Onderwerp: ${ond.value}\n\n${tekst.value}`});
+        }
+      }, robotActief() ? 'Mail wordt binnen een kwartier verstuurd' : 'Mail vastgelegd');
+      if(ok) closeSheet();
+    };
+  });
+}
+
+function geplandeMailSheet(m){
+  const b = bedrijf(m.bedrijfId); if(!b){ toast('Dit bedrijf bestaat niet meer.'); return; }
+  const auto = robotActief();
+  openSheet(`Mail ${m.reeks ? (m.stap+1)+' ' : ''}aan ${m.aan}`, `<form id="gm" class="section">
+    <p class="note">${auto ? `Deze mail gaat automatisch op ${fmtDag(m.datum)} om ${esc(m.tijd||'09:30')} vanuit je eigen mailbox. Is er voor die tijd contact geweest of reageert ${esc(voornaam({naam:m.aan}))}, dan gaat hij niet.` : `De automatische verzending is nog niet gekoppeld. Open de mail in je mailprogramma, verstuur hem en klik op "Markeer als verstuurd".`}</p>
+    <p class="sub">${esc(b.naam)} · ${esc(m.aan)} · ${esc(m.email)}</p>
+    <div class="grid2"><label class="f"><span>Verzenddatum</span><input id="gm-datum" name="datum" type="date" value="${esc(m.datum)}" min="${today()}"></label>
+      <label class="f"><span>Tijd</span><input id="gm-tijd" name="tijd" type="time" value="${esc(m.tijd||'09:30')}"></label></div>
+    <label class="f"><span>Onderwerp</span><input id="gm-ond" name="onderwerp" required value="${esc(m.onderwerp)}" autocomplete="off"></label>
+    <label class="f"><span>Bericht</span><textarea id="gm-tekst" name="tekst" required style="min-height:300px">${esc(m.tekst)}</textarea></label>
+    <div class="sheet-actions">
+      <button type="button" class="btn danger" id="gm-weg">${ic('x','sm')}Niet versturen</button>
+      ${auto ? '' : `<a class="btn" id="gm-open" href="#">${ic('mail','sm')}Open in mail</a><button type="button" class="btn" id="gm-klaar">${ic('check','sm')}Markeer als verstuurd</button>`}
+      <button class="btn primary" type="submit">Wijzigingen opslaan</button>
+    </div>
+  </form>`, s => {
+    const $s = q => s.querySelector(q), ond = $s('#gm-ond'), tekst = $s('#gm-tekst');
+    const link = () => { const a = $s('#gm-open'); if(a) a.href = `mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent(ond.value)}&body=${encodeURIComponent(tekst.value)}`; };
+    ond.oninput = tekst.oninput = link; link();
+    const wijzig = () => ({onderwerp:ond.value, tekst:tekst.value, datum:$s('#gm-datum').value || m.datum, tijd:$s('#gm-tijd').value || m.tijd});
+    $s('#gm').onsubmit = async e => {
+      e.preventDefault(); const w = wijzig();
+      if(await veilig(async () => {
+        await db.collection('mails').doc(m.id).update(w);
+        if(b.opvolging?.stap==='mail' && w.datum !== m.datum) await updBedrijf(b.id, {opvolging:{...clone(b.opvolging), datum:w.datum}});
+      }, 'Mail bijgewerkt')) closeSheet();
+    };
+    $s('#gm-weg').onclick = () => bevestig('Mail niet versturen', `De mail aan ${m.aan} wordt geannuleerd. Je krijgt in plaats daarvan een herinnering om zelf contact op te nemen.`, 'Niet versturen', () => veilig(async () => {
+      await db.collection('mails').doc(m.id).update({status:'geannuleerd', reden:'handmatig geannuleerd', geannuleerdOp:new Date().toISOString()});
+      await systeem(b, `Ingeplande mail "${m.onderwerp}" geannuleerd.`);
+      if(b.opvolging?.actief && b.opvolging.stap==='mail') await updBedrijf(b.id, {opvolging:{...clone(b.opvolging), stap:'eerste', datum:today()}});
+    }, 'Mail geannuleerd'));
+    const klaar = $s('#gm-klaar');
+    if(klaar) klaar.onclick = async () => { if(await veilig(() => markeerVerstuurd(m, wijzig()), 'Mail vastgelegd als verstuurd')) closeSheet(); };
+  });
+}
+/* Een ingeplande mail is (handmatig) verstuurd: vastleggen, opvolging bijwerken en de volgende reeksmail inplannen. */
+async function markeerVerstuurd(m, w = {}){
+  const b = bedrijf(m.bedrijfId);
+  const nu = new Date().toISOString();
+  const mail = {...m, ...w};
+  await db.collection('mails').doc(m.id).update({...w, status:'verstuurd', verstuurdOp:nu});
+  await logAct(b, {type:'mail_uit', contactNaam:mail.aan, aan:mail.email, onderwerp:mail.onderwerp, tekst:`Onderwerp: ${mail.onderwerp}\n\n${mail.tekst}`});
+  await updBedrijf(b.id, {laatsteContact:today()});
+  const {opvolging, volgende} = REEKS.naVerzending(b, mail, S.inst, today());
+  if(volgende) await db.collection('mails').add(volgende);
+  await updBedrijf(b.id, {opvolging});
+  await systeem(b, volgende ? `Mail ${mail.stap+1} verstuurd. Mail ${volgende.stap+1} ("${volgende.onderwerp}") ingepland voor ${fmtDag(volgende.datum)} als er geen reactie komt.` : `Mail verstuurd. Geen reactie voor ${fmtDag(opvolging.datum)}? Dan krijg je een herinnering om te bellen of te mailen.`);
+}
+
+/* Handmatig een verstuurde of ontvangen mail vastleggen (bijv. vanuit Outlook). */
+function mailHandmatig(richting, b){
+  const uit = richting==='uit';
+  const lijst = S.bedrijven.slice().sort((x,y) => x.naam.localeCompare(y.naam));
+  openSheet(uit ? 'Verstuurde mail vastleggen' : 'Ontvangen mail vastleggen', `<form id="mh" class="section">
+    ${b ? `<p class="sub">${esc(b.naam)}</p>` : `<label class="f"><span>Bedrijf</span><select id="mh-b" required><option value="">Kies een bedrijf…</option>${lijst.map(x=>`<option value="${x.id}">${esc(x.naam)}</option>`).join('')}</select></label>`}
+    <div id="mh-aan"></div>
+    <label class="f"><span>${uit?'Verstuurd op':'Ontvangen op'}</span><input id="mh-datum" name="datum" type="datetime-local" required value="${localDT()}"></label>
+    <label class="f"><span>Onderwerp</span><input id="mh-ond" name="onderwerp" required autocomplete="off"></label>
+    <label class="f"><span>${uit?'Inhoud of samenvatting':'Wat schreef de contactpersoon?'}</span><textarea id="mh-tekst" name="tekst"></textarea></label>
+    ${uit ? '' : '<p class="hint">Een ontvangen mail telt als reactie: de opvolging stopt en ingeplande mails gaan niet meer.</p>'}
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Vastleggen</button></div>
+  </form>`, s => {
+    let cur = b;
+    const zetAan = () => { const cs = cur?.contacten||[]; s.querySelector('#mh-aan').innerHTML = cs.length ? contactSelect(cur, cur.opvolging?.contact ?? 0, 'mh-ci') : (cur ? '<p class="hint">Dit bedrijf heeft nog geen contactpersoon.</p>' : ''); };
+    const sel = s.querySelector('#mh-b'); if(sel) sel.onchange = e => { cur = bedrijf(e.target.value); zetAan(); };
+    zetAan();
+    s.querySelector('#mh').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target);
+      if(!cur){ toast('Kies een bedrijf.'); return; }
+      const c = contactVan(cur, Number(d.ci ?? 0)), datum = new Date(d.datum).toISOString();
+      const ok = await veilig(async () => {
+        const basis = {bedrijfId:cur.id, bedrijf:cur.naam, kopje:cur.kopje, contact:Number(d.ci ?? 0), aan:c?.naam||'', email:c?.email||'', onderwerp:d.onderwerp.trim(), tekst:d.tekst.trim(), handmatig:true, vastgelegd:true, door:S.gebruiker?.naam||'', aangemaakt:new Date().toISOString()};
+        if(uit){
+          await annuleerGepland(cur, 'je stuurde zelf een mail');
+          await db.collection('mails').add({...basis, status:'verstuurd', datum, verstuurdOp:datum});
+          await verwerkActiviteit(cur, {type:'mail_uit', datum, contactNaam:c?.naam||'', onderwerp:basis.onderwerp, tekst:`Onderwerp: ${basis.onderwerp}${basis.tekst?'\n\n'+basis.tekst:''}`});
+        } else {
+          await db.collection('mails').add({...basis, status:'ontvangen', datum, verstuurdOp:datum});
+          await verwerkActiviteit(cur, {type:'mail_in', datum, contactNaam:c?.naam||'', onderwerp:basis.onderwerp, tekst:`Onderwerp: ${basis.onderwerp}${basis.tekst?'\n\n'+basis.tekst:''}`});
+        }
+      }, uit ? 'Verstuurde mail vastgelegd' : 'Ontvangen mail vastgelegd');
+      if(ok) closeSheet();
+    };
+  });
+}
+/* Een vastgelegde mail bekijken, corrigeren of uit het overzicht halen. */
+function mailDetail(m){
+  const STATUS = {verstuurd:'Verstuurd', ontvangen:'Ontvangen', geannuleerd:'Niet verstuurd'};
+  openSheet(STATUS[m.status] || 'Mail', `<form id="md" class="section">
+    <p class="sub">${esc(m.bedrijf)} · ${esc(m.aan)}${m.email?' · '+esc(m.email):''}${m.reeks?` · mail ${m.stap+1} uit de reeks`:''}${m.reden?` · ${esc(m.reden)}`:''}</p>
+    <label class="f"><span>Status</span><select id="md-status" name="status">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${m.status===k?'selected':''}>${v}</option>`).join('')}</select></label>
+    <label class="f"><span>Datum</span><input id="md-datum" name="datum" type="datetime-local" value="${localDT(new Date(m.verstuurdOp||m.geannuleerdOp||m.aangemaakt||Date.now()))}"></label>
+    <label class="f"><span>Onderwerp</span><input id="md-ond" name="onderwerp" value="${esc(m.onderwerp)}" autocomplete="off"></label>
+    <label class="f"><span>Tekst</span><textarea id="md-tekst" name="tekst" style="min-height:220px">${esc(m.tekst)}</textarea></label>
+    <p class="hint">Wijzigingen hier passen het mailoverzicht aan. De regel in de tijdlijn van het bedrijf blijft staan.</p>
+    <div class="sheet-actions">
+      <button type="button" class="btn danger" id="md-weg">Uit overzicht verwijderen</button>
+      <button type="button" class="btn" data-act="open" data-id="${esc(m.bedrijfId)}">Naar bedrijf</button>
+      <button class="btn primary" type="submit">Opslaan</button>
+    </div>
+  </form>`, s => {
+    s.querySelector('#md').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target);
+      if(await veilig(() => db.collection('mails').doc(m.id).update({status:d.status, onderwerp:d.onderwerp, tekst:d.tekst, verstuurdOp:new Date(d.datum).toISOString(), gecorrigeerdDoor:S.gebruiker?.naam||''}), 'Opgeslagen')) closeSheet();
+    };
+    s.querySelector('#md-weg').onclick = () => bevestig('Uit overzicht verwijderen', `"${m.onderwerp}" verdwijnt uit het mailoverzicht.`, 'Verwijderen', () => veilig(() => db.collection('mails').doc(m.id).delete(), 'Verwijderd'));
+  });
+}
+
+function mailView(){
+  const teMailen = S.bedrijven.map(b => ({b, s:opvolgStatus(b)}))
+    .filter(x => x.s && !x.s.gepauzeerd && x.s.stap!=='mail' && x.s.datum <= addDays(today(),3))
+    .map(x => ({...x, c:contactVan(x.b, x.b.opvolging?.contact)}))
+    .filter(x => x.c?.email)
+    .sort((a,b) => a.s.datum.localeCompare(b.s.datum));
+  const gepland = S.mails.filter(m => m.status==='gepland').sort((a,b) => (a.datum+a.tijd).localeCompare(b.datum+b.tijd));
+  const verstuurd = S.mails.filter(m => m.status!=='gepland').sort((a,b) => (b.verstuurdOp||b.geannuleerdOp||b.datum).localeCompare(a.verstuurdOp||a.geannuleerdOp||a.datum));
+  const zonderMail = S.bedrijven.filter(b => opvolgStatus(b)?.due && !contactVan(b, b.opvolging?.contact)?.email).length;
+  return `<div class="wrap">
+    <header class="page-head"><p class="eyebrow">Mail</p><h1>Mail</h1></header>
+    <div class="btns"><button class="btn primary" data-act="mail">${ic('plus','sm')}Nieuwe mail</button><button class="btn" data-act="mailHandmatig" data-richting="uit">${ic('mail','sm')}Verstuurde mail vastleggen</button><button class="btn" data-act="mailHandmatig" data-richting="in">${ic('inbox','sm')}Ontvangen mail vastleggen</button></div>
+    <section class="section">
+      <div class="section-title"><h2>Om te mailen</h2><span class="count num">${teMailen.length}</span></div>
+      ${teMailen.length ? `<div class="rows">${teMailen.map(({b,s,c}) => `<div class="row static" style="grid-template-columns:auto 1fr auto">
+        ${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
+          <span class="meta">${esc(c.naam)} · ${esc(c.email)}</span>
+          <span class="next ${s.due?'late':''}">${ic(s.due?'bolt':'clock')}<span>${esc(s.due ? dueTekst(s.datum) : fmtDag(s.datum))} · ${esc(STAP_NAAM[s.stap]||s.label)}</span></span></span>
+        <button class="btn small primary" data-act="mail" data-id="${b.id}" data-ci="${b.opvolging?.contact ?? 0}" aria-label="Mail opstellen">${ic('mail','sm')}<span class="lbl">Opstellen</span></button></div>`).join('')}</div>`
+        : `<div class="empty">${ic('check')}<p>Er staan geen mails klaar om te sturen.</p></div>`}
+      ${zonderMail ? `<p class="hint">${zonderMail} ${zonderMail===1?'bedrijf staat':'bedrijven staan'} vandaag op de lijst, maar de contactpersoon heeft geen e-mailadres. Die vind je bij Vandaag.</p>` : ''}
+    </section>
+    <section class="section">
+      <div class="section-title"><h2>Ingepland</h2><span class="count num">${gepland.length}</span></div>
+      <p class="hint">${robotActief() ? `Automatisch versturen staat aan. Mails gaan op werkdagen vanaf de ingeplande tijd, vanuit je eigen mailbox.` : `Automatisch versturen is nog niet gekoppeld. Mails die aan de beurt zijn, open je in je mailprogramma en markeer je als verstuurd.`}</p>
+      ${gepland.length ? `<div class="rows">${gepland.map(m => `<button class="row" data-act="geplandeMail" data-mail="${m.id}">
+        <span class="cal"><span>${DAGEN[parse(m.datum).getDay()]}</span><b>${parse(m.datum).getDate()}</b></span>
+        <span class="t"><span class="row-top"><b>${esc(m.onderwerp)}</b><span class="chip ${m.datum<=today()?'warn':''}">${m.datum<=today()?(robotActief()?'vandaag':'klaar'):esc(m.tijd||'09:30')}</span></span>
+          <span class="meta">${esc(m.bedrijf)} · ${esc(m.aan)}${m.reeks?` · mail ${m.stap+1}`:''}</span></span>${ic('right')}</button>`).join('')}</div>`
+        : `<div class="empty">${ic('calendar')}<p>Geen ingeplande mails. Geef een prospect de tag #door to door of #netwerk en leg een bezoek vast, dan wordt de eerste mail ingepland.</p></div>`}
+    </section>
+    <section class="section">
+      <div class="section-title"><h2>Verstuurd en ontvangen</h2><span class="count num">${verstuurd.length}</span></div>
+      ${verstuurd.length ? `<div class="rows">${verstuurd.slice(0,100).map(m => `<button class="row" data-act="mailDetail" data-mail="${m.id}">
+        <span class="mono k-${esc(m.kopje||'prospect')}" aria-hidden="true">${esc(initialen(m.bedrijf))}</span>
+        <span class="t"><span class="row-top"><b>${esc(m.onderwerp||'(geen onderwerp)')}</b><span class="chip ${m.status==='ontvangen'?'k-klant':m.status==='geannuleerd'?'warn':''}">${m.status==='ontvangen'?'ontvangen':m.status==='geannuleerd'?'niet verstuurd':'verstuurd'}</span></span>
+          <span class="meta">${esc(fmtTijd(m.verstuurdOp||m.geannuleerdOp||m.datum))} · ${esc(m.bedrijf)} · ${esc(m.aan)}${m.reeks?` · reeksmail ${m.stap+1}`:''}${m.vastgelegd?' · handmatig vastgelegd':''}</span></span>${ic('right')}</button>`).join('')}</div>`
+        : `<div class="empty">${ic('mail')}<p>Nog geen mails. Stuurde je er een vanuit Outlook? Leg hem vast met "Verstuurde mail vastleggen".</p></div>`}
+    </section>
+    <section class="section">
+      <div class="section-title"><h2>Sjablonen</h2><button class="btn small" data-act="sjabloon">${ic('plus','sm')}Nieuw sjabloon</button></div>
+      <div class="rows">${(S.inst.sjablonen||[]).map((t,i) => `<button class="row" data-act="sjabloon" data-i="${i}">
+        <span class="t"><span class="row-top"><b>${esc(t.naam)}</b>${t.kopje && t.kopje!=='alle' ? chipKopje(t.kopje) : '<span class="chip">alle</span>'}</span>
+        <span class="meta">${esc(t.onderwerp)}</span></span>${ic('right')}</button>`).join('')}</div>
+      <p class="hint">Invulvelden: {voornaam}, {naam}, {bedrijf}, {mijnnaam}, {mijnvoornaam}.</p>
+    </section>
+    <section class="section">
+      <div class="section-title"><h2>Mailreeksen</h2></div>
+      ${(S.inst.mailreeksen||[]).length ? `<div class="rows">${S.inst.mailreeksen.map(r => `<div class="row static"><span class="t">
+        <span class="row-top"><b>${esc(r.naam)}</b><span class="chip tag">${esc(r.tag)}</span></span>
+        <span class="meta wrap">${r.stappen.map((st,i) => { const t = (S.inst.sjablonen||[]).find(x => x.id===st.sjabloon); return `Mail ${i+1}: ${esc(t?.naam||st.sjabloon)} (${st.werkdagenNa!=null ? st.werkdagenNa+' werkdag'+(st.werkdagenNa===1?'':'en') : st.dagenNa+' dagen'} ${i?'na de vorige mail, bij geen reactie':'na het bezoek'})`; }).join('<br>')}</span></span></div>`).join('')}</div>`
+        : `<p class="sub">Nog geen mailreeksen ingesteld.</p>`}
+      <p class="hint">Een reeks stopt zodra er contact is: een reactie, een gesprek, een afspraak of een nieuw bezoek. Er gaat nooit een automatische mail na contact.</p>
+    </section>
+  </div>`;
+}
+
+function sjabloonForm(i){
+  const nieuw = i==null, t = nieuw ? {kopje:'prospect', naam:'', onderwerp:'', tekst:'Hoi {voornaam},\n\n\n\nGroet,\n{mijnnaam}\nDesko Kantoorinrichting'} : S.inst.sjablonen[i];
+  openSheet(nieuw ? 'Nieuw sjabloon' : 'Sjabloon bewerken', `<form id="sjf" class="section">
+    <div class="grid2"><label class="f"><span>Naam</span><input id="sj-naam" name="naam" required value="${esc(t.naam)}" autocomplete="off"></label>
+    <label class="f"><span>Voor</span><select id="sj-kopje" name="kopje"><option value="alle" ${!t.kopje||t.kopje==='alle'?'selected':''}>Alle kopjes</option>${Object.entries(KOPJES).map(([k,v])=>`<option value="${k}" ${t.kopje===k?'selected':''}>${v.naam}</option>`).join('')}</select></label></div>
+    <label class="f"><span>Onderwerp</span><input id="sj-ond" name="onderwerp" required value="${esc(t.onderwerp)}" autocomplete="off"></label>
+    <label class="f"><span>Tekst</span><textarea id="sj-tekst" name="tekst" required style="min-height:260px">${esc(t.tekst)}</textarea></label>
+    <p class="hint">Invulvelden: {voornaam}, {naam}, {bedrijf}, {mijnnaam}, {mijnvoornaam}. Schrijf kort en persoonlijk, in platte tekst.</p>
+    <div class="sheet-actions">${nieuw?'':`<button type="button" class="btn danger" id="sj-del">Verwijderen</button>`}<button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
+  </form>`, s => {
+    const bewaar = async lijst => { const inst = clone(S.inst); inst.sjablonen = lijst; return veilig(() => db.doc('instellingen/algemeen').set(inst), 'Sjablonen opgeslagen'); };
+    s.querySelector('#sjf').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target);
+      const lijst = clone(S.inst.sjablonen||[]);
+      const item = {id: nieuw ? 'sj-' + Date.now().toString(36) : t.id, kopje:d.kopje, naam:d.naam.trim(), onderwerp:d.onderwerp.trim(), tekst:d.tekst};
+      if(nieuw) lijst.push(item); else lijst[i] = item;
+      if(await bewaar(lijst)) closeSheet();
+    };
+    const del = s.querySelector('#sj-del');
+    if(del) del.onclick = () => bevestig('Sjabloon verwijderen', `"${t.naam}" wordt verwijderd.`, 'Verwijderen', async () => {
+      const lijst = clone(S.inst.sjablonen); lijst.splice(i,1);
+      const inst = clone(S.inst); inst.sjablonen = lijst; inst.sjablonenVerwijderd = [...new Set([...(inst.sjablonenVerwijderd||[]), t.id])];
+      await veilig(() => db.doc('instellingen/algemeen').set(inst), 'Sjabloon verwijderd');
+    });
   });
 }
 
@@ -1168,11 +1408,36 @@ function planActie(b){
   });
 }
 
+/* Keuze van de mailreeks (de # op de prospect). */
+function reeksKeuze(b, id='mr'){
+  const reeksen = S.inst.mailreeksen || [];
+  if(b.kopje!=='prospect' || !reeksen.length) return '';
+  const huidig = REEKS.reeksVoor(b, S.inst)?.id ?? '';
+  return `<div class="f"><span>Mailreeks</span><div class="seg">${reeksen.map(r => `<label><input type="radio" name="mailreeks" value="${esc(r.id)}" id="${id}-${esc(r.id)}" ${huidig===r.id?'checked':''}><span>${esc(r.naam)} <small style="opacity:.7">#${esc(r.tag)}</small></span></label>`).join('')}
+    <label><input type="radio" name="mailreeks" value="" id="${id}-geen" ${huidig?'':'checked'}><span>Geen mails</span></label></div>
+    <span class="hint">De # bepaalt welke mails deze prospect automatisch krijgt.</span></div>`;
+}
+function tagsMetReeks(tags, reeksId){
+  const reeksen = S.inst.mailreeksen || [], gekozen = reeksen.find(r => r.id===reeksId);
+  const reeksTags = new Set(reeksen.map(r => r.tag.toLowerCase()));
+  const uit = tags.filter(t => !reeksTags.has(t.toLowerCase()));
+  if(gekozen) uit.push(gekozen.tag);
+  return uit;
+}
+
 function reeksStart(b){
-  openSheet('Opvolgreeks starten', `<form id="rs" class="section">${contactSelect(b, 0)}
-    <p class="sub">Je krijgt over ${T(b).opvolgWerkdagen} werkdagen een herinnering om contact op te nemen.</p>
+  openSheet('Opvolgreeks starten', `<form id="rs" class="section">${contactSelect(b, b.opvolging?.contact ?? 0)}
+    ${reeksKeuze(b, 'rs')}
+    <p class="sub">Met een mailreeks wordt de eerste mail ingepland. Zonder reeks krijg je over ${T(b).opvolgWerkdagen} werkdagen een herinnering om contact op te nemen.</p>
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Starten</button></div></form>`, s => {
-    s.querySelector('#rs').onsubmit = async e => { e.preventDefault(); const d = formData(e.target); if(await veilig(() => startReeks(b, Number(d.ci||0)), 'Opvolging gestart')) closeSheet(); };
+    s.querySelector('#rs').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target);
+      if(await veilig(async () => {
+        let bb = b;
+        if(d.mailreeks !== undefined){ const tags = tagsMetReeks(b.tags||[], d.mailreeks); if(JSON.stringify(tags)!==JSON.stringify(b.tags||[])){ await updBedrijf(b.id, {tags}); bb = {...b, tags}; } }
+        await startReeks(bb, Number(d.ci||0));
+      }, 'Opvolging gestart')) closeSheet();
+    };
   });
 }
 
@@ -1248,6 +1513,7 @@ async function verplaats(b, naar){
     if(b.kopje==='prospect' && naar==='klant') patch.wasProspect = true;
     if(naar==='commissie' && !(b.tags||[]).some(t=>t.toLowerCase()===COMMISSIE_TAG)) patch.tags = [...(b.tags||[]), COMMISSIE_TAG];
     if(b.opvolging?.actief) patch.opvolging = {...clone(b.opvolging), actief:false};
+    await annuleerGepland(b, 'verplaatst naar een ander kopje');
     await updBedrijf(b.id, patch);
     await systeem(b, `Verplaatst van ${KOPJES[b.kopje].naam} naar ${KOPJES[naar].naam}${patch.opvolging?'; opvolging gestopt':''}.`);
   }, `Verplaatst naar ${KOPJES[naar].naam}`);
@@ -1488,7 +1754,11 @@ const ACT = {
   contactForm: d => contactForm(bedrijf(d.id), d.ci!=null ? Number(d.ci) : null),
   actForm: d => actForm(bedrijf(d.id), d.type),
   bel: d => belSheet(bedrijf(d.id), d.ci!=null ? Number(d.ci) : undefined),
-  mailLog: d => mailLog(bedrijf(d.id), d.ci!=null ? Number(d.ci) : undefined),
+  mail: d => mailOpstellen(d.id ? bedrijf(d.id) : null, d.ci!=null ? Number(d.ci) : undefined),
+  sjabloon: d => sjabloonForm(d.i!=null ? Number(d.i) : null),
+  mailHandmatig: d => mailHandmatig(d.richting, d.id ? bedrijf(d.id) : null),
+  mailDetail: d => { const m = S.mails.find(x => x.id===d.mail); if(m) mailDetail(m); },
+  geplandeMail: d => { const m = S.mails.find(x => x.id===d.mail); if(m) geplandeMailSheet(m); },
   planActie: d => planActie(bedrijf(d.id)),
   reeksStart: d => reeksStart(bedrijf(d.id)),
   actieKlaar: d => { const b = bedrijf(d.id); veilig(async () => { await updBedrijf(b.id, {opvolging:{...clone(b.opvolging), actief:false}}); await systeem(b, `Actie afgerond: ${b.opvolging.actie}.`); }, 'Afgerond'); },
@@ -1552,8 +1822,10 @@ function start(sessie){
   db.collection('bedrijven').onSnapshot(s => { S.bedrijven = s.docs.map(d => ({id:d.id, ...d.data()})); S.laden = false; render(); }, e => { S.laden = false; render(); fout(e); });
   db.collection('deals').onSnapshot(s => { S.deals = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('weergaven').onSnapshot(s => { S.weergaven = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
+  db.collection('mails').onSnapshot(s => { S.mails = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.collection('exportlog').orderBy('datum','desc').limit(50).onSnapshot(s => { S.exportlog = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
-  db.doc('instellingen/algemeen').onSnapshot(s => { S.inst = merge(DEFAULT_INST, s.exists ? s.data() : {}); render(); }, () => {});
+  db.doc('instellingen/algemeen').onSnapshot(s => { S.inst = REEKS.instellingen(s.exists ? s.data() : {}); render(); }, () => {});
+  db.doc('robot/status').onSnapshot(s => { S.robot = s.exists ? s.data() : null; render(); }, () => {});
   render();
 }
 (async () => {

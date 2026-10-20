@@ -5,7 +5,8 @@ Eenvoudig CRM voor Desko Kantoormeubelen. Werkt op telefoon en computer en is al
 - **Website:** GitHub Pages (map `site/`), wordt bij elke wijziging op `main` automatisch gepubliceerd.
 - **Gegevens:** in de **privé** repository `Desko-Kantoorinrichting/desko-crm-data`, als JSON-bestanden in de map `data/`. Elke opslag is een commit, dus de geschiedenis van die repository is het wijzigingslog (wie, wat, wanneer).
 - **Inloggen:** met e-mail en wachtwoord via één gedeelde link. `site/gebruikers.json` bevat per gebruiker de GitHub-sleutel, versleuteld met diens wachtwoord; het e-mailadres staat er alleen als hash in.
-- **Nog niet gebouwd:** mail versturen via Microsoft 365, agenda, spraakmemo's, pushmeldingen. Mail versturen komt op één plek in `site/index.html` (zoek op `MAIL`).
+- **Mail:** opvolgmails per mailreeks. De # van een prospect (bijv. `door to door` of `netwerk`) bepaalt de reeks. Mails worden ingepland en zijn tot het verzendmoment te bekijken, aan te passen of te annuleren. De **mailrobot** (GitHub Actions) verstuurt ze vanuit Microsoft 365 zodra die gekoppeld is; tot dan open je ze met één klik in je mailprogramma. Verstuurde en ontvangen mails zijn ook handmatig vast te leggen en te corrigeren.
+- **Nog niet gebouwd:** agenda, spraakmemo's, pushmeldingen.
 
 ## Eenmalig instellen
 
@@ -33,6 +34,16 @@ Telefoon: open de link en kies **Toevoegen aan beginscherm** (iPhone: deelknop i
 
 Werkt de sleutel niet? Mogelijk moet een beheerder van de organisatie fine-grained tokens toestaan: **Organization settings → Personal access tokens**.
 
+### 5. Automatisch mailen (mailrobot)
+1. Laat de IT-partij de app-registratie maken volgens `docs/IT-instructie-microsoft365.md` in de privé repository `desko-crm-data`.
+2. Zet in deze repository bij **Settings → Secrets and variables → Actions → Secrets** (niet Variables):
+   - `DATA_TOKEN`: een GitHub-sleutel met *Contents: Read and write* op `desko-crm-data`
+   - `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`: van de IT-partij
+   - `MS_AFZENDER`: het e-mailadres van de mailbox waaruit verstuurd wordt
+3. **Actions → Mailrobot → Run workflow** om te testen. Daarna draait hij vanzelf elk kwartier op werkdagen. In de app staat onder **Mail** dan "Automatisch versturen staat aan".
+
+De robot verstuurt alleen op werkdagen binnen kantoortijd, controleert vlak voor verzending of er al contact of een antwoord is geweest, en schrijft in het (openbare) Actions-logboek alleen aantallen, nooit namen of adressen. Mailteksten en reeksen staan in de privé repository, niet in deze code.
+
 ### Eigen adres (crm.desko.nl)
 1. Laat bij jullie domeinbeheer een DNS-record toevoegen: `CNAME crm → desko-kantoorinrichting.github.io`
 2. Vul in GitHub bij **Settings → Pages → Custom domain** `crm.desko.nl` in en zet **Enforce HTTPS** aan.
@@ -52,4 +63,8 @@ Werkt de sleutel niet? Mogelijk moet een beheerder van de organisatie fine-grain
 | `site/auth.js` | Inloggen met e-mail en wachtwoord (versleuteling) |
 | `site/gebruikers.json` | Gebruikers met hun versleutelde sleutel |
 | `site/config.js` | Welke repositories worden gebruikt |
+| `site/reeks.js` | Gedeelde logica: werkdagen, mailreeksen, inplannen (app en mailrobot) |
+| `scripts/mailrobot.mjs` | Mailrobot: verstuurt ingeplande mails, herkent antwoorden |
+| `tests/` | Tests voor de mailrobot: `node --test tests/` |
 | `.github/workflows/pages.yml` | Automatisch publiceren |
+| `.github/workflows/mailrobot.yml` | Mailrobot elk kwartier op werkdagen |
