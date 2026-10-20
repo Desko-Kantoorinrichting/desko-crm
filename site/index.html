@@ -192,6 +192,9 @@ a{color:var(--accent)}
 .row.gekozen .vinkje{background:var(--ink);border-color:var(--ink);color:var(--surface)}
 .bulkbalk{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--ink);color:var(--surface);padding:10px 12px;border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .bulkbalk > span{margin-right:auto}
+.stopnr{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);margin-right:4px}
+.stopnr.nu{background:var(--jade);border-color:transparent;color:#000}
+.row.gedaan{opacity:.6}
 .bulkbalk .btn:not(.primary){background:transparent;color:var(--surface);border-color:color-mix(in srgb,var(--surface) 35%,transparent)}
 @media (min-width:960px){.bulkbalk{bottom:20px}}
 .heroknop{background:rgba(255,255,255,.1)!important;color:var(--brand-ink)!important;border-color:rgba(255,255,255,.18)!important}
@@ -764,6 +767,7 @@ function vandaagView(){
       </div>
       <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
       </div></div>
+    ${routeKaart()}
     <section class="section">
       <div class="section-title"><h2>Vandaag opvolgen</h2><span class="count num">${nu.length}</span></div>
       ${nu.length ? `<div class="tasks">${nu.map(kaart).join('')}</div>` : `<div class="empty">${ic('check')}<p>Niets openstaand. Leg een bezoek vast om een opvolging te starten.</p><button class="btn primary" data-act="nieuw">${ic('plus','sm')}Nieuw bedrijf</button></div>`}
@@ -2261,7 +2265,7 @@ function buurtStart(){
   V.buurt = {...(V.buurt||{}), status:'zoeken'}; render();
   geocodeOntbrekend();
   if(!navigator.geolocation){ V.buurt.status = 'geen'; render(); return; }
-  navigator.geolocation.getCurrentPosition(p => { V.buurt = {...V.buurt, status:'ok', hier:{lat:p.coords.latitude, lng:p.coords.longitude}, plek:'Je huidige locatie'}; render(); },
+  navigator.geolocation.getCurrentPosition(p => { V.buurt = {...V.buurt, status:'ok', hier:{lat:p.coords.latitude, lng:p.coords.longitude}, plek:'je huidige locatie'}; render(); },
     () => { V.buurt = {...V.buurt, status:'geen'}; render(); }, {enableHighAccuracy:false, timeout:10000, maximumAge:300000});
 }
 function buurtView(){
@@ -2273,19 +2277,27 @@ function buurtView(){
     .map(b => ({b, km:afstandKm(v.hier, b.geo)})).sort((a,b) => a.km-b.km).slice(0, 30);
   const zonder = S.bedrijven.filter(b => !b.plaats).length;
   const kiesFilter = (k,l) => `<button class="keuze ${filter===k?'on':''}" data-act="buurtFilter" data-f="${k}">${l}</button>`;
+  const kiezen = !!v.kiezen, sel = v.sel || [];
   return `<div class="wrap">
     <header class="page-head"><button class="btn ghost back" data-act="tab" data-tab="vandaag">${ic('left','sm')}Vandaag</button><p class="eyebrow">Onderweg</p><h1>In de buurt</h1>
       <p class="sub">${v.hier ? `Vanaf ${esc(v.plek)}.` : v.status==='geen' ? 'Je locatie is niet beschikbaar. Typ een plaats of postcode.' : 'Locatie bepalen…'}</p></header>
     <form id="buurt-form" class="toolbar"><label class="search">${ic('pin')}<input id="buurt-plek" name="plek" placeholder="Of zoek vanaf een plaats of postcode" autocomplete="off" value="${esc(v.zoek||'')}" aria-label="Plaats of postcode"></label><button class="btn" type="submit">Zoeken</button><button class="btn" type="button" data-act="buurtHier" aria-label="Mijn locatie">${ic('pin','sm')}</button></form>
     <div class="keuzes">${kiesFilter('alle','Alles')}${kiesFilter('prospect','Prospects')}${kiesFilter('klant','Klanten')}${kiesFilter('commissie','Commissie')}${kiesFilter('actie','Met openstaande actie')}</div>
     ${v.todo ? `<p class="hint">${ic('refresh','sm')} Adressen opzoeken (${v.todo})…</p>` : ''}
-    ${lijst.length ? `<div class="rows">${lijst.map(({b,km}) => { const s = opvolgStatus(b); return `<div class="row static" style="grid-template-columns:auto 1fr auto">
+    ${routeKaart()}
+    ${lijst.length ? `<div class="section-title"><h2>${kiezen ? 'Kies je stops' : 'Dichtbij'}</h2><button class="btn small ${kiezen?'':'primary'}" data-act="routeKiezen">${kiezen ? 'Annuleren' : ic('route','sm')+(route() ? 'Nieuwe dagroute' : 'Dagroute plannen')}</button></div>
+      ${kiezen ? `<p class="hint">Vink 4 tot 6 bedrijven aan (maximaal ${ROUTE_MAX}). De app zet ze in de handigste volgorde.</p>` : ''}
+      <div class="rows">${lijst.map(({b,km}) => { const s = opvolgStatus(b), aan = kiezen && sel.includes(b.id); return kiezen ? `<button class="row ${aan?'gekozen':''}" data-act="routeStop" data-id="${b.id}" aria-pressed="${aan}" style="grid-template-columns:auto auto 1fr">
+      <span class="vinkje" aria-hidden="true">${aan ? (sel.indexOf(b.id)+1) : ''}</span><span class="afstand">${km < 10 ? km.toFixed(1).replace('.',',') : Math.round(km)}<small>km</small></span>
+      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span><span class="meta">${esc([b.adres, b.plaats].filter(Boolean).join(', '))}</span></span></button>` : `<div class="row static" style="grid-template-columns:auto 1fr auto">
       <span class="afstand">${km < 10 ? km.toFixed(1).replace('.',',') : Math.round(km)}<small>km</small></span>
       <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
         <span class="meta">${esc([b.adres, b.plaats].filter(Boolean).join(', '))}</span>
         ${s ? `<span class="next ${s.due?'late':''}">${ic(s.due?'bolt':'clock')}<span>${esc(s.due ? s.label : fmtDag(s.datum)+' · '+(STAP_NAAM[s.stap]||s.label))}</span></span>` : ''}</span>
       <span class="btns" style="flex-wrap:nowrap"><a class="btn small" href="https://www.google.com/maps/dir/?api=1&destination=${b.geo.lat},${b.geo.lng}" target="_blank" rel="noopener" aria-label="Route naar ${esc(b.naam)}">${ic('route','sm')}<span class="lbl">Route</span></a><button class="btn small primary" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button></span></div>`; }).join('')}</div>`
       : v.hier ? `<div class="empty">${ic('pin')}<p>Geen bedrijven met een bekend adres gevonden.</p></div>` : ''}
+    ${kiezen ? `<div class="bulkbalk" role="toolbar" aria-label="Dagroute"><span><b class="num">${sel.length}</b> ${sel.length===1?'stop':'stops'}</span>
+      <button class="btn small primary" data-act="routeMaak" ${sel.length?'':'disabled'}>${ic('route','sm')}Route openen</button></div>` : ''}
     ${zonder ? `<p class="hint">${zonder} bedrijven hebben nog geen plaats en staan hier niet tussen.</p>` : ''}
   </div>`;
 }
@@ -2294,6 +2306,122 @@ async function buurtZoek(e){
   try{ const g = await geocode(q); if(!g){ toast('Die plaats kan ik niet vinden.'); return; } V.buurt = {...V.buurt, status:'ok', hier:g, plek:q, zoek:q}; render(); }
   catch{ toast('Zoeken lukte niet. Controleer je internet.'); }
 }
+
+/* ---------- dagroute ---------- */
+/* De dagroute is een persoonlijk plan en staat alleen op dit toestel. Google Maps krijgt
+   alleen de coördinaten van de stops, geen namen. */
+const ROUTE_KEY = 'desko-crm-route', ROUTE_MAX = 9, TERUG_NA_MS = 2*60*1000;
+function route(){ try{ const r = JSON.parse(lees(ROUTE_KEY) || 'null'); return r && r.datum===today() && r.stops ? r : null; }catch{ return null; } }
+const zetRoute = r => bewaar(ROUTE_KEY, r ? JSON.stringify(r) : null);
+const openStops = r => (r?.stops || []).filter(x => x.status==='open' && bedrijf(x.id));
+const mapsPlek = b => `${b.geo.lat},${b.geo.lng}`;
+/* Steeds de dichtstbijzijnde volgende stop. */
+function ordenStops(start, lijst){
+  const rest = [...lijst], uit = []; let p = start || rest[0]?.geo;
+  while(rest.length){ rest.sort((a,b) => afstandKm(p, a.geo) - afstandKm(p, b.geo)); const n = rest.shift(); uit.push(n); p = n.geo; }
+  return uit;
+}
+/* Zonder vertrekpunt start Google Maps vanaf je huidige locatie. */
+function routeUrl(lijst){
+  const p = lijst.map(mapsPlek), doel = p.pop();
+  return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(doel)}${p.length ? '&waypoints='+encodeURIComponent(p.join('|')) : ''}`;
+}
+function naarMaps(lijst, huidig){
+  const r = route(); if(r){ r.weg = Date.now(); r.huidig = huidig || lijst[0]?.id; zetRoute(r); }
+  window.open(routeUrl(lijst), '_blank', 'noopener');
+}
+function routeKaart(){
+  const r = route(); if(!r) return '';
+  const open = openStops(r), klaar = r.stops.filter(x => x.status!=='open').length;
+  const naam = {klaar:'Bezocht', overgeslagen:'Overgeslagen'};
+  return `<section class="section"><div class="section-title"><h2>Dagroute</h2><span class="count num">${klaar}/${r.stops.length}</span></div>
+    <div class="rows">${r.stops.map((x,i) => { const b = bedrijf(x.id); if(!b) return ''; const volgende = open[0]?.id===x.id; return `<div class="row static ${x.status!=='open'?'gedaan':''}" style="grid-template-columns:auto 1fr auto">
+      <span class="stopnr ${volgende?'nu':''}">${x.status==='klaar' ? ic('check','sm') : i+1}</span>
+      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${x.status!=='open' ? `<span class="chip">${naam[x.status]}</span>` : ''}</span><span class="meta">${esc([b.adres, b.plaats].filter(Boolean).join(', '))}</span></span>
+      <span class="btns" style="flex-wrap:nowrap">${x.status==='open' ? `<button class="btn small" data-act="routeNaar" data-id="${b.id}" aria-label="Navigeer naar ${esc(b.naam)}">${ic('route','sm')}<span class="lbl">Navigeer</span></button><button class="btn small ${volgende?'primary':''}" data-act="naBezoek" data-id="${b.id}">${ic('check','sm')}<span class="lbl">Klaar</span></button>`
+        : `<button class="btn small" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button>`}</span></div>`; }).join('')}</div>
+    <div class="btns">${open.length ? `<button class="btn primary" data-act="routeHeel">${ic('route','sm')}Route openen${open.length>1 ? ` (${open.length} stops)` : ''}</button>` : `<p class="sub">Alle stops gedaan. Goed bezig!</p>`}<button class="btn ghost" data-act="routeStop2">Route wissen</button></div></section>`;
+}
+function routeMaak(){
+  const v = V.buurt || {}, lijst = (v.sel || []).map(bedrijf).filter(b => b?.geo?.lat);
+  if(!lijst.length) return;
+  const volgorde = ordenStops(v.hier, lijst);
+  zetRoute({datum:today(), stops:volgorde.map(b => ({id:b.id, status:'open'}))});
+  V.buurt = {...v, kiezen:false, sel:[]}; render();
+  naarMaps(volgorde);
+}
+const UITKOMSTEN = [['gesproken','Goed gesprek'], ['afspraak','Afspraak gemaakt'], ['niet','Niemand gesproken'], ['geen','Geen interesse']];
+function naBezoek(b){
+  const r = route(), volgende = openStops(r).find(x => x.id!==b.id);
+  const reeks = b.kopje==='prospect' ? REEKS.reeksVoor(b, S.inst) : null;
+  const ci = b.opvolging?.contact ?? 0;
+  openSheet('Hoe ging het?', `<form id="nb" class="section">
+    <p class="sub">Bezoek bij <b>${esc(b.naam)}</b></p>
+    <div class="f"><span>Uitkomst</span><div class="keuzes" id="nb-uit">${UITKOMSTEN.map(([k,l],i) => `<button type="button" class="keuze ${i?'':'on'}" data-uit="${k}">${l}</button>`).join('')}</div>
+      <input type="hidden" name="uitkomst" id="nb-uitkomst" value="gesproken"></div>
+    <label class="f" id="nb-afspraak" hidden><span>Datum en tijd van de afspraak</span><input name="afspraakOp" type="datetime-local" value="${localDT(new Date(Date.now()+7*86400000))}"></label>
+    ${contactSelect(b, ci)}
+    <label class="f"><span>Notitie</span><textarea name="tekst" placeholder="Bijv. receptie gesproken, verwijst naar Aukje voor facilitair"></textarea></label>
+    ${planVelden({id:'nb', wat:'Bellen', titel:'Wanneer volg je op?'})}
+    ${reeks ? `<label class="check" id="nb-reekslbl"><input type="checkbox" name="reeks" id="nb-reeks"><span>In plaats daarvan mailreeks "${esc(reeks.naam)}" starten</span></label>` : ''}
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Nog niet geweest</button><button class="btn primary" type="submit">Opslaan${volgende ? ' en verder' : ''}</button></div>
+  </form>`, s => {
+    mountPlan(s, 'nb');
+    const box = s.querySelector('[data-plan="nb"]'), datum = s.querySelector('#nb-datum'), actie = s.querySelector('#nb-actie');
+    const kies = (wat, dag) => { box.querySelector(`[data-wat="${wat}"]`)?.click(); box.querySelectorAll('[data-dag]')[dag]?.click(); };
+    s.querySelectorAll('[data-uit]').forEach(k => k.onclick = () => {
+      s.querySelectorAll('[data-uit]').forEach(x => x.classList.toggle('on', x===k));
+      const u = s.querySelector('#nb-uitkomst').value = k.dataset.uit;
+      s.querySelector('#nb-afspraak').hidden = u!=='afspraak';
+      const rl = s.querySelector('#nb-reekslbl'); if(rl) rl.hidden = u==='afspraak' || u==='geen';
+      if(u==='geen'){ datum.value = ''; actie.value = ''; box.querySelectorAll('.on').forEach(x => x.classList.remove('on')); }
+      else if(u==='afspraak') kies('Offerte sturen', 3);
+      else if(u==='niet') kies('Bellen', 1);
+      else kies('Bellen', 2);
+    });
+    s.querySelector('#nb').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target), idx = Number(d.ci ?? ci), c = contactVan(b, idx);
+      const uit = UITKOMSTEN.find(x => x[0]===d.uitkomst)?.[1] || '';
+      const metReeks = !!d.reeks && !!c && !['afspraak','geen'].includes(d.uitkomst);
+      let afspraak = null;
+      const ok = await veilig(async () => {
+        await verwerkActiviteit(b, {type:'bezoek', uitkomst:d.uitkomst, tekst:[uit, d.tekst.trim()].filter(Boolean).join(': '), contactNaam:c?.naam||''}, {startReeks:metReeks, contact:idx});
+        if(d.uitkomst==='afspraak' && d.afspraakOp){
+          afspraak = {type:'afspraak', tekst:'Afspraak gemaakt tijdens bezoek', afspraakOp:new Date(d.afspraakOp).toISOString(), contactNaam:c?.naam||''};
+          await verwerkActiviteit(bedrijf(b.id) || b, afspraak);
+        }
+        const plan = metReeks ? null : leesPlan(d);
+        if(plan) await slaPlanOp(bedrijf(b.id) || b, plan, idx);
+      }, 'Bezoek vastgelegd');
+      if(!ok) return;
+      zetStop(b.id, 'klaar'); closeSheet(); render();
+      volgendeStop(afspraak ? {b, a:afspraak} : null);
+    };
+  });
+}
+function zetStop(id, status){ const r = route(); const x = r?.stops.find(x => x.id===id); if(x){ x.status = status; if(r.huidig===id) r.huidig = null; zetRoute(r); } }
+/* Na het opslaan: afspraak in de agenda en/of door naar de volgende stop. */
+function volgendeStop(afspraakBij){
+  const v = openStops(route())[0], b = v && bedrijf(v.id);
+  if(!b && !afspraakBij) { if(route()) toast('Dagroute klaar!'); return; }
+  openSheet(b ? 'Volgende stop' : 'Afspraak vastgelegd', `<div class="section">
+    ${afspraakBij ? `<button type="button" class="btn" id="vs-ics">${ic('calendar','sm')}Afspraak in mijn agenda zetten</button>` : ''}
+    ${b ? `<p><b>${esc(b.naam)}</b><br><span class="sub">${esc([b.adres, b.plaats].filter(Boolean).join(', '))}</span></p>` : ''}
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">${b ? 'Later' : 'Sluiten'}</button>${b ? `<button type="button" class="btn primary" id="vs-ga">${ic('route','sm')}Navigeer</button>` : ''}</div></div>`, s => {
+    const ics = s.querySelector('#vs-ics');
+    if(ics) ics.onclick = () => { bewaarIcs(afspraakBij.b, afspraakBij.a); ics.disabled = true; };
+    const ga = s.querySelector('#vs-ga'); if(ga) ga.onclick = () => { closeSheet(); naarMaps([b], b.id); };
+  });
+}
+/* Terug uit Google Maps: vraag hoe het bezoek ging. */
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState!=='visible' || !S.gebruiker) return;
+  const r = route(); if(!r?.weg) return;
+  const weg = Date.now() - r.weg; r.weg = null; zetRoute(r);
+  if(weg < TERUG_NA_MS || !$('#sheet').hidden) return;
+  const id = openStops(r).find(x => x.id===r.huidig)?.id || openStops(r)[0]?.id, b = id && bedrijf(id);
+  if(b) naBezoek(b);
+});
 
 /* ---------- visitekaartje scannen ---------- */
 /* Tekstherkenning draait op het apparaat zelf (Tesseract); de foto wordt niet verstuurd. */
@@ -2399,6 +2527,15 @@ const ACT = {
   dashExport: () => dashExport(),
   dashVernieuw: () => laadAlleActiviteiten(true),
   buurtFilter: d => { V.buurt = {...V.buurt, filter:d.f}; render(); },
+  routeKiezen: () => { const k = !V.buurt?.kiezen; V.buurt = {...V.buurt, kiezen:k, sel:[]}; render(); },
+  routeStop: d => { const sel = [...(V.buurt.sel||[])], i = sel.indexOf(d.id);
+    if(i>=0) sel.splice(i,1); else if(sel.length >= ROUTE_MAX){ toast(`Maximaal ${ROUTE_MAX} stops.`); return; } else sel.push(d.id);
+    V.buurt = {...V.buurt, sel}; render(); },
+  routeMaak,
+  routeHeel: () => naarMaps(openStops(route()).map(x => bedrijf(x.id))),
+  routeNaar: d => naarMaps([bedrijf(d.id)], d.id),
+  naBezoek: d => naBezoek(bedrijf(d.id)),
+  routeStop2: () => bevestig('Route wissen', 'De dagroute verdwijnt van dit toestel. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => { zetRoute(null); render(); }),
   buurtHier: () => { V.buurt = {...V.buurt, status:null, zoek:''}; buurtStart(); },
   toonStil: () => { V.filters.alle = {contact:'stil'}; V.zoek.alle = ''; V.tab = 'alle'; V.detail = null; render(); window.scrollTo(0,0); },
   selecteer: d => { V.selectie = V.selectie?.kopje===d.kopje ? null : {kopje:d.kopje, ids:new Set()}; render(); },
