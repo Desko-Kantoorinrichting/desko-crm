@@ -222,6 +222,7 @@ a{color:var(--accent)}
 .opslag{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:60;background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:0 6px 20px rgba(0,0,0,.12);border-radius:999px;padding:6px 14px;font-size:.8rem;font-weight:650;display:flex;align-items:center;gap:8px;white-space:nowrap}
 .opslag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kleur,#1F7A3C)}
 .opslag.wacht{--kleur:var(--warn)}
+.banner{display:flex;flex-direction:column;gap:10px;border:1px solid var(--accent);background:var(--accent-soft)}
 .stopnr{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);margin-right:4px}
 .stopnr.nu{background:var(--jade);border-color:transparent;color:#000}
 .row.gedaan{opacity:.6}
@@ -802,6 +803,7 @@ function vandaagView(){
       </div>
       <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
       </div></div>
+    ${meldingBanner()}
     ${routeKaart()}
     <section class="section">
       <div class="section-title"><h2>Vandaag opvolgen</h2><span class="count num">${nu.length}</span></div>
@@ -997,6 +999,7 @@ function meerView(){
       <p class="note">Mail versturen en ontvangen via Microsoft 365, de Outlook-agenda, spraakmemo's en pushmeldingen komen later. Onder Mail stel je een mail op vanuit een sjabloon, open je hem in je mailprogramma en leg je hem vast. Een antwoord leg je vast met "Reactie". De opvolging telt beide mee.</p>
     </section>
     ${S.gebruiker?.admin ? beheerView() : ''}
+    ${meldingSectie()}
     <section class="section"><div class="section-title"><h2>Account</h2></div>
       <p class="sub">Ingelogd als ${esc(S.gebruiker?.naam||'')}${S.gebruiker?.admin?' (beheerder)':''}</p>
       <div class="btns"><a class="btn" href="https://github.com/${esc(window.DESKO_CONFIG?.DATA_REPO||'')}/commits/main" target="_blank" rel="noopener">Wijzigingsgeschiedenis</a><button class="btn" data-act="wachtwoord">Wachtwoord wijzigen</button><button class="btn" data-act="uitloggen">Uitloggen</button></div>
@@ -2412,6 +2415,77 @@ async function buurtZoek(e){
   catch{ toast('Zoeken lukte niet. Controleer je internet.'); }
 }
 
+/* ---------- meldingen op de telefoon ----------
+   De telefoon meldt zich aan bij zijn eigen pushdienst; het adres daarvan staat in de
+   privé gegevens (meldingen). De herinneringsrobot (GitHub Actions) stuurt elk kwartier
+   de opvolgingen van vandaag. Meldingen zijn versleuteld tot op de telefoon. */
+const MELDING_KEY = 'desko-crm-melding';
+const pushMogelijk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && !!window.DESKO_CONFIG?.VAPID_PUBLIC;
+const isIphone = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
+const losGeopend = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function meldingStaat(){
+  if(!pushMogelijk()) return 'kan-niet';
+  if(Notification.permission === 'denied') return 'geweigerd';
+  return lees(MELDING_KEY) && Notification.permission === 'granted' ? 'aan' : 'uit';
+}
+function meldingUitleg(){
+  return isIphone() && !losGeopend()
+    ? 'Op een iPhone werken meldingen alleen vanuit de app op je beginscherm: open deze pagina in Safari, tik op de deelknop en kies <b>Zet op beginscherm</b>. Open de app daarna via het icoon en zet hier de meldingen aan.'
+    : 'Deze browser ondersteunt geen meldingen. Gebruik Chrome op Android of de app op het beginscherm van je iPhone.';
+}
+function meldingSectie(){
+  const st = meldingStaat();
+  return `<section class="section"><div class="section-title"><h2>Meldingen op deze telefoon</h2></div>
+    <div class="card">
+      ${st === 'aan' ? `<p>${ic('check','sm')} Meldingen staan aan. Je krijgt op werkdagen een melding als je iemand moet bellen, mailen of bezoeken, met een link naar het profiel.</p>
+        <div class="btns"><button class="btn" data-act="meldingTest">Voorbeeld tonen</button><button class="btn ghost" data-act="meldingUit">Uitzetten</button></div>`
+      : st === 'geweigerd' ? `<p>Meldingen zijn voor deze app geblokkeerd. Zet ze aan in de instellingen van je telefoon of browser (Meldingen → Desko CRM) en kom hier terug.</p>`
+      : st === 'kan-niet' ? `<p>${meldingUitleg()}</p>`
+      : `<p>Krijg een melding als je vandaag iemand moet bellen, mailen of bezoeken, bijvoorbeeld <i>"Neem vandaag contact op met Pietje Puk"</i>. Tik erop en het profiel opent.</p>
+        <div class="btns"><button class="btn primary" data-act="meldingAan">${ic('bolt','sm')}Meldingen aanzetten</button></div>`}
+    </div></section>`;
+}
+function meldingBanner(){
+  if(meldingStaat() !== 'uit' || lees('desko-crm-melding-banner')) return '';
+  return `<section class="card banner"><p><b>Herinneringen op je telefoon?</b> Krijg een melding als je iemand moet bellen of bezoeken.</p>
+    <div class="btns"><button class="btn primary small" data-act="meldingAan">Aanzetten</button><button class="btn ghost small" data-act="meldingBannerWeg">Niet nu</button></div></section>`;
+}
+const b64uNaarBytes = s => { const p = '='.repeat((4 - s.length % 4) % 4); return Uint8Array.from(atob((s + p).replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0)); };
+async function abonnementId(endpoint){ const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(endpoint))); return [...h.slice(0,12)].map(x => x.toString(16).padStart(2,'0')).join(''); }
+function apparaatNaam(){ const u = navigator.userAgent; return /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : 'Browser'; }
+async function meldingAan(){
+  if(!pushMogelijk()){ openSheet('Meldingen', `<p>${meldingUitleg()}</p><div class="sheet-actions"><button class="btn primary" data-act="closeSheet">Begrepen</button></div>`); return; }
+  try{
+    const toestemming = await Notification.requestPermission();
+    if(toestemming !== 'granted'){ toast('Meldingen zijn niet toegestaan.'); render(); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uNaarBytes(window.DESKO_CONFIG.VAPID_PUBLIC)});
+    const j = sub.toJSON(), id = await abonnementId(j.endpoint);
+    await db.collection('meldingen').doc(id).set({gebruikerId:S.gebruiker?.id || '', naam:S.gebruiker?.naam || '', apparaat:apparaatNaam(), endpoint:j.endpoint, keys:j.keys, aangemaakt:new Date().toISOString()});
+    bewaar(MELDING_KEY, id); render();
+    reg.showNotification('Meldingen staan aan', {body:'Zo ziet een herinnering eruit. Tik erop om de app te openen.', icon:'icon-192.png', tag:'welkom', data:{url:'#/vandaag'}});
+    toast('Meldingen staan aan');
+  }catch(e){ console.error(e); toast('Aanzetten lukte niet. Probeer het opnieuw.'); }
+}
+async function meldingUit(){
+  try{
+    const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    const id = lees(MELDING_KEY) || (sub && await abonnementId(sub.endpoint));
+    if(sub) await sub.unsubscribe();
+    if(id) await db.collection('meldingen').doc(id).delete();
+  }catch(e){ console.error(e); }
+  bewaar(MELDING_KEY, null); render(); toast('Meldingen staan uit');
+}
+async function meldingTest(){
+  const reg = await navigator.serviceWorker.ready;
+  const b = S.bedrijven.find(x => opvolgStatus(x)) || S.bedrijven[0], c = b && contactVan(b, b.opvolging?.contact);
+  reg.showNotification(`Neem vandaag contact op met ${c?.naam || 'Pietje Puk'}`, {body:`${b?.naam || 'Voorbeeld b.v.'} · voorbeeld`, icon:'icon-192.png', tag:'voorbeeld', data:{url:b ? '#/b/'+b.id : '#/vandaag'}});
+}
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => {
+  const url = e.data?.open; if(!url) return;
+  const h = new URL(url).hash, r = leesHash(h); if(h && h !== location.hash){ history.pushState({tab:r.tab || null, detail:r.detail || null, vanApp:true}, '', h); toonRoute(r); }
+});
+
 /* ---------- agenda ---------- */
 const AG_SOORT = {opvolg:{naam:'Opvolging', ic:'phone'}, mail:{naam:'Mail', ic:'mail'}, afspraak:{naam:'Afspraak', ic:'calendar'}, commissie:{naam:'Commissie', ic:'euro'}};
 const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -2688,8 +2762,8 @@ function leesKaartje(tekst){
    binnen de app terug gaat en een melding direct een klantprofiel kan openen. Staat er een
    venster (sheet) open, dan sluit terug alleen dat venster en blijf je op hetzelfde scherm. */
 const routeHash = r => r.detail ? '#/b/' + r.detail : '#/' + (r.tab || 'vandaag');
-function leesHash(){
-  const h = location.hash.replace(/^#\/?/, '');
+function leesHash(hash = location.hash){
+  const h = hash.replace(/^#\/?/, '');
   if(h.startsWith('b/')) return {detail:decodeURIComponent(h.slice(2))};
   return {tab:h || 'vandaag'};
 }
@@ -2762,6 +2836,8 @@ const ACT = {
   agendaStap: d => agendaStap(Number(d.n)),
   agendaDag: d => { V.agenda.dag = d.dag; render(); },
   agendaIcs,
+  meldingAan, meldingUit, meldingTest,
+  meldingBannerWeg: () => { bewaar('desko-crm-melding-banner', '1'); render(); },
   agendaOpen: d => { const x = V._ag?.[Number(d.i)]; if(!x) return; if(x.soort==='mail') geplandeMailSheet(x.m); else if(x.soort==='opvolg') planActie(x.b, {titel:'Opvolging verzetten'}); else openDetail(x.b.id); },
   routeKiezen: () => { const k = !V.buurt?.kiezen; V.buurt = {...V.buurt, kiezen:k, sel:[]}; render(); },
   routeStop: d => { const sel = [...(V.buurt.sel||[])], i = sel.indexOf(d.id);

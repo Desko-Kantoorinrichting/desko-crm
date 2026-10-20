@@ -1,0 +1,32 @@
+name: Herinneringen
+
+# Elk kwartier op werkdagen: meldingen op de telefoon voor opvolgingen van vandaag.
+# Het script controleert zelf de Nederlandse tijd en feestdagen.
+on:
+  schedule:
+    - cron: '7,22,37,52 5-17 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: herinneringen
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Pushbibliotheek installeren
+        run: npm install --no-save --no-audit --no-fund web-push@3.6.7
+      - name: Herinneringen versturen
+        run: node scripts/herinneringen.mjs
+        env:
+          DATA_REPO: Desko-Kantoorinrichting/desko-crm-data
+          DATA_TOKEN: ${{ secrets.DATA_TOKEN }}

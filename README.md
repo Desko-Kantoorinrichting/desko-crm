@@ -8,7 +8,9 @@ Eenvoudig CRM voor Desko Kantoormeubelen. Werkt op telefoon en computer en is al
 - **Mail:** opvolgmails per mailreeks. De # van een prospect (bijv. `deuren intrappen` of `netwerk`) bepaalt de reeks. Mails worden ingepland en zijn tot het verzendmoment te bekijken, aan te passen of te annuleren. De **mailrobot** (GitHub Actions) verstuurt ze vanuit Microsoft 365 zodra die gekoppeld is; tot dan open je ze met één klik in je mailprogramma. Verstuurde en ontvangen mails zijn ook handmatig vast te leggen en te corrigeren.
 - **Extra:** afspraken als agenda-bestand (.ics) in je eigen agenda zetten, waarschuwing bij dubbele bedrijven, meerdere bedrijven tegelijk bewerken, lijst "Al lang niets van gehoord", **Cijfers** (grafieken en export naar Excel), **In de buurt** (bedrijven op afstand vanaf je locatie, met route) met **Dagroute** (stops aanvinken, één route in Google Maps, na elk bezoek direct uitkomst en opvolging vastleggen; de route staat alleen op het eigen toestel) en **Kaartje scannen** (tekst van een visitekaartje lezen op het toestel zelf).
 - **Externe diensten:** voor *In de buurt* worden alleen bedrijfsadressen omgezet naar coördinaten via de PDOK Locatieserver (Rijksoverheid). Het lezen van visitekaartjes gebeurt op het toestel; alleen de leessoftware (Tesseract) wordt van jsdelivr geladen, de foto gaat nergens heen.
-- **Nog niet gebouwd:** koppeling met de Outlook-agenda, spraakmemo's, pushmeldingen.
+- **Agenda:** per week of maand wie wanneer gebeld, gemaild of bezocht moet worden; ook als agenda-bestand voor Outlook.
+- **Meldingen op de telefoon:** herinneringen als "Neem vandaag contact op met ...", met een link naar het profiel (zie stap 6).
+- **Nog niet gebouwd:** directe koppeling met de Outlook-agenda, spraakmemo's.
 
 ## Eenmalig instellen
 
@@ -46,6 +48,13 @@ Werkt de sleutel niet? Mogelijk moet een beheerder van de organisatie fine-grain
 
 De robot verstuurt alleen op werkdagen binnen kantoortijd, controleert vlak voor verzending of er al contact of een antwoord is geweest, en schrijft in het (openbare) Actions-logboek alleen aantallen, nooit namen of adressen. Mailteksten en reeksen staan in de privé repository, niet in deze code.
 
+### 6. Meldingen op de telefoon (herinneringen)
+1. Zet in deze repository bij **Settings → Secrets and variables → Actions → Secrets** het secret `DATA_TOKEN`: een GitHub-sleutel met *Contents: Read and write* op `desko-crm-data` (dezelfde als bij stap 5; één keer instellen is genoeg).
+2. **Actions → Herinneringen → Run workflow** om te testen. Daarna draait hij vanzelf elk kwartier op werkdagen.
+3. Iedereen die meldingen wil: in de app **Meer → Meldingen aanzetten** (of de knop op Vandaag). Op een iPhone eerst de app op het beginscherm zetten en vanaf daar openen.
+
+Een opvolging van vandaag geeft een melding aan het begin van de werkdag, of om de gekozen tijd. Te late opvolgingen komen één keer per dag als samenvatting. De meldingen gaan versleuteld via de pushdienst van de telefoon (Google of Apple), die de inhoud niet kan lezen. De sleutel daarvoor staat in `data/push-sleutel.json` in de privé repository.
+
 ### Eigen adres (crm.desko.nl)
 1. Laat bij jullie domeinbeheer een DNS-record toevoegen: `CNAME crm → desko-kantoorinrichting.github.io`
 2. Vul in GitHub bij **Settings → Pages → Custom domain** `crm.desko.nl` in en zet **Enforce HTTPS** aan.
@@ -67,6 +76,8 @@ De robot verstuurt alleen op werkdagen binnen kantoortijd, controleert vlak voor
 | `site/config.js` | Welke repositories worden gebruikt |
 | `site/reeks.js` | Gedeelde logica: werkdagen, mailreeksen, inplannen (app en mailrobot) |
 | `scripts/mailrobot.mjs` | Mailrobot: verstuurt ingeplande mails, herkent antwoorden |
-| `tests/` | Tests voor de mailrobot: `node --test tests/*.mjs` |
+| `scripts/herinneringen.mjs` | Meldingen op de telefoon voor opvolgingen |
+| `tests/` | Tests voor de mailrobot en herinneringen: `node --test tests/*.mjs` |
 | `.github/workflows/pages.yml` | Automatisch publiceren |
 | `.github/workflows/mailrobot.yml` | Mailrobot elk kwartier op werkdagen |
+| `.github/workflows/herinneringen.yml` | Herinneringen elk kwartier op werkdagen |
