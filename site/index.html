@@ -350,7 +350,10 @@ a{color:var(--accent)}
 .stoplijst li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 10px;background:var(--surface)}
 .stoplijst li.gedaan{opacity:.6}
 .stoplijst .t{min-width:0}.stoplijst .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stoplijst .meta{display:block;color:var(--muted);font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.plan-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.plan-tags .chip{font-size:.72rem;padding:1px 7px}
+.plan-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.plan-tags .chip.tag{font-size:.78rem;padding:2px 9px;background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:650}
+.plan-tags .chip.tag::before{opacity:.7}
+.geen-tag{font-size:.75rem;color:var(--faint);font-style:italic}
 .plan-tagkeuze{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 8px;font:inherit;max-width:44%}
 .stop-knoppen{display:flex;gap:2px}.stop-knoppen .icon-btn{width:34px;height:34px;font-size:1rem}
 .kaartnr span{width:30px;height:30px;border-radius:50%;background:linear-gradient(90deg,#51C26F,#F2E901);color:#000;font:700 .9rem/30px var(--font-body, sans-serif);text-align:center;display:block;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #000}
@@ -3211,7 +3214,7 @@ function plannenView(){
         <p class="hint">${ic('pin','sm')} Vertrek: ${vp ? esc(vp.adres) : 'huidige locatie'} · <a href="#" data-act="planVertrek">wijzigen</a></p>
         ${r.stops.length ? `<ol class="stoplijst">${r.stops.map((x, i) => { const b = bedrijf(x.id), w = planReden(b, v.datum);
           const a = sch.aankomst[b.id];
-          return `<li class="${x.status!=='open'?'gedaan':''}"><span class="stopnr">${x.status==='klaar' ? ic('check','sm') : i+1}</span><span class="t"><b>${esc(b.naam)}</b><span class="meta">${a ? `<b class="aankomst">${a.tijd}</b>${a.rij != null ? ` (${a.rij} min rijden)` : ''} · ` : ''}${esc(b.plaats || '')}${w.reden ? ' · '+esc(w.reden) : ''}</span>${(b.tags||[]).length ? `<span class="plan-tags">${b.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('')}</span>` : ''}</span>
+          return `<li class="${x.status!=='open'?'gedaan':''}"><span class="stopnr">${x.status==='klaar' ? ic('check','sm') : i+1}</span><span class="t"><b>${esc(b.naam)}</b><span class="meta">${a ? `<b class="aankomst">${a.tijd}</b>${a.rij != null ? ` (${a.rij} min rijden)` : ''} · ` : ''}${esc(b.plaats || '')}${w.reden ? ' · '+esc(w.reden) : ''}</span><span class="plan-tags">${(b.tags||[]).length ? b.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('') : '<span class="geen-tag">geen tag</span>'}</span></span>
             <span class="stop-knoppen"><button class="icon-btn" data-act="planSchuif" data-i="${i}" data-n="-1" ${i?'':'disabled'} aria-label="Eerder">↑</button><button class="icon-btn" data-act="planSchuif" data-i="${i}" data-n="1" ${i<r.stops.length-1?'':'disabled'} aria-label="Later">↓</button><button class="icon-btn" data-act="planWeg" data-id="${b.id}" aria-label="${esc(b.naam)} uit de route">${ic('x','sm')}</button></span></li>`; }).join('')}</ol>` : ''}
         <div class="btns">
           <button class="btn primary" data-act="planSlim">${ic('bolt','sm')}Slim vullen</button>
@@ -3226,7 +3229,7 @@ function plannenView(){
         <div class="toolbar"><label class="search">${ic('search')}<input id="plan-zoek" type="search" placeholder="Zoek op naam, plaats of tag" value="${esc(v.zoek||'')}" autocomplete="off" aria-label="Zoek een bedrijf"></label>
           <select id="plan-tag" class="plan-tagkeuze" aria-label="Tag"><option value="">Alle tags</option>${[...new Set(S.bedrijven.flatMap(b => b.tags||[]).map(t => t.toLowerCase()))].sort().map(t => `<option value="${esc(t)}" ${v.tag===t?'selected':''}>#${esc(t)}</option>`).join('')}<option value="(geen tag)" ${v.tag==='(geen tag)'?'selected':''}>Zonder tag</option></select></div>
         <div class="rows">${kand.length ? kand.map(x => `<div class="row static" style="grid-template-columns:1fr auto">
-          <span class="t"><span class="row-top"><b>${esc(x.b.naam)}</b>${chipKopje(x.b.kopje)}</span><span class="meta">${esc(x.b.plaats || '')}${x.km != null ? ` · ${x.km < 10 ? x.km.toFixed(1).replace('.', ',') : Math.round(x.km)} km` : ''}${x.reden ? ' · '+esc(x.reden) : ''}${x.elders ? ` · al gepland ${esc(fmtDag(x.elders.datum))}` : ''}</span>${(x.b.tags||[]).length ? `<span class="plan-tags">${x.b.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('')}</span>` : ''}</span>
+          <span class="t"><span class="row-top"><b>${esc(x.b.naam)}</b>${chipKopje(x.b.kopje)}</span><span class="meta">${esc(x.b.plaats || '')}${x.km != null ? ` · ${x.km < 10 ? x.km.toFixed(1).replace('.', ',') : Math.round(x.km)} km` : ''}${x.reden ? ' · '+esc(x.reden) : ''}${x.elders ? ` · al gepland ${esc(fmtDag(x.elders.datum))}` : ''}</span><span class="plan-tags">${(x.b.tags||[]).length ? x.b.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('') : '<span class="geen-tag">geen tag</span>'}</span></span>
           <button class="btn small ${x.elders?'':'primary'}" data-act="planErbij" data-id="${x.b.id}" ${r.stops.length >= ROUTE_MAX ? 'disabled' : ''} aria-label="${esc(x.b.naam)} toevoegen">${ic('plus','sm')}<span class="lbl">Toevoegen</span></button></div>`).join('')
           : `<p class="sub" style="padding:10px 4px">Geen voorstellen. Kies "Alles" of zoek op naam.</p>`}</div>
         ${S.bedrijven.some(b => b.plaats && !b.geo) ? `<p class="hint">Sommige adressen worden nog opgezocht…</p>` : ''}
