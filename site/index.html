@@ -238,6 +238,13 @@ a{color:var(--accent)}
 .mic-status{text-align:center;color:var(--muted);font-size:.9rem;min-height:1.3em}
 .begrepen{display:flex;flex-direction:column;gap:6px;background:var(--accent-soft);border-radius:14px;padding:12px 14px;font-size:.92rem}
 .begrepen span{display:flex;gap:8px;align-items:flex-start}.begrepen .ic{flex:none;margin-top:2px}
+.top-r{display:flex;align-items:center;gap:8px}
+.ververs{width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:transparent;color:inherit;display:grid;place-items:center;cursor:pointer}
+.ververs .ic{width:19px;height:19px}
+.ververs.bezig .ic{animation:draai .8s linear infinite}
+@keyframes draai{to{transform:rotate(360deg)}}
+.dicteer{display:flex;gap:12px;align-items:flex-start;background:var(--accent-soft);border-radius:14px;padding:12px 14px;font-size:.92rem;line-height:1.4}
+.dicteer .ic{flex:none;width:28px;height:28px;padding:5px;border-radius:50%;background:#000;color:#fff}
 .stopnr{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);margin-right:4px}
 .stopnr.nu{background:var(--jade);border-color:transparent;color:#000}
 .row.gedaan{opacity:.6}
@@ -1048,8 +1055,8 @@ function render(){
   const ingelogd = !S.geenDb && !!S.gebruiker;
   const ini = esc(initialen(S.gebruiker?.naam||''));
   $('#side-brand').innerHTML = `${LOGO}`;
-  $('#side-foot').innerHTML = ingelogd ? `<span class="avatar">${ini}</span><span>${esc(S.gebruiker.naam)}</span>` : '';
-  $('#topbar').innerHTML = `<div class="in">${LOGO}${ingelogd?`<button class="avatar" data-act="tab" data-tab="meer" aria-label="Account en instellingen">${ini}</button>`:''}</div>`;
+  $('#side-foot').innerHTML = ingelogd ? `<span class="avatar">${ini}</span><span>${esc(S.gebruiker.naam)}</span><button class="ververs" data-act="verversen" aria-label="Verversen" style="margin-left:auto">${ic('refresh')}</button>` : '';
+  $('#topbar').innerHTML = `<div class="in">${LOGO}${ingelogd?`<span class="top-r"><button class="ververs" data-act="verversen" aria-label="Verversen">${ic('refresh')}</button><button class="avatar" data-act="tab" data-tab="meer" aria-label="Account en instellingen">${ini}</button></span>`:''}</div>`;
   $('#topbar').hidden = !ingelogd || S.laden;
   $('#fab').innerHTML = `${ic('plus')}Nieuw`;
   $('#fab').hidden = S.laden || !ingelogd || !!V.detail || ['meer','mail','cijfers'].includes(V.tab);
@@ -2526,14 +2533,15 @@ function startOpname(ta, melden){
     if(!o.actief) return;
     if(Date.now() - o.begin > MAX_OPNAME_MS){ stopLuisteren(); melden('klaar', 'Na 5 minuten gestopt. Klaar? Tik op Verder.'); return; }
     const h = o.h = new Herkenning();
-    h.lang = 'nl-NL'; h.interimResults = true; h.maxAlternatives = 4; h.continuous = !mobiel;   // mobiel: korte rondes, voorkomt dubbele tekst
+    h.lang = 'nl-NL'; h.interimResults = true; h.maxAlternatives = 4; h.continuous = true;
     try{
       if(window.SpeechRecognitionPhrase && 'phrases' in h)    // nieuwere Chrome: namen uit het CRM voorrang geven
         h.phrases = [...new Set(S.bedrijven.flatMap(b => [netteNaamBedrijf(b.naam), ...(b.contacten || []).map(c => c.naam)]).filter(Boolean))].slice(0, 400).map(x => new SpeechRecognitionPhrase(x, 5));
     }catch{}
     let deze = '';
     h.onresult = e => {
-      let t = ''; for(const r of e.results) t += kies(r) + ' ';
+      // Chrome op Android herhaalt in doorlopende modus soms eerdere stukken: alleen nieuwe tekst toevoegen
+      let t = ''; for(const r of e.results){ const x = kies(r).trim(); if(x && !(mobiel && t.trim().endsWith(x))) t += (mobiel && x.startsWith(t.trim()) && t.trim() ? x.slice(t.trim().length) : x) + ' '; }
       deze = t.replace(/\s+/g, ' ').trim(); o.fouten = 0;
       ta.value = [o.tekst, deze].filter(Boolean).join(' ');
     };
@@ -2555,17 +2563,23 @@ function startOpname(ta, melden){
   return o;
 }
 const netteNaamBedrijf = n => String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*\b(b\.?v\.?|n\.?v\.?)\s*$/i, '').trim();
+/* Standaard: dicteren met de microfoon van het toetsenbord (dezelfde techniek als in WhatsApp,
+   luistert het best en stopt niet halverwege). De opnameknop van de app is de tweede keuze. */
 function inspreken(vast, tekst = ''){
   stopLuisteren();
+  V.inspreekBij = vast?.id || null;
+  const appModus = !!Herkenning && lees('desko-crm-spraak') === 'app';
+  const voorbeeld = `${vast ? '' : 'Hoek Advocaten '}gebeld, Aukje gesproken, volgende week dinsdag om 2 uur terugbellen`;
   openSheet('Inspreken', `<div class="section" id="sp">
     ${vast ? `<p class="sub">Bij <b>${esc(vast.naam)}</b></p>` : ''}
-    ${Herkenning ? `<button type="button" class="mic" id="sp-mic" aria-label="Inspreken starten">${ic('mic')}</button><p class="mic-status" id="sp-status" aria-live="polite">Tik op de microfoon en vertel wat er gebeurde</p>`
-      : `<p class="hint">Tik in het veld hieronder en gebruik de microfoon op je toetsenbord.</p>`}
-    <label class="f"><span>Wat je zei</span><textarea id="sp-tekst" rows="5" data-geenfocus placeholder="Bijv. ${vast ? '' : 'Hoek Advocaten '}gebeld, Aukje gesproken, volgende week dinsdag om 2 uur terugbellen">${esc(tekst)}</textarea></label>
-    <p class="hint">Rustig en duidelijk praten werkt het best. Namen mag je spellen: "Aukje, A U K J E".</p>
-    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button type="button" class="btn primary" id="sp-verder">Verder</button></div>
+    ${appModus ? `<button type="button" class="mic" id="sp-mic" aria-label="Inspreken starten">${ic('mic')}</button><p class="mic-status" id="sp-status" aria-live="polite">Tik op de microfoon en vertel wat er gebeurde</p>`
+      : `<div class="dicteer">${ic('mic')}<span>Tik op het <b>microfoontje van je toetsenbord</b> en vertel wat er gebeurde. Praat zo lang als je wilt; tik op het toetsenbord om te stoppen.</span></div>`}
+    <label class="f"><span>Wat je zei</span><textarea id="sp-tekst" rows="5" ${appModus ? 'data-geenfocus' : ''} enterkeyhint="done" placeholder="Bijv. ${esc(voorbeeld)}">${esc(tekst)}</textarea></label>
+    <p class="hint">Namen mag je spellen: "Aukje, A U K J E". De app verbetert bekende namen van bedrijven en contactpersonen.</p>
+    <div class="sheet-actions">${Herkenning ? `<button type="button" class="btn ghost" data-act="${appModus ? 'toetsenbordOpname' : 'appOpname'}">${appModus ? 'Toetsenbord gebruiken' : 'Opnameknop van de app'}</button>` : ''}<button type="button" class="btn" data-act="closeSheet">Annuleren</button><button type="button" class="btn primary" id="sp-verder">Verder</button></div>
   </div>`, s => {
     const ta = s.querySelector('#sp-tekst'), mic = s.querySelector('#sp-mic'), status = s.querySelector('#sp-status');
+    if(!appModus){ try{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }catch{} }
     let klok = null;
     const melden = (staat, tekst) => {
       if(!mic) return;
@@ -2574,8 +2588,7 @@ function inspreken(vast, tekst = ''){
       else status.textContent = tekst || (ta.value.trim() ? 'Klaar? Tik op Verder, of op de microfoon om verder te praten.' : 'Tik op de microfoon en vertel wat er gebeurde');
     };
     const stop = () => { stopLuisteren(); melden('klaar'); setTimeout(() => { ta.value = SPRAAK.spel(ta.value); }, 300); };
-    if(mic){ mic.onclick = () => opname ? stop() : startOpname(ta, melden); if(!tekst) startOpname(ta, melden); }
-    ta.addEventListener('pointerdown', () => { if(opname) stop(); });    // zelf typen: opname stoppen
+    if(mic){ mic.onclick = () => opname ? stop() : startOpname(ta, melden); if(!tekst) startOpname(ta, melden); ta.addEventListener('pointerdown', () => { if(opname) stop(); }); }
     s.querySelector('#sp-verder').onclick = () => { stopLuisteren(); clearInterval(klok); const t = SPRAAK.spel(ta.value.trim()); if(!t){ toast('Er is nog niets ingesproken.'); return; } spraakBegrepen(t, vast); };
   });
 }
@@ -2990,6 +3003,9 @@ const ACT = {
   snel: () => snelMenu(),
   snelKies: d => kiesBedrijf(d.doel),
   inspreken: d => inspreken(d.id ? bedrijf(d.id) : null),
+  verversen: (d, el) => { document.querySelectorAll('.ververs').forEach(x => x.classList.add('bezig')); setTimeout(() => location.reload(), 150); },
+  appOpname: () => { bewaar('desko-crm-spraak', 'app'); inspreken(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-tekst')?.value || ''); },
+  toetsenbordOpname: () => { bewaar('desko-crm-spraak', null); inspreken(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-tekst')?.value || ''); },
   snelDoel: d => { const b = bedrijf(d.id); closeSheet(); if(d.doel==='bezoek') actForm(b, 'bezoek'); else if(d.doel==='bel') belSheet(b); else planActie(b); },
   pauzeer: d => { const b = bedrijf(d.id); veilig(async () => { await updBedrijf(b.id, {opvolging:{...clone(b.opvolging), gepauzeerd:true}}); await systeem(b, 'Opvolging gepauzeerd.'); }, 'Gepauzeerd'); },
   hervat: d => { const b = bedrijf(d.id); veilig(async () => { const o = clone(b.opvolging); o.gepauzeerd = false; if(o.datum < today()) o.datum = today(); await updBedrijf(b.id, {opvolging:o}); await systeem(b, 'Opvolging hervat.'); }, 'Hervat'); },
