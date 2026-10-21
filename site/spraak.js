@@ -103,29 +103,65 @@
     return uit;
   }
 
-  const kern = n => String(n || '').toLowerCase().replace(/\b(b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|holding|groep|group)\b/g, '').replace(/\([^)]*\)/g, '').replace(/[^a-z0-9à-ÿ ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const kern = n => String(n || '').toLowerCase().replace(/(^|\s)(b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?)(?=\s|$)/g, ' ').replace(/\([^)]*\)/g, '').replace(/[^a-z0-9à-ÿ ]/g, ' ').replace(/\s+/g, ' ').trim();
 
-  /* Bedrijf in de zin: de langste naam die erin voorkomt (ook zonder "b.v." enzovoort). */
-  function vindBedrijf(t, bedrijven){
+  /* Namen herkennen, ook als ze net verkeerd verstaan zijn ("Hook advocaten", "Okje"), en
+     dan in de tekst verbeteren naar de schrijfwijze uit het CRM. */
+  const lijkt = (a, b) => a === b || (b.length >= 4 && a[0] === b[0] && afstand(a, b) <= (b.length <= 7 ? 1 : 2)) || (b.length >= 8 && afstand(a, b) <= 2);
+  const netteNaam = n => String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*\b(b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?)\s*$/i, '').trim();
+  function woorden(tekst){ const uit = []; const re = /[\p{L}\d]+/gu; let m; while((m = re.exec(tekst))) uit.push({w:m[0].toLowerCase(), van:m.index, tot:m.index + m[0].length}); return uit; }
+  /* Beste plek in de tekst waar (het begin van) een naam staat. Geeft {van, tot, n, exact} of null. */
+  const GEWOON = new Set(['morgen','volgende','vorige','gesproken','gebeld','terugbellen','bellen','mailen','week','weken','offerte','afspraak','langs','geweest','niet','opgenomen',
+    'heeft','hebben','willen','wilde','kantoor','nieuwe','stoelen','bureaus','meneer','mevrouw','vandaag','straks','graag','mail','prima','goed','even','over','maand', ...DAGEN, ...MAANDEN]);
+  function zoekNaam(ws, naamWoorden, minWoorden, los){
     let beste = null;
-    for(const b of bedrijven){
-      const k = kern(b.naam); if(k.length < 3) continue;
-      const kandidaten = [k, k.split(' ').slice(0, 2).join(' ')].filter(x => x.length >= 4);
-      for(const x of kandidaten) if(new RegExp(`\\b${x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(t) && (!beste || x.length > beste.len)) beste = {b, len:x.length};
+    for(let n = Math.min(naamWoorden.length, 3); n >= minWoorden; n--){
+      const doel = naamWoorden.slice(0, n), lengte = doel.join('').length;
+      if(lengte < 3) continue;
+      for(let i = 0; i + n <= ws.length; i++){
+        let ok = true, exact = true;
+        for(let j = 0; j < n && ok; j++){ const a = ws[i + j].w, b = doel[j]; if(a !== b){ exact = false; ok = b.length > 2 && !GEWOON.has(a) && (lijkt(a, b) || ((los || n >= 2) && b.length >= 4 && afstand(a, b) <= Math.round(b.length * 0.4))); } }
+        if(ok){ const score = lengte * 10 + (exact ? 5 : 0); if(!beste || score > beste.score) beste = {van:ws[i].van, tot:ws[i + n - 1].tot, n, exact, score}; }
+      }
+      if(beste) break;
     }
-    return beste && beste.b;
+    return beste;
   }
-  function vindContact(t, b){
+  function vindBedrijf(t, bedrijven){ return herkenNamen(t, bedrijven, null).b; }
+  function herkenNamen(ruw, bedrijven, vast){
+    let tekst = ruw, b = vast, ws = woorden(tekst);
+    const vervang = (hit, door) => { tekst = tekst.slice(0, hit.van) + door + tekst.slice(hit.tot); ws = woorden(tekst); };
+    if(!b){
+      let beste = null;
+      for(const x of bedrijven){
+        const k = kern(x.naam).split(' ').filter(w => w.length > 1); if(!k.length) continue;   // zonder voorletters (H.H.J., V&D)
+        const hit = zoekNaam(ws.filter(w => w.w.length > 1), k, k.length === 1 ? 1 : 2);
+        if(hit && (!beste || hit.score > beste.hit.score)) beste = {x, hit};
+      }
+      if(beste){ b = beste.x; vervang(beste.hit, netteNaam(b.naam).split(/\s+/).slice(0, beste.hit.n).join(' ')); }
+    }
+    let ci = -1;
     const cs = (b && b.contacten) || [];
-    let i = cs.findIndex(c => c.naam && t.includes(c.naam.toLowerCase()));
-    if(i < 0) i = cs.findIndex(c => { const v = (c.naam || '').toLowerCase().split(/\s+/)[0]; return v.length >= 3 && new RegExp(`\\b${v}\\b`).test(t); });
-    return i;
+    let besteC = null;
+    cs.forEach((c, i) => {
+      const delen = String(c.naam || '').split(/\s+/).filter(Boolean); if(!delen.length) return;
+      const lager = delen.map(x => x.toLowerCase());
+      const hit = zoekNaam(ws, lager, 1, true) || (lager.length > 1 && zoekNaam(ws, [lager[lager.length - 1]], 1, true));
+      if(hit && (!besteC || hit.score > besteC.hit.score)) besteC = {i, hit, delen, laatste:!zoekNaam(ws, lager, 1, true)};
+    });
+    if(besteC){ ci = besteC.i; if(!besteC.hit.exact) vervang(besteC.hit, besteC.laatste ? besteC.delen[besteC.delen.length - 1] : besteC.delen.slice(0, besteC.hit.n).join(' ')); }
+    return {tekst, b, ci};
+  }
+  /* Woorden die de spraakherkenning hoort te kennen: namen uit het CRM en vaste termen. */
+  function woordenlijst(bedrijven){
+    const set = new Set(['gebeld','gesproken','terugbellen','langs','geweest','offerte','afspraak','mailen','volgende','week','morgen','overmorgen', ...DAGEN, ...MAANDEN]);
+    for(const b of bedrijven){ kern(b.naam).split(' ').forEach(w => w.length > 2 && set.add(w)); (b.contacten || []).forEach(c => String(c.naam || '').toLowerCase().split(/\s+/).forEach(w => w.length > 2 && set.add(w))); }
+    return set;
   }
 
   function lees(tekst, {bedrijven = [], bedrijf = null, vandaag}){
-    const ruw = spel(String(tekst || '').trim()), t = ruw.toLowerCase().replace(/[,;!?]/g, ' ').replace(/\s+/g, ' ');
-    const b = bedrijf || vindBedrijf(t, bedrijven);
-    const ci = vindContact(t, b);
+    const naam = herkenNamen(spel(String(tekst || '').trim()), bedrijven, bedrijf);
+    const ruw = naam.tekst, b = naam.b, ci = naam.ci, t = ruw.toLowerCase().replace(/[,;!?]/g, ' ').replace(/\s+/g, ' ');
 
     // Wat er gebeurde
     let type = 'notitie', uitkomst = null;
@@ -150,5 +186,5 @@
     return {bedrijfId:b ? b.id : null, contact:ci, type, uitkomst, plan, tekst:ruw.charAt(0).toUpperCase() + ruw.slice(1)};
   }
 
-  return {lees, spel, leesDatum, leesTijd, vindBedrijf};
+  return {lees, spel, leesDatum, leesTijd, vindBedrijf, woordenlijst};
 });

@@ -103,3 +103,15 @@ test('gespelde naam wordt herkend als contactpersoon', () => {
   assert.equal(r.contact, 0); assert.match(r.tekst, /^Gesproken met Aukje\. Morgen/);
   assert.equal(r.type, 'bel'); assert.equal(r.plan.datum, '2026-10-22');
 });
+
+test('net verkeerd verstane namen worden herkend en verbeterd', () => {
+  const r = lees('Hook advocaten gebeld, gesproken met Okje, morgen terugbellen');
+  assert.equal(r.bedrijfId, 'b1'); assert.equal(r.contact, 0);
+  assert.equal(r.tekst, 'Hoek Advocaten gebeld, gesproken met Aukje, morgen terugbellen');
+  const v = lees('van dyk architecten langs geweest, tom was er niet');
+  assert.equal(v.bedrijfId, 'b2'); assert.match(v.tekst, /^Van Dijk Architecten langs geweest/); assert.equal(v.contact, 0);
+  assert.equal(lees('meneer bakker gebeld', {bedrijf:BEDRIJVEN[0]}).contact, 1);    // alleen achternaam
+  // geen valse treffers op gewone woorden
+  assert.equal(lees('hoe is het met de koek').bedrijfId, null);
+  assert.equal(lees('morgen bellen', {bedrijf:BEDRIJVEN[0]}).contact, -1);
+});
