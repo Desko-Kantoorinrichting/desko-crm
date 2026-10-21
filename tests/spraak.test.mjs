@@ -85,3 +85,21 @@ test('actie zonder datum: over 2 werkdagen; offerte en mailen', () => {
   assert.equal(lees('volgende week langsgaan', {bedrijf:BEDRIJVEN[0]}).plan.actie, 'Langsgaan');
   assert.equal(lees('vrijdag', {bedrijf:BEDRIJVEN[0]}).plan.actie, 'Opvolgen');
 });
+
+test('uitgespelde namen worden samengevoegd', () => {
+  assert.equal(S.spel('gesproken met Aukje A,u,k,j,e, volgende week bellen'), 'gesproken met Aukje, volgende week bellen');
+  assert.equal(S.spel('gesproken met Okje a u k j e'), 'gesproken met Aukje');            // verkeerd verstaan: gespeld wint
+  assert.equal(S.spel('gesproken met A-U-K-J-E'), 'gesproken met Aukje');
+  assert.equal(S.spel('Tom van Dijk d i j k gebeld'), 'Tom van Dijk gebeld');
+  assert.equal(S.spel('mevrouw b ij l'), 'mevrouw Bijl');
+  assert.equal(S.spel('Jessica j e s s i c a'), 'Jessica');
+  assert.equal(S.spel('Mark m a r ka gesproken'), 'Mark gesproken');                    // letternaam "ka" voor de k
+  // gewone zinnen blijven heel
+  for(const z of ['Hoek Advocaten gebeld, Aukje de Vries gesproken', 'ze willen een offerte en ik bel ze', 'met Tom en Aukje op locatie', 'om 2 uur bellen', 'plan a of b']) assert.equal(S.spel(z), z);
+});
+
+test('gespelde naam wordt herkend als contactpersoon', () => {
+  const r = lees('Gesproken met Okje A, U, K, J, E. Morgen terugbellen', {bedrijf:BEDRIJVEN[0]});
+  assert.equal(r.contact, 0); assert.match(r.tekst, /^Gesproken met Aukje\. Morgen/);
+  assert.equal(r.type, 'bel'); assert.equal(r.plan.datum, '2026-10-22');
+});

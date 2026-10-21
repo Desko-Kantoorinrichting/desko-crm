@@ -67,6 +67,42 @@
     return {tijd:`${pad(u)}:${pad(mi)}`, stuk:m[0]};
   }
 
+  /* Uitgespelde namen samenvoegen: "Aukje A, U, K, J, E" → "Aukje". Ook letternamen zoals
+     "ka" en "jee". Staat er vlak voor een (verkeerd verstaan) woord dat erop lijkt, dan wint
+     de gespelde versie. */
+  const LETTERNAAM = {aa:'a', bee:'b', cee:'c', dee:'d', ee:'e', ef:'f', gee:'g', ha:'h', haa:'h', ie:'i', jee:'j', ka:'k', kaa:'k',
+    el:'l', em:'m', en:'n', oo:'o', pee:'p', ku:'q', kuu:'q', er:'r', es:'s', tee:'t', uu:'u', vee:'v', wee:'w', iks:'x', ij:'ij', zet:'z'};
+  const GEWOON_WOORD = new Set(['en', 'er', 'es', 'el', 'em', 'ie', 'ha', 'ij']);   // ook gewone woorden: niet als eerste letter
+  const LET = `(?:${Object.keys(LETTERNAAM).sort((a, b) => b.length - a.length).join('|')}|\\p{L})`;
+  const RUN = new RegExp(`(?<!\\p{L})${LET}(?:[\\s,.\\-]+${LET}(?!\\p{L})){2,}`, 'iu');
+  function afstand(a, b){
+    const d = Array.from({length:a.length + 1}, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for(let j = 1; j <= b.length; j++) d[0][j] = j;
+    for(let i = 1; i <= a.length; i++) for(let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    return d[a.length][b.length];
+  }
+  function spel(tekst){
+    let uit = String(tekst || ''), vanaf = 0, m;
+    while((m = RUN.exec(uit.slice(vanaf)))){
+      const begin = vanaf + m.index, stukken = m[0].split(/[\s,.\-]+/).filter(Boolean);
+      if(GEWOON_WOORD.has(stukken[0].toLowerCase())){ vanaf = begin + stukken[0].length; continue; }
+      const enkel = stukken.filter(x => x.length === 1).length;
+      if(enkel < 2 || enkel < stukken.length / 2){ vanaf = begin + stukken[0].length; continue; }   // gewone woorden
+      const woord = stukken.map(x => x.length === 1 ? x.toLowerCase() : LETTERNAAM[x.toLowerCase()]).join('');
+      const naam = woord.charAt(0).toUpperCase() + woord.slice(1);
+      let voor = uit.slice(0, begin);
+      const vorig = voor.match(/(\p{L}+)[\s,]*$/u);
+      if(vorig && vorig[1].length > 1){
+        const v = vorig[1].toLowerCase();
+        if(v === woord || afstand(v, woord) <= Math.max(1, Math.floor(woord.length / 2)) || v.slice(0, 2) === woord.slice(0, 2)) voor = voor.slice(0, vorig.index);
+      }
+      if(voor && !/\s$/.test(voor)) voor += ' ';
+      uit = voor + naam + uit.slice(begin + m[0].length);
+      vanaf = voor.length + naam.length;
+    }
+    return uit;
+  }
+
   const kern = n => String(n || '').toLowerCase().replace(/\b(b\.?v\.?|n\.?v\.?|v\.?o\.?f\.?|holding|groep|group)\b/g, '').replace(/\([^)]*\)/g, '').replace(/[^a-z0-9à-ÿ ]/g, ' ').replace(/\s+/g, ' ').trim();
 
   /* Bedrijf in de zin: de langste naam die erin voorkomt (ook zonder "b.v." enzovoort). */
@@ -87,7 +123,7 @@
   }
 
   function lees(tekst, {bedrijven = [], bedrijf = null, vandaag}){
-    const ruw = String(tekst || '').trim(), t = ruw.toLowerCase().replace(/[,;!?]/g, ' ').replace(/\s+/g, ' ');
+    const ruw = spel(String(tekst || '').trim()), t = ruw.toLowerCase().replace(/[,;!?]/g, ' ').replace(/\s+/g, ' ');
     const b = bedrijf || vindBedrijf(t, bedrijven);
     const ci = vindContact(t, b);
 
@@ -114,5 +150,5 @@
     return {bedrijfId:b ? b.id : null, contact:ci, type, uitkomst, plan, tekst:ruw.charAt(0).toUpperCase() + ruw.slice(1)};
   }
 
-  return {lees, leesDatum, leesTijd, vindBedrijf};
+  return {lees, spel, leesDatum, leesTijd, vindBedrijf};
 });

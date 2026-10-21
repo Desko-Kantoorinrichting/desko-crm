@@ -2528,11 +2528,11 @@ function inspreken(vast, tekst = ''){
       const basis = ta.value.trim() ? ta.value.trim() + ' ' : '';
       h.onresult = e => { let t = ''; for(const r of e.results) t += r[0].transcript; ta.value = basis + t.trim(); };
       h.onerror = e => { zet(false, e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'Geen toegang tot de microfoon. Sta dat toe in de instellingen, of typ of dicteer hieronder.' : e.error === 'no-speech' ? 'Niets gehoord. Tik opnieuw op de microfoon.' : 'Inspreken lukte niet. Typ of dicteer hieronder.'); };
-      h.onend = () => { if(herkenner === h) herkenner = null; zet(false); if(status && /Luisteren/.test(status.textContent)) status.textContent = ta.value.trim() ? 'Klaar? Tik op Verder.' : 'Tik op de microfoon en vertel wat er gebeurde'; };
+      h.onend = () => { if(herkenner === h) herkenner = null; zet(false); ta.value = SPRAAK.spel(ta.value); if(status && /Luisteren/.test(status.textContent)) status.textContent = ta.value.trim() ? 'Klaar? Tik op Verder.' : 'Tik op de microfoon en vertel wat er gebeurde'; };
       try{ h.start(); zet(true, 'Luisteren… tik nogmaals om te stoppen'); }catch{ zet(false, 'Inspreken lukte niet. Typ of dicteer hieronder.'); }
     };
     if(mic){ mic.onclick = () => herkenner ? (stopLuisteren(), zet(false, 'Klaar? Tik op Verder.')) : start(); if(!tekst) start(); }
-    s.querySelector('#sp-verder').onclick = () => { stopLuisteren(); const t = ta.value.trim(); if(!t){ toast('Er is nog niets ingesproken.'); return; } spraakBegrepen(t, vast); };
+    s.querySelector('#sp-verder').onclick = () => { stopLuisteren(); const t = SPRAAK.spel(ta.value.trim()); if(!t){ toast('Er is nog niets ingesproken.'); return; } spraakBegrepen(t, vast); };
   });
 }
 /* Stap 2: laten zien wat er begrepen is; alles is nog aan te passen. */
