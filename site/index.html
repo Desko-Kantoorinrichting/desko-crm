@@ -2503,19 +2503,21 @@ async function dashExport(){
 /* ---------- in de buurt ---------- */
 /* Adressen worden omgezet naar coördinaten via de PDOK Locatieserver (Rijksoverheid, alleen het bedrijfsadres). */
 async function geocode(q){
-  const r = await fetch(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?rows=1&fl=centroide_ll&q=${encodeURIComponent(q)}`);
+  const r = await fetch(`https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?rows=1&fl=centroide_ll,provincienaam&q=${encodeURIComponent(q)}`);
   if(!r.ok) throw new Error('Adres opzoeken lukte niet');
   const doc = (await r.json()).response?.docs?.[0];
   const m = doc?.centroide_ll?.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
-  return m ? {lng:Number(m[1]), lat:Number(m[2])} : null;
+  return m ? {lng:Number(m[1]), lat:Number(m[2]), prov:doc.provincienaam || ''} : null;
 }
+/* Provincie: uit de postcode, anders uit het opgezochte adres. */
+const provincieVan = b => provincie(b.postcode) || b.geo?.prov || '';
 const adresVan = b => [b.adres, b.postcode, b.plaats].filter(Boolean).join(' ').replace(/\(.*?\)/g,'').trim();
 function afstandKm(a, b){ const R = 6371, r = x => x*Math.PI/180, dLat = r(b.lat-a.lat), dLng = r(b.lng-a.lng);
   const h = Math.sin(dLat/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
 let geoBezig = false;
 async function geocodeOntbrekend(){
   if(geoBezig) return; geoBezig = true;
-  const todo = S.bedrijven.filter(b => b.plaats && adresVan(b) && (!b.geo || b.geo.q !== adresVan(b))).slice(0, 60);
+  const todo = S.bedrijven.filter(b => b.plaats && adresVan(b) && (!b.geo || b.geo.q !== adresVan(b) || (!b.geo.mis && !('prov' in b.geo)))).slice(0, 60);
   V.buurt = {...V.buurt, todo:todo.length}; render();
   for(const b of todo){
     try{ const g = await geocode(adresVan(b)); await updBedrijf(b.id, {geo: g ? {...g, q:adresVan(b)} : {q:adresVan(b), mis:true}}); }catch{ break; }
@@ -3128,19 +3130,20 @@ function resultatenView(){
    met één tik op de rit van de gekozen dag (zelfde keuze als bij Plannen). */
 const FASEN = [['nieuw','Nog te contacten'], ['contact gehad','Contact gehad'], ['bezocht','Bezocht'], ['afspraak','Afspraak']];
 function pijplijnView(){
-  const p = V.pijp = V.pijp || {zoek:'', metNetwerk:false, regio:'', fase:'nieuw'};
+  const p = V.pijp = V.pijp || {zoek:'', metNetwerk:false, prov:'', fase:'nieuw'};
+  if(!geoBezig && S.bedrijven.some(b => b.plaats && adresVan(b) && (!b.geo || b.geo.q !== adresVan(b) || (!b.geo.mis && !('prov' in b.geo))))) setTimeout(geocodeOntbrekend, 0);
   const v = planStaat(), r = planRoute(v), inRit = new Set(r.stops.map(x => x.id));
   const elders = new Map(); S.routes.filter(x => x.datum >= today()).forEach(x => x.stops.forEach(st => { if(!(x.datum===v.datum && x.voor===v.voor)) elders.set(st.id, x); }));
   const zoek = p.zoek.toLowerCase();
   const alle = S.bedrijven.filter(b => b.kopje==='prospect' && (p.metNetwerk || !(b.tags||[]).some(t => t.toLowerCase()==='netwerk')));
-  const lijst = alle.filter(b => (!p.regio || regio(b)===p.regio) && (!zoek || [b.naam, b.plaats, ...(b.tags||[]), ...(b.contacten||[]).map(c => c.naam)].join(' ').toLowerCase().includes(zoek)));
+  const lijst = alle.filter(b => (!p.prov || (provincieVan(b) || 'Onbekend')===p.prov) && (!zoek || [b.naam, b.plaats, ...(b.tags||[]), ...(b.contacten||[]).map(c => c.naam)].join(' ').toLowerCase().includes(zoek)));
   const verder = lijst.filter(b => !FASEN.some(([f]) => f===(b.status||'nieuw'))).length;
-  const regios = [...new Set(alle.map(regio).filter(Boolean))].sort();
+  const provs = [...new Set(alle.map(b => provincieVan(b) || 'Onbekend'))].sort((a, c) => (a==='Onbekend') - (c==='Onbekend') || a.localeCompare(c));
   const dagen = werkdagenVanaf(today(), 10);
   const perFase = Object.fromEntries(FASEN.map(([f]) => [f, lijst.filter(b => (b.status||'nieuw')===f)]));
   const kaart = b => {
     const o = opvolgStatus(b), i = FASEN.findIndex(([f]) => f===(b.status||'nieuw')), x = elders.get(b.id), op = inRit.has(b.id);
-    const info = [b.laatsteContact ? `contact ${fmtDag(b.laatsteContact)}` : 'nog geen contact', o && `<span class="${o.due ? 'pk-laat' : ''}">opvolgen ${o.due ? 'nu' : fmtDag(o.datum)}</span>`, x && `rit ${fmtDag(x.datum)}`].filter(Boolean);
+    const info = [b.plaats && esc(b.plaats.replace(/\s*\(.*?\)/g, '')), b.laatsteContact ? `contact ${fmtDag(b.laatsteContact)}` : 'nog geen contact', o && `<span class="${o.due ? 'pk-laat' : ''}">opvolgen ${o.due ? 'nu' : fmtDag(o.datum)}</span>`, x && `rit ${fmtDag(x.datum)}`].filter(Boolean);
     return `<article class="pkaart ${op ? 'inrit' : ''}" draggable="true" data-pijp="${b.id}">
       <button class="pk-naam" data-act="open" data-id="${b.id}" title="${esc(b.naam)}">${esc(b.naam)}</button>
       <span class="pk-acties">
@@ -3151,15 +3154,15 @@ function pijplijnView(){
     </article>`;
   };
   const groepen = l => {
-    const m = new Map(); l.forEach(b => { const k = (b.plaats || '').replace(/\s*\(.*?\)/g, '').trim() || 'Plaats onbekend'; if(!m.has(k)) m.set(k, []); m.get(k).push(b); });
-    return [...m.entries()].sort(([a], [c]) => (a==='Plaats onbekend') - (c==='Plaats onbekend') || a.localeCompare(c))
-      .map(([plaats, bs]) => `<div class="pk-groep"><h3>${esc(plaats)}<span>${bs.length}</span></h3>${bs.sort((a, c) => a.naam.localeCompare(c.naam)).map(kaart).join('')}</div>`).join('');
+    const m = new Map(); l.forEach(b => { const k = provincieVan(b) || 'Provincie onbekend'; if(!m.has(k)) m.set(k, []); m.get(k).push(b); });
+    return [...m.entries()].sort(([a], [c]) => (a==='Provincie onbekend') - (c==='Provincie onbekend') || a.localeCompare(c))
+      .map(([prov, bs]) => `<div class="pk-groep"><h3>${esc(prov)}<span>${bs.length}</span></h3>${bs.sort((a, c) => (a.plaats||'').localeCompare(c.plaats||'') || a.naam.localeCompare(c.naam)).map(kaart).join('')}</div>`).join('');
   };
   return `<div class="wrap pijplijn">
     <header class="page-head"><button class="btn ghost back alleen-klein" data-act="tab" data-tab="prospect">${ic('left','sm')}Prospects</button><p class="eyebrow">Prospects${p.metNetwerk ? '' : ' zonder #netwerk'}</p><h1>Pijplijn</h1></header>
     <div class="pijp-balk">
       <label class="search">${ic('search')}<input id="pijp-zoek" type="search" placeholder="Zoek op naam, plaats of contact" value="${esc(p.zoek)}" autocomplete="off" aria-label="Zoeken"></label>
-      ${regios.length ? `<select id="pijp-regio" aria-label="Regio"><option value="">Alle regio's</option>${regios.map(x => `<option ${x===p.regio?'selected':''}>${esc(x)}</option>`).join('')}</select>` : ''}
+      <select id="pijp-prov" aria-label="Provincie"><option value="">Alle provincies</option>${provs.map(x => `<option value="${esc(x)}" ${x===p.prov?'selected':''}>${esc(x==='Onbekend' ? 'Provincie onbekend' : x)} (${alle.filter(b => (provincieVan(b) || 'Onbekend')===x).length})</option>`).join('')}</select>
       <label class="check"><input type="checkbox" id="pijp-netwerk" ${p.metNetwerk?'checked':''}><span>Ook #netwerk</span></label>
     </div>
     <div class="pijp-rit">${ic('route','sm')}<span>Rit</span>
@@ -3740,7 +3743,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if(t.id==='plan-start'){ const v = planStaat(), r = planRoute(v); if(r.stops.length) veilig(() => zetRoute({...r, id:routeId(v.datum, v.voor), start:t.value || null})); return; }
-  if(t.id==='pijp-regio'){ V.pijp.regio = t.value; render(); return; }
+  if(t.id==='pijp-prov'){ V.pijp.prov = t.value; render(); return; }
   if(t.id==='pijp-netwerk'){ V.pijp.metNetwerk = t.checked; render(); return; }
   if(t.id==='pijp-dag'){ planStaat().datum = t.value; render(); return; }
   if(t.dataset?.planVoor !== undefined && t.id==='plan-voor'){ planStaat().voor = t.value; render(); return; }
