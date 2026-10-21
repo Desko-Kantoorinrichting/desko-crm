@@ -1207,6 +1207,7 @@ function bedrijfForm(b, kopje, voor){
           const gewijzigd = Object.keys(data).filter(k => JSON.stringify(data[k]??'')!==JSON.stringify(b[k]??''));
           await updBedrijf(b.id, data);
           if(gewijzigd.length) await systeem(b, `Gegevens gewijzigd: ${gewijzigd.join(', ')}.`);
+          if(gewijzigd.includes('tags')) setTimeout(() => mailsBijTags(b, {...b, ...data}).catch(console.error), 300);
         }
       }, nieuw ? 'Bedrijf opgeslagen' : 'Opgeslagen');
       if(ok){ closeSheet(); if(nieuw) openDetail(newId); }
@@ -1374,6 +1375,15 @@ function belSheet(b, ci){
 const sjablonenVoor = kopje => (S.inst.sjablonen||[]).filter(t => !t.kopje || t.kopje==='alle' || t.kopje===kopje);
 function standaardSjabloon(b){
   const lijst = sjablonenVoor(b.kopje);
+  // Heeft het bedrijf de tag van een mailreeks, dan de mail uit die reeks die nu aan de beurt is
+  const reeks = REEKS.reeksVoor(b, S.inst);
+  if(reeks){
+    const gepland = S.mails.find(m => m.bedrijfId===b.id && m.status==='gepland' && m.reeks===reeks.id);
+    const verstuurd = S.mails.filter(m => m.bedrijfId===b.id && m.status==='verstuurd' && m.reeks===reeks.id).length;
+    const stap = reeks.stappen[gepland ? gepland.stap : Math.min(verstuurd, reeks.stappen.length - 1)];
+    const t = stap && (S.inst.sjablonen||[]).find(x => x.id===stap.sjabloon);
+    if(t) return t;
+  }
   if(b.kopje==='prospect' && (b.opvolging?.pogingen||0) > 0) return lijst.find(t => t.id==='prospect-herinnering') || lijst[0];
   return lijst[0];
 }
@@ -1972,9 +1982,14 @@ function bulkSheet(doe){
       if(!tags.length){ toast('Vul een tag in.'); return; }
       const weg = new Set(tags.map(t => t.toLowerCase()));
       klaar(async b => {
-        const nieuw = d.hoe==='eraf' ? (b.tags||[]).filter(t => !weg.has(t.toLowerCase())) : normTags([...(b.tags||[]), ...tags]);
-        if(JSON.stringify(nieuw)!==JSON.stringify(b.tags||[])) await updBedrijf(b.id, {tags:nieuw});
-      }, d.hoe==='eraf' ? 'Tags weggehaald' : 'Tags toegevoegd'); };
+        let nieuw = d.hoe==='eraf' ? (b.tags||[]).filter(t => !weg.has(t.toLowerCase())) : normTags([...(b.tags||[]), ...tags]);
+        const r = d.hoe==='erbij' && (S.inst.mailreeksen||[]).find(x => weg.has(x.tag.toLowerCase()));
+        if(r) nieuw = tagsMetReeks(nieuw, r.id);
+        if(JSON.stringify(nieuw)!==JSON.stringify(b.tags||[])){ await updBedrijf(b.id, {tags:nieuw}); await mailsBijTags(b, {...b, tags:nieuw}, {vraag:false}); }
+      }, d.hoe==='eraf' ? 'Tags weggehaald' : 'Tags toegevoegd').then(() => {
+        const r = d.hoe==='erbij' && (S.inst.mailreeksen||[]).find(x => weg.has(x.tag.toLowerCase()));
+        if(r) reeksVraag(lijst.map(b => bedrijf(b.id) || b).filter(b => !S.mails.some(m => m.bedrijfId===b.id && m.status==='gepland')), r);
+      }); };
   });
   if(doe==='reeks') openSheet(`Mailreeks voor ${n} prospects`, `<form id="bk" class="section">
       <div class="seg">${(S.inst.mailreeksen||[]).map((r,i) => `<label><input type="radio" name="reeks" value="${esc(r.id)}" id="bk-${esc(r.id)}" ${i?'':'checked'}><span>${esc(r.naam)} <small style="opacity:.7">#${esc(r.tag)}</small></span></label>`).join('')}</div>
@@ -2639,13 +2654,44 @@ function spraakBegrepen(tekst, vast, gekozenId){
 }
 
 /* ---------- tags snel aanpassen ---------- */
-/* Tags zetten; bij een tag van een mailreeks blijft er maar één reeks over, en ingeplande mails
-   van een reeks waarvan de tag weg is, worden geannuleerd. */
-async function zetTags(b, tags){
+/* De mails volgen de tag: na een tagwijziging vervallen mails van een reeks die niet meer bij
+   de tags past, en wordt de juiste reeks gestart (bij wisselen meteen, bij een nieuwe tag na
+   een vraag). */
+async function zetTags(b, tags, {vraag = true} = {}){
   const nieuw = normTags(tags);
   await updBedrijf(b.id, {tags:nieuw});
-  const reeks = REEKS.reeksVoor({...b, tags:nieuw}, S.inst);
-  if(S.mails.some(m => m.bedrijfId===b.id && m.status==='gepland' && m.reeks && m.reeks !== reeks?.id)) await annuleerGepland(b, 'tag van de mailreeks verwijderd');
+  return mailsBijTags(b, {...b, tags:nieuw}, {vraag});
+}
+async function mailsBijTags(oud, b, {vraag = true} = {}){
+  const was = REEKS.reeksVoor(oud, S.inst), wordt = REEKS.reeksVoor(b, S.inst);
+  if((was?.id || null) === (wordt?.id || null)) return null;
+  const gepland = S.mails.filter(m => m.bedrijfId===b.id && m.status==='gepland');
+  const liep = gepland.some(m => m.reeks) || (b.opvolging?.actief && b.opvolging.reeks);
+  if(gepland.some(m => m.reeks && m.reeks !== wordt?.id)) await annuleerGepland(b, wordt ? `tag gewijzigd naar #${wordt.tag}` : 'tag van de mailreeks verwijderd');
+  if(!wordt){
+    const o = b.opvolging;
+    if(o?.actief && o.reeks) await updBedrijf(b.id, {opvolging:{...clone(o), stap:'actie', actie:'Opvolgen', reeks:null}});
+    return null;
+  }
+  if(b.kopje !== 'prospect') return null;
+  const ci = Math.max(0, (b.contacten||[]).findIndex(c => c.email));
+  if(liep || !vraag){ if(liep) await startReeks(bedrijf(b.id) || b, b.opvolging?.contact ?? ci); return liep ? wordt : null; }
+  reeksVraag([bedrijf(b.id) || b], wordt);
+  return null;
+}
+/* Nieuwe tag van een mailreeks: vragen of de mails moeten starten, met een voorbeeld. */
+function reeksVraag(lijst, reeks){
+  const met = lijst.filter(b => b.kopje==='prospect' && (b.contacten||[]).some(c => c.email));
+  if(!met.length) return;
+  const b = met[0], ci = Math.max(0, b.contacten.findIndex(c => c.email));
+  const m = REEKS.planMail(b, reeks, 0, today(), S.inst, S.gebruiker?.naam, ci);
+  openSheet('Mailreeks starten?', `<div class="section">
+    <p>${met.length > 1 ? `${met.length} prospects hebben` : `<b>${esc(b.naam)}</b> heeft`} nu de tag <b>#${esc(reeks.tag)}</b>. Wil je de mails van "${esc(reeks.naam)}" inplannen?</p>
+    ${m ? `<div class="begrepen"><span>${ic('mail','sm')}<span>Mail 1 aan ${esc(m.aan)}: <b>"${esc(m.onderwerp)}"</b></span></span><span>${ic('calendar','sm')}${esc(fmtDag(m.datum))} om ${esc(m.tijd)}${reeks.stappen.length > 1 ? ` · daarna nog ${reeks.stappen.length - 1} mail${reeks.stappen.length > 2 ? 's' : ''} als er geen reactie komt` : ''}</span></div>` : ''}
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Nee, alleen de tag</button><button type="button" class="btn primary" id="rv-ja">${ic('mail','sm')}Ja, inplannen</button></div></div>`,
+    s => s.querySelector('#rv-ja').onclick = async () => {
+      if(await veilig(async () => { for(const x of met){ const y = bedrijf(x.id) || x; await startReeks(y, Math.max(0, y.contacten.findIndex(c => c.email))); } }, met.length > 1 ? `Mails ingepland voor ${met.length} prospects` : 'Mail 1 ingepland')) closeSheet();
+    });
 }
 function tagSheet(b){
   const reeksTags = new Set((S.inst.mailreeksen || []).map(r => r.tag.toLowerCase()));
@@ -2665,6 +2711,7 @@ function tagSheet(b){
       let tags = had ? (bb.tags||[]).filter(x => x.toLowerCase()!==l) : [...(bb.tags||[]), t];
       if(!had && reeksTags.has(l)) tags = tagsMetReeks(tags, (S.inst.mailreeksen||[]).find(r => r.tag.toLowerCase()===l).id);
       await veilig(() => zetTags(bb, tags));
+      if(!s.isConnected || !document.querySelector('#sheet [data-tagwissel]')) return;   // vraag over de mailreeks staat open
       body.innerHTML = teken(); mount(s);
     });
     s.querySelector('#tg-nieuw').onsubmit = async e => {
