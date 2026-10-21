@@ -263,22 +263,43 @@ a{color:var(--accent)}
 .pijp-balk select{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 10px;font:inherit}
 .pijp-rit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--accent-soft);border-radius:14px;padding:8px 12px;font-size:.92rem}
 .pijp-rit select{height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:0 8px;font:inherit;font-weight:650}
-.kolommen-pijp{display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
-@media (min-width:960px){.kolommen-pijp{margin:0;padding-left:0;padding-right:0}}
-@media (max-width:959px){.kolommen-pijp{grid-template-columns:repeat(4,82vw)}}
-.pkolom{background:var(--sunk);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:8px;scroll-snap-align:start;min-height:200px;border:2px dashed transparent;transition:border-color .15s}
+.fase-tabs{display:none}
+.kolommen-pijp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+.pkolom{background:var(--sunk);border-radius:var(--r);display:flex;flex-direction:column;border:2px dashed transparent;transition:border-color .15s;min-width:0}
 .pkolom.over{border-color:var(--accent);background:var(--accent-soft)}
-.pkolom h2{display:flex;justify-content:space-between;align-items:center;font-size:.95rem;margin:2px 4px}
-.pk-lijst{display:flex;flex-direction:column;gap:8px}
-.pk-leeg{padding:8px 4px}
-.pkaart{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 10px 6px;display:flex;flex-direction:column;gap:4px;cursor:grab;box-shadow:var(--shadow)}
+.pkolom h2{display:flex;justify-content:space-between;align-items:center;font-size:.95rem;margin:0;padding:12px 14px 8px}
+.pk-lijst{display:flex;flex-direction:column;gap:2px;padding:0 8px 10px;max-height:calc(100vh - 290px);overflow-y:auto}
+.pk-leeg{padding:16px 6px;text-align:center}
+.pk-groep h3{display:flex;justify-content:space-between;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 6px 4px;font-weight:700}
+.pk-groep h3 span{font-weight:600}
+.pkaart{background:var(--surface);border:1px solid var(--line);border-left:4px solid transparent;border-radius:10px;padding:7px 6px 7px 10px;display:grid;grid-template-columns:1fr auto;column-gap:6px;align-items:center;cursor:grab;margin-bottom:4px}
+.pkaart.inrit{border-left-color:#51C26F}
 .pkaart.sleept{opacity:.4}
-.pk-naam{border:0;background:none;padding:0;font:inherit;font-weight:700;text-align:left;color:var(--ink);cursor:pointer}
+.pk-naam{border:0;background:none;padding:0;font:inherit;font-weight:650;font-size:.92rem;text-align:left;color:var(--ink);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .pk-naam:hover{text-decoration:underline}
-.pkaart .meta{color:var(--muted);font-size:.82rem}
-.pk-chips{display:flex;flex-wrap:wrap;gap:4px}.pk-chips .chip .ic{width:12px;height:12px}
-.pk-knoppen{display:flex;justify-content:space-between;align-items:center;gap:4px;margin-top:2px}
-.pk-knoppen .icon-btn{width:36px;height:36px}.pk-knoppen .icon-btn:disabled{opacity:.25}
+.pk-info{grid-column:1 / -1;color:var(--muted);font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-laat{color:var(--warn);font-weight:650}
+.pk-acties{display:flex;gap:2px}
+.pk-knop{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0}
+.pk-knop:hover{border-color:var(--ink);color:var(--ink)}
+.pk-knop.aan{background:#51C26F;border-color:#51C26F;color:#000}
+.pk-knop .ic{width:15px;height:15px}
+@media (hover:hover) and (min-width:960px){
+  .pkaart{grid-template-columns:1fr}.pk-acties{display:none}
+  .pkaart:hover,.pkaart:focus-within{grid-template-columns:1fr auto}.pkaart:hover .pk-acties,.pkaart:focus-within .pk-acties{display:flex}
+  .pkaart.inrit .pk-naam::after{content:" ✓";color:#1F7A3C}
+}
+@media (max-width:959px){
+  .fase-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sunk);border-radius:14px;padding:4px;position:sticky;top:calc(64px + env(safe-area-inset-top,0px));z-index:5}
+  .fase-tabs button{border:0;background:transparent;border-radius:10px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;font:inherit;color:var(--muted);cursor:pointer;line-height:1.15}
+  .fase-tabs button b{font-size:1.1rem;color:var(--ink)}.fase-tabs button span{font-size:.68rem;font-weight:650}
+  .fase-tabs button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+  .kolommen-pijp{grid-template-columns:1fr}
+  .pkolom:not(.actief){display:none}
+  .pkolom{background:transparent;border:0}.pkolom h2{display:none}
+  .pk-lijst{max-height:none;overflow:visible;padding:0}
+  .pkaart{padding:9px 6px 9px 12px}.pk-knop{width:38px;height:38px}
+}
 @media (min-width:960px){.alleen-groot{display:flex!important}}
 .plan-kop{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .plan-kop select{min-width:160px}
@@ -2937,7 +2958,7 @@ function routeMaak(){
    met één tik op de rit van de gekozen dag (zelfde keuze als bij Plannen). */
 const FASEN = [['nieuw','Nog te contacten'], ['contact gehad','Contact gehad'], ['bezocht','Bezocht'], ['afspraak','Afspraak']];
 function pijplijnView(){
-  const p = V.pijp = V.pijp || {zoek:'', metNetwerk:false, regio:''};
+  const p = V.pijp = V.pijp || {zoek:'', metNetwerk:false, regio:'', fase:'nieuw'};
   const v = planStaat(), r = planRoute(v), inRit = new Set(r.stops.map(x => x.id));
   const elders = new Map(); S.routes.filter(x => x.datum >= today()).forEach(x => x.stops.forEach(st => { if(!(x.datum===v.datum && x.voor===v.voor)) elders.set(st.id, x); }));
   const zoek = p.zoek.toLowerCase();
@@ -2946,32 +2967,40 @@ function pijplijnView(){
   const verder = lijst.filter(b => !FASEN.some(([f]) => f===(b.status||'nieuw'))).length;
   const regios = [...new Set(alle.map(regio).filter(Boolean))].sort();
   const dagen = werkdagenVanaf(today(), 10);
-  const kaart = b => { const o = opvolgStatus(b), i = FASEN.findIndex(([f]) => f===(b.status||'nieuw')), x = elders.get(b.id), op = inRit.has(b.id);
-    return `<article class="pkaart" draggable="true" data-pijp="${b.id}">
-      <button class="pk-naam" data-act="open" data-id="${b.id}">${esc(b.naam)}</button>
-      <span class="meta">${esc([b.plaats, b.laatsteContact ? 'contact '+fmtDag(b.laatsteContact) : 'nog geen contact'].filter(Boolean).join(' · '))}</span>
-      ${o || x ? `<span class="pk-chips">${o ? `<span class="chip ${o.due?'warn':''}">${ic('clock','sm')}${esc(o.due ? 'nu opvolgen' : fmtDag(o.datum))}</span>` : ''}${x ? `<span class="chip">${ic('route','sm')}rit ${esc(fmtDag(x.datum))}</span>` : ''}</span>` : ''}
-      <span class="pk-knoppen">
-        <button class="icon-btn" data-act="pijpSchuif" data-id="${b.id}" data-n="-1" ${i>0?'':'disabled'} aria-label="Terug naar ${i>0?esc(FASEN[i-1][1]):''}">${ic('left','sm')}</button>
-        <button class="btn small ${op?'on':''}" data-act="pijpRit" data-id="${b.id}" ${b.geo?.lat || op ? '' : 'title="Adres onbekend"'} aria-pressed="${op}">${op ? ic('check','sm')+'In rit' : ic('plus','sm')+'Rit'}</button>
-        <button class="icon-btn" data-act="pijpSchuif" data-id="${b.id}" data-n="1" ${i<FASEN.length-1?'':'disabled'} aria-label="Door naar ${i<FASEN.length-1?esc(FASEN[i+1][1]):''}">${ic('right','sm')}</button>
-      </span></article>`; };
-  const rd = parse(v.datum);
+  const perFase = Object.fromEntries(FASEN.map(([f]) => [f, lijst.filter(b => (b.status||'nieuw')===f)]));
+  const kaart = b => {
+    const o = opvolgStatus(b), i = FASEN.findIndex(([f]) => f===(b.status||'nieuw')), x = elders.get(b.id), op = inRit.has(b.id);
+    const info = [b.laatsteContact ? `contact ${fmtDag(b.laatsteContact)}` : 'nog geen contact', o && `<span class="${o.due ? 'pk-laat' : ''}">opvolgen ${o.due ? 'nu' : fmtDag(o.datum)}</span>`, x && `rit ${fmtDag(x.datum)}`].filter(Boolean);
+    return `<article class="pkaart ${op ? 'inrit' : ''}" draggable="true" data-pijp="${b.id}">
+      <button class="pk-naam" data-act="open" data-id="${b.id}" title="${esc(b.naam)}">${esc(b.naam)}</button>
+      <span class="pk-acties">
+        <button class="pk-knop ${op ? 'aan' : ''}" data-act="pijpRit" data-id="${b.id}" aria-pressed="${op}" title="${op ? 'Van de rit halen' : 'Op de rit van ' + fmtDag(v.datum)}" aria-label="${op ? 'Van de rit halen' : 'Op de rit'}">${ic(op ? 'check' : 'route', 'sm')}</button>
+        ${i < FASEN.length - 1 ? `<button class="pk-knop" data-act="pijpSchuif" data-id="${b.id}" data-n="1" title="Naar ${esc(FASEN[i+1][1])}" aria-label="Naar ${esc(FASEN[i+1][1])}">${ic('right','sm')}</button>` : ''}
+      </span>
+      <span class="pk-info">${info.join(' · ')}</span>
+    </article>`;
+  };
+  const groepen = l => {
+    const m = new Map(); l.forEach(b => { const k = (b.plaats || '').replace(/\s*\(.*?\)/g, '').trim() || 'Plaats onbekend'; if(!m.has(k)) m.set(k, []); m.get(k).push(b); });
+    return [...m.entries()].sort(([a], [c]) => (a==='Plaats onbekend') - (c==='Plaats onbekend') || a.localeCompare(c))
+      .map(([plaats, bs]) => `<div class="pk-groep"><h3>${esc(plaats)}<span>${bs.length}</span></h3>${bs.sort((a, c) => a.naam.localeCompare(c.naam)).map(kaart).join('')}</div>`).join('');
+  };
   return `<div class="wrap pijplijn">
-    <header class="page-head"><button class="btn ghost back alleen-klein" data-act="tab" data-tab="prospect">${ic('left','sm')}Prospects</button><p class="eyebrow">Prospects</p><h1>Pijplijn</h1>
-      <p class="sub">${p.metNetwerk ? 'Alle prospects' : 'Prospects zonder #netwerk'}. Sleep een kaart of gebruik de pijltjes om door te schuiven.</p></header>
+    <header class="page-head"><button class="btn ghost back alleen-klein" data-act="tab" data-tab="prospect">${ic('left','sm')}Prospects</button><p class="eyebrow">Prospects${p.metNetwerk ? '' : ' zonder #netwerk'}</p><h1>Pijplijn</h1></header>
     <div class="pijp-balk">
       <label class="search">${ic('search')}<input id="pijp-zoek" type="search" placeholder="Zoek op naam, plaats of contact" value="${esc(p.zoek)}" autocomplete="off" aria-label="Zoeken"></label>
       ${regios.length ? `<select id="pijp-regio" aria-label="Regio"><option value="">Alle regio's</option>${regios.map(x => `<option ${x===p.regio?'selected':''}>${esc(x)}</option>`).join('')}</select>` : ''}
       <label class="check"><input type="checkbox" id="pijp-netwerk" ${p.metNetwerk?'checked':''}><span>Ook #netwerk</span></label>
     </div>
-    <div class="pijp-rit">${ic('route','sm')}<span>Rit van</span>
-      <select id="pijp-dag" aria-label="Dag van de rit">${dagen.map(d => { const x = parse(d), n = routeVan(d, v.voor)?.stops.length || 0; return `<option value="${d}" ${d===v.datum?'selected':''}>${DAGEN[x.getDay()]} ${x.getDate()} ${MAANDEN[x.getMonth()]}${n ? ` (${n})` : ''}</option>`; }).join('')}</select>
-      <span>voor <b>${esc(v.voor || '')}</b>: ${r.stops.length} stop${r.stops.length===1?'':'s'}${r.stops.length ? ` · ± ${routeMaat(r).km} km` : ''}</span>
-      <button class="btn small" data-act="tab" data-tab="plannen">Open in Plannen</button></div>
-    <div class="kolommen-pijp">${FASEN.map(([f, naam]) => { const l = lijst.filter(b => (b.status||'nieuw')===f).sort((a, c) => (a.plaats||'').localeCompare(c.plaats||'') || a.naam.localeCompare(c.naam));
-      return `<section class="pkolom" data-fase="${f}" aria-label="${naam}"><h2>${naam}<span class="count num">${l.length}</span></h2><div class="pk-lijst">${l.map(kaart).join('') || '<p class="sub pk-leeg">Leeg</p>'}</div></section>`; }).join('')}</div>
-    ${verder ? `<p class="hint">${verder} prospect${verder===1?' staat':'s staan'} al verder (offerte, gewonnen of verloren) en ${verder===1?'staat':'staan'} hier niet tussen.</p>` : ''}
+    <div class="pijp-rit">${ic('route','sm')}<span>Rit</span>
+      <select id="pijp-dag" aria-label="Dag van de rit">${dagen.map(d => { const x = parse(d), n = routeVan(d, v.voor)?.stops.length || 0; return `<option value="${d}" ${d===v.datum?'selected':''}>${DAGEN[x.getDay()]} ${x.getDate()} ${MAANDEN[x.getMonth()]}${n ? ` · ${n}` : ''}</option>`; }).join('')}</select>
+      <span class="sub">${esc(v.voor || '')} · ${r.stops.length} stop${r.stops.length===1?'':'s'}${r.stops.length ? ` · ± ${routeMaat(r).km} km` : ''}</span>
+      <button class="btn small" data-act="tab" data-tab="plannen">Bekijk rit</button></div>
+    <div class="fase-tabs" role="tablist">${FASEN.map(([f, naam]) => `<button role="tab" class="${p.fase===f?'on':''}" aria-selected="${p.fase===f}" data-act="pijpFase" data-f="${f}"><b class="num">${perFase[f].length}</b><span>${naam}</span></button>`).join('')}</div>
+    <div class="kolommen-pijp">${FASEN.map(([f, naam]) => `<section class="pkolom ${p.fase===f?'actief':''}" data-fase="${f}" aria-label="${naam}">
+      <h2>${naam}<span class="count num">${perFase[f].length}</span></h2>
+      <div class="pk-lijst">${perFase[f].length ? groepen(perFase[f]) : '<p class="sub pk-leeg">Sleep hier een kaart naartoe</p>'}</div></section>`).join('')}</div>
+    <p class="hint">${ic('route','sm')} zet op de rit · ${ic('right','sm')} schuift door naar de volgende fase · terugzetten: slepen of de status op het profiel${verder ? ` · ${verder} prospect${verder===1?'':'s'} met offerte, gewonnen of verloren niet getoond` : ''}</p>
   </div>`;
 }
 async function zetFase(b, status){
@@ -3382,6 +3411,7 @@ const ACT = {
   naBezoek: d => naBezoek(bedrijf(d.id)),
   routeStop2: () => bevestig('Route wissen', 'De dagroute van vandaag verdwijnt. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => veilig(() => zetRoute({...route(), stops:[]}))),
   planDag: d => { planStaat().datum = d.d; render(); },
+  pijpFase: d => { V.pijp.fase = d.f; render(); },
   pijpSchuif: d => { const b = bedrijf(d.id), i = FASEN.findIndex(([f]) => f===(b.status||'nieuw')) + Number(d.n); if(FASEN[i]) zetFase(b, FASEN[i][0]); },
   pijpRit: d => { const v = planStaat(), r = planRoute(v);
     if(r.stops.some(x => x.id===d.id)){ planStops(r.stops.filter(x => x.id!==d.id)); return; }
