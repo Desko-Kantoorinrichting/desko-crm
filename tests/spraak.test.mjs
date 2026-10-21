@@ -115,3 +115,11 @@ test('net verkeerd verstane namen worden herkend en verbeterd', () => {
   assert.equal(lees('hoe is het met de koek').bedrijfId, null);
   assert.equal(lees('morgen bellen', {bedrijf:BEDRIJVEN[0]}).contact, -1);
 });
+
+test('stukken uit de spraakherkenning samenvoegen (ook Android-herhalingen)', () => {
+  assert.equal(S.samenvoegen(['Hoek Advocaten gebeld', 'Aukje gesproken', 'morgen terugbellen']), 'Hoek Advocaten gebeld Aukje gesproken morgen terugbellen');
+  assert.equal(S.samenvoegen(['Hoek', 'Hoek Advocaten', 'Hoek Advocaten gebeld']), 'Hoek Advocaten gebeld');                 // cumulatief
+  assert.equal(S.samenvoegen(['Hoek Advocaten gebeld', 'Hoek Advocaten gebeld', 'Aukje gesproken']), 'Hoek Advocaten gebeld Aukje gesproken');
+  assert.equal(S.samenvoegen(['Hoek Advocaten gebeld Aukje gesproken', 'Aukje gesproken']), 'Hoek Advocaten gebeld Aukje gesproken');
+  assert.equal(S.samenvoegen(['', '  ', 'ja']), 'ja');
+});

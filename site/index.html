@@ -232,9 +232,12 @@ a{color:var(--accent)}
 .mic{width:104px;height:104px;border-radius:50%;border:0;background:var(--jade);color:#000;display:grid;place-items:center;margin:6px auto 2px;cursor:pointer;position:relative}
 .mic .ic{width:42px;height:42px}
 .mic.aan{background:#000;color:#fff}
+.mic .stopblok{display:none;width:30px;height:30px;border-radius:7px;background:#fff}
+.mic.aan .ic{display:none}.mic.aan .stopblok{display:block}
 .mic.aan::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:3px solid #51C26F;animation:puls 1.2s ease-out infinite}
 @keyframes puls{from{transform:scale(.9);opacity:1}to{transform:scale(1.25);opacity:0}}
 @media (prefers-reduced-motion:reduce){.mic.aan::after{animation:none}}
+.live{min-height:96px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 14px;font-size:1.02rem;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
 .mic-status{text-align:center;color:var(--muted);font-size:.9rem;min-height:1.3em}
 .begrepen{display:flex;flex-direction:column;gap:6px;background:var(--accent-soft);border-radius:14px;padding:12px 14px;font-size:.92rem}
 .begrepen span{display:flex;gap:8px;align-items:flex-start}.begrepen .ic{flex:none;margin-top:2px}
@@ -2519,77 +2522,75 @@ const Herkenning = window.SpeechRecognition || window.webkitSpeechRecognition;
 const MAX_OPNAME_MS = 5 * 60 * 1000;
 let opname = null;
 function stopLuisteren(){ if(!opname) return; const o = opname; opname = null; o.actief = false; try{ o.h && o.h.stop(); }catch{} }
-/* De spraakherkenning van de browser stopt na een korte stilte. Zolang Ferry niet zelf op
-   stop tikt, starten we steeds een nieuwe ronde en plakken we de tekst erachter. Per stuk
-   kiezen we uit de alternatieven het stuk met de meeste bekende namen en termen. */
-function startOpname(ta, melden){
+/* Luisteren tot er op stop wordt getikt. De browser stopt zelf na een stilte; dan starten we
+   meteen een nieuwe ronde. Elke ronde wordt los samengevoegd (Android herhaalt soms tekst). */
+function startOpname(toon, melden){
   stopLuisteren();
-  const mobiel = /Android|iPhone|iPad/.test(navigator.userAgent);
-  const kennis = SPRAAK.woordenlijst(S.bedrijven);
-  const score = t => t.toLowerCase().split(/[^\p{L}\d]+/u).filter(w => kennis.has(w)).length;
-  const kies = r => { let beste = r[0]; for(let i = 1; i < r.length; i++) if(score(r[i].transcript) > score(beste.transcript)) beste = r[i]; return beste.transcript; };
-  const o = opname = {actief:true, tekst:ta.value.trim(), begin:Date.now(), fouten:0, h:null};
+  const o = opname = {actief:true, tekst:'', begin:Date.now(), fouten:0, h:null};
   const ronde = () => {
     if(!o.actief) return;
-    if(Date.now() - o.begin > MAX_OPNAME_MS){ stopLuisteren(); melden('klaar', 'Na 5 minuten gestopt. Klaar? Tik op Verder.'); return; }
+    if(Date.now() - o.begin > MAX_OPNAME_MS){ melden('klaar'); return; }
     const h = o.h = new Herkenning();
-    h.lang = 'nl-NL'; h.interimResults = true; h.maxAlternatives = 4; h.continuous = true;
-    try{
-      if(window.SpeechRecognitionPhrase && 'phrases' in h)    // nieuwere Chrome: namen uit het CRM voorrang geven
-        h.phrases = [...new Set(S.bedrijven.flatMap(b => [netteNaamBedrijf(b.naam), ...(b.contacten || []).map(c => c.naam)]).filter(Boolean))].slice(0, 400).map(x => new SpeechRecognitionPhrase(x, 5));
-    }catch{}
+    h.lang = 'nl-NL'; h.interimResults = true; h.continuous = true; h.maxAlternatives = 1;
     let deze = '';
-    h.onresult = e => {
-      // Chrome op Android herhaalt in doorlopende modus soms eerdere stukken: alleen nieuwe tekst toevoegen
-      let t = ''; for(const r of e.results){ const x = kies(r).trim(); if(x && !(mobiel && t.trim().endsWith(x))) t += (mobiel && x.startsWith(t.trim()) && t.trim() ? x.slice(t.trim().length) : x) + ' '; }
-      deze = t.replace(/\s+/g, ' ').trim(); o.fouten = 0;
-      ta.value = [o.tekst, deze].filter(Boolean).join(' ');
-    };
+    h.onresult = e => { deze = SPRAAK.samenvoegen([...e.results].map(r => r[0].transcript)); o.fouten = 0; toon(SPRAAK.samenvoegen([o.tekst, deze]), true); };
     h.onerror = e => {
-      if(['not-allowed', 'service-not-allowed', 'audio-capture'].includes(e.error)){ o.actief = false; melden('fout', e.error === 'audio-capture' ? 'Geen microfoon gevonden. Typ of dicteer hieronder.' : 'Geen toegang tot de microfoon. Sta dat toe in de instellingen van je telefoon, of typ of dicteer hieronder.'); }
-      else if(e.error === 'network' && ++o.fouten >= 3){ o.actief = false; melden('fout', 'Geen verbinding voor spraakherkenning. Typ of dicteer hieronder.'); }
-      // no-speech (stilte) en aborted: gewoon verder luisteren
+      if(['not-allowed', 'service-not-allowed', 'audio-capture'].includes(e.error)){ o.actief = false; melden('fout', e.error === 'audio-capture' ? 'Geen microfoon gevonden.' : 'De app mag de microfoon niet gebruiken. Sta het toe in de instellingen van je telefoon (Chrome of Safari → Microfoon).'); }
+      else if(e.error !== 'no-speech' && e.error !== 'aborted' && ++o.fouten >= 3){ o.actief = false; melden('fout', 'Spraakherkenning lukt nu niet. Controleer je internet, of typ hieronder.'); }
     };
     h.onend = () => {
-      if(deze) o.tekst = [o.tekst, deze].filter(Boolean).join(' ');
-      if(o.actief){ setTimeout(ronde, 120); return; }
-      ta.value = SPRAAK.spel(o.tekst || ta.value);
-      if(opname === o) opname = null;
+      o.tekst = SPRAAK.samenvoegen([o.tekst, deze]); deze = '';
+      if(o.actief){ ronde(); return; }
+      toon(o.tekst, false);
     };
-    try{ h.start(); }catch{ setTimeout(ronde, 400); }
+    try{ h.start(); }catch{ if(++o.fouten < 3) setTimeout(ronde, 300); else { o.actief = false; melden('fout', 'Spraakherkenning lukt nu niet. Typ hieronder.'); } }
   };
   ronde();
-  melden('aan');
   return o;
 }
-const netteNaamBedrijf = n => String(n || '').replace(/\s*\([^)]*\)/g, '').replace(/\s*\b(b\.?v\.?|n\.?v\.?)\s*$/i, '').trim();
-/* Standaard: dicteren met de microfoon van het toetsenbord (dezelfde techniek als in WhatsApp,
-   luistert het best en stopt niet halverwege). De opnameknop van de app is de tweede keuze. */
+/* Eén knop: tik → luisteren (tekst verschijnt meteen) → tik → "Klopt dit?". */
 function inspreken(vast, tekst = ''){
   stopLuisteren();
   V.inspreekBij = vast?.id || null;
-  const appModus = !!Herkenning && lees('desko-crm-spraak') === 'app';
-  const voorbeeld = `${vast ? '' : 'Hoek Advocaten '}gebeld, Aukje gesproken, volgende week dinsdag om 2 uur terugbellen`;
+  if(!Herkenning) return inspreekToetsenbord(vast, tekst);
   openSheet('Inspreken', `<div class="section" id="sp">
-    ${vast ? `<p class="sub">Bij <b>${esc(vast.naam)}</b></p>` : ''}
-    ${appModus ? `<button type="button" class="mic" id="sp-mic" aria-label="Inspreken starten">${ic('mic')}</button><p class="mic-status" id="sp-status" aria-live="polite">Tik op de microfoon en vertel wat er gebeurde</p>`
-      : `<div class="dicteer">${ic('mic')}<span>Tik op het <b>microfoontje van je toetsenbord</b> en vertel wat er gebeurde. Praat zo lang als je wilt; tik op het toetsenbord om te stoppen.</span></div>`}
-    <label class="f"><span>Wat je zei</span><textarea id="sp-tekst" rows="5" ${appModus ? 'data-geenfocus' : ''} enterkeyhint="done" placeholder="Bijv. ${esc(voorbeeld)}">${esc(tekst)}</textarea></label>
-    <p class="hint">Namen mag je spellen: "Aukje, A U K J E". De app verbetert bekende namen van bedrijven en contactpersonen.</p>
-    <div class="sheet-actions">${Herkenning ? `<button type="button" class="btn ghost" data-act="${appModus ? 'toetsenbordOpname' : 'appOpname'}">${appModus ? 'Toetsenbord gebruiken' : 'Opnameknop van de app'}</button>` : ''}<button type="button" class="btn" data-act="closeSheet">Annuleren</button><button type="button" class="btn primary" id="sp-verder">Verder</button></div>
+    ${vast ? `<p class="sub" style="text-align:center">Bij <b>${esc(vast.naam)}</b></p>` : ''}
+    <button type="button" class="mic aan" id="sp-mic" aria-label="Stoppen">${ic('mic')}<span class="stopblok"></span></button>
+    <p class="mic-status" id="sp-status" aria-live="polite">Luisteren… vertel wat er gebeurde</p>
+    <div class="live" id="sp-live" aria-live="polite">${esc(tekst) || `<span class="sub">Bijv. "${vast ? '' : 'Hoek Advocaten '}gebeld, Aukje gesproken, volgende week dinsdag om 2 uur terugbellen"</span>`}</div>
+    <div class="sheet-actions"><button type="button" class="btn ghost" data-act="toetsenbordOpname">Typen</button><button type="button" class="btn primary" id="sp-klaar">${ic('check','sm')}Klaar</button></div>
   </div>`, s => {
-    const ta = s.querySelector('#sp-tekst'), mic = s.querySelector('#sp-mic'), status = s.querySelector('#sp-status');
-    if(!appModus){ try{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }catch{} }
-    let klok = null;
-    const melden = (staat, tekst) => {
-      if(!mic) return;
-      clearInterval(klok); mic.classList.toggle('aan', staat === 'aan'); mic.setAttribute('aria-label', staat === 'aan' ? 'Stoppen' : 'Inspreken starten');
-      if(staat === 'aan'){ const t0 = Date.now(); const toon = () => { const sec = Math.floor((Date.now() - t0) / 1000); status.textContent = `Luisteren… ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} · tik op de microfoon om te stoppen`; }; toon(); klok = setInterval(() => { if(!opname){ clearInterval(klok); return; } toon(); }, 1000); }
-      else status.textContent = tekst || (ta.value.trim() ? 'Klaar? Tik op Verder, of op de microfoon om verder te praten.' : 'Tik op de microfoon en vertel wat er gebeurde');
+    const mic = s.querySelector('#sp-mic'), status = s.querySelector('#sp-status'), live = s.querySelector('#sp-live');
+    let tekstNu = tekst, klok = null, t0 = Date.now();
+    const toon = t => { tekstNu = SPRAAK.samenvoegen([tekst, t]); if(tekstNu) live.textContent = tekstNu; };
+    const tik = () => { const sec = Math.floor((Date.now() - t0) / 1000); status.textContent = `Luisteren… ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} · tik op stop als je klaar bent`; };
+    const melden = (staat, msg) => { clearInterval(klok); mic.classList.remove('aan'); mic.setAttribute('aria-label', 'Opnieuw luisteren'); status.textContent = msg || 'Gestopt. Tik op de microfoon om verder te praten.'; };
+    const klaar = () => {
+      stopLuisteren(); clearInterval(klok);
+      setTimeout(() => {   // laatste woorden nog even laten binnenkomen
+        const t = SPRAAK.spel(tekstNu.trim());
+        if(!t){ melden('klaar', 'Niets verstaan. Tik op de microfoon en probeer het opnieuw.'); return; }
+        spraakBegrepen(t, vast);
+      }, 400);
     };
-    const stop = () => { stopLuisteren(); melden('klaar'); setTimeout(() => { ta.value = SPRAAK.spel(ta.value); }, 300); };
-    if(mic){ mic.onclick = () => opname ? stop() : startOpname(ta, melden); if(!tekst) startOpname(ta, melden); ta.addEventListener('pointerdown', () => { if(opname) stop(); }); }
-    s.querySelector('#sp-verder').onclick = () => { stopLuisteren(); clearInterval(klok); const t = SPRAAK.spel(ta.value.trim()); if(!t){ toast('Er is nog niets ingesproken.'); return; } spraakBegrepen(t, vast); };
+    const start = () => { t0 = Date.now(); mic.classList.add('aan'); mic.setAttribute('aria-label', 'Stoppen'); tik(); clearInterval(klok); klok = setInterval(tik, 1000);
+      tekst = tekstNu; startOpname(toon, melden); };
+    mic.onclick = () => opname ? klaar() : start();
+    s.querySelector('#sp-klaar').onclick = klaar;
+    start();
+  });
+}
+/* Reserve: typen of dicteren met de microfoon van het toetsenbord. */
+function inspreekToetsenbord(vast, tekst = ''){
+  stopLuisteren();
+  openSheet('Typen of dicteren', `<div class="section">
+    ${vast ? `<p class="sub">Bij <b>${esc(vast.naam)}</b></p>` : ''}
+    <div class="dicteer">${ic('mic')}<span>Typ, of tik op het <b>microfoontje van je toetsenbord</b> om te dicteren.</span></div>
+    <label class="f"><span>Wat er gebeurde</span><textarea id="sp-tekst" rows="5" placeholder="Bijv. ${vast ? '' : 'Hoek Advocaten '}gebeld, Aukje gesproken, volgende week dinsdag om 2 uur terugbellen">${esc(tekst)}</textarea></label>
+    <div class="sheet-actions">${Herkenning ? `<button type="button" class="btn ghost" data-act="appOpname">${ic('mic','sm')}Inspreken</button>` : ''}<button type="button" class="btn primary" id="sp-verder">Verder</button></div>
+  </div>`, s => {
+    const ta = s.querySelector('#sp-tekst');
+    s.querySelector('#sp-verder').onclick = () => { const t = SPRAAK.spel(ta.value.trim()); if(!t){ toast('Er staat nog niets.'); return; } spraakBegrepen(t, vast); };
   });
 }
 /* Stap 2: laten zien wat er begrepen is; alles is nog aan te passen. */
@@ -2609,7 +2610,7 @@ function spraakBegrepen(tekst, vast, gekozenId){
     ${b ? contactSelect(b, r.contact >= 0 ? r.contact : b.opvolging?.contact) : ''}
     <label class="f"><span>Tekst voor de tijdlijn</span><textarea name="tekst" id="sb-tekst" rows="3">${esc(r.tekst)}</textarea></label>
     ${planVelden({id:'sb', wat:r.plan?.actie || 'Bellen', datum:r.plan?.datum || null, metGeen:!r.plan, titel:'Volgende stap'})}
-    <div class="sheet-actions"><button type="button" class="btn" id="sb-terug">${ic('mic','sm')}Opnieuw</button><button class="btn primary" type="submit">Opslaan</button></div>
+    <div class="sheet-actions"><button type="button" class="btn" id="sb-terug">${ic('mic','sm')}Verder praten</button><button class="btn primary" type="submit">Opslaan</button></div>
   </form>`, s => {
     mountPlan(s, 'sb');
     if(r.plan){ const t = s.querySelector('#sb-tijd'); if(t && r.plan.tijd) t.value = r.plan.tijd;
@@ -3004,8 +3005,8 @@ const ACT = {
   snelKies: d => kiesBedrijf(d.doel),
   inspreken: d => inspreken(d.id ? bedrijf(d.id) : null),
   verversen: (d, el) => { document.querySelectorAll('.ververs').forEach(x => x.classList.add('bezig')); setTimeout(() => location.reload(), 150); },
-  appOpname: () => { bewaar('desko-crm-spraak', 'app'); inspreken(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-tekst')?.value || ''); },
-  toetsenbordOpname: () => { bewaar('desko-crm-spraak', null); inspreken(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-tekst')?.value || ''); },
+  appOpname: () => inspreken(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-tekst')?.value || ''),
+  toetsenbordOpname: () => { const t = $('#sp-live')?.textContent || ''; inspreekToetsenbord(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-live .sub') ? '' : t); },
   snelDoel: d => { const b = bedrijf(d.id); closeSheet(); if(d.doel==='bezoek') actForm(b, 'bezoek'); else if(d.doel==='bel') belSheet(b); else planActie(b); },
   pauzeer: d => { const b = bedrijf(d.id); veilig(async () => { await updBedrijf(b.id, {opvolging:{...clone(b.opvolging), gepauzeerd:true}}); await systeem(b, 'Opvolging gepauzeerd.'); }, 'Gepauzeerd'); },
   hervat: d => { const b = bedrijf(d.id); veilig(async () => { const o = clone(b.opvolging); o.gepauzeerd = false; if(o.datum < today()) o.datum = today(); await updBedrijf(b.id, {opvolging:o}); await systeem(b, 'Opvolging hervat.'); }, 'Hervat'); },

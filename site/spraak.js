@@ -186,5 +186,19 @@
     return {bedrijfId:b ? b.id : null, contact:ci, type, uitkomst, plan, tekst:ruw.charAt(0).toUpperCase() + ruw.slice(1)};
   }
 
-  return {lees, spel, leesDatum, leesTijd, vindBedrijf, woordenlijst};
+  /* Stukken uit de spraakherkenning samenvoegen. Chrome op Android geeft soms steeds de hele
+     tekst tot nu toe, of herhaalt een stuk; andere browsers geven losse stukken. */
+  function samenvoegen(stukken){
+    let acc = '';
+    for(const ruw of stukken){
+      const x = String(ruw || '').replace(/\s+/g, ' ').trim(); if(!x) continue;
+      const a = acc.toLowerCase(), b = x.toLowerCase();
+      if(!acc || b.startsWith(a)) acc = x;                               // cumulatief: vervangen
+      else if(a.endsWith(b) || (b.length > 12 && a.includes(b))) continue; // herhaling: overslaan
+      else acc += ' ' + x;
+    }
+    return acc;
+  }
+
+  return {lees, spel, samenvoegen, leesDatum, leesTijd, vindBedrijf, woordenlijst};
 });
