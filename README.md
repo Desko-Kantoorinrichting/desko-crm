@@ -74,7 +74,7 @@ Een opvolging van vandaag geeft een melding aan het begin van de werkdag, of om 
 
 | Bestand | Wat |
 |---|---|
-| `site/index.html` | De hele app (schermen, opvolglogica, commissie, export) |
+| `site/index.html` | De hele app (schermen, opvolglogica, planning, export) |
 | `site/db.js` | Opslag in GitHub (lezen, schrijven, samenvoegen, verversen) |
 | `site/auth.js` | Inloggen met e-mail en wachtwoord (versleuteling) |
 | `site/gebruikers.json` | Gebruikers met hun versleutelde sleutel |

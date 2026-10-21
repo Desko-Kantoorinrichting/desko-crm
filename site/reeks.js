@@ -46,7 +46,6 @@
   const DEFAULT_INST = {
     termijnen: {
       prospect:  {opvolgWerkdagen:2, geenReactieWerkdagen:5, nietOpgenomenWerkdagen:2, maxPogingen:4},
-      commissie: {opvolgWerkdagen:2, geenReactieWerkdagen:5, nietOpgenomenWerkdagen:2, maxPogingen:4, betaaltermijnDagen:30},
       klant:     {opvolgWerkdagen:2, geenReactieWerkdagen:5, nietOpgenomenWerkdagen:2, maxPogingen:4}
     },
     kantoortijden: {van:'08:30', tot:'17:00', verzendtijd:'09:30'},

@@ -30,7 +30,7 @@
   --accent:#1F7A3C; --accent-ink:#000000; --accent-soft:#E2F4E7;
   --klant:#1F7A3C; --klant-soft:#E2F4E7;
   --prospect:#6A6400; --prospect-soft:#FBF7BF;
-  --commissie:#FFFFFF; --commissie-soft:#000000;
+  --mail:#FFFFFF; --mail-soft:#000000;
   --warn:#B23B12; --warn-soft:#FCE5DA;
   --shadow:0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(60,40,10,.06);
   --font-display:"League Spartan","Segoe UI",system-ui,sans-serif;
@@ -42,14 +42,14 @@
   --bg:#0B0B0B; --surface:#161616; --sunk:#202020; --hover:#1C1C1C; --ink:#F7F3EC; --muted:#AAA59C; --faint:#7D7972; --line:#2A2A2A;
   --accent:#6FD38A; --accent-soft:#16301E;
   --klant:#6FD38A; --klant-soft:#16301E; --prospect:#F2E901; --prospect-soft:#2E2C08;
-  --commissie:#000000; --commissie-soft:#FBF4E9; --warn:#FF9C76; --warn-soft:#3A1E14;
+  --mail:#000000; --mail-soft:#FBF4E9; --warn:#FF9C76; --warn-soft:#3A1E14;
   --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}}
 :root[data-theme="dark"]{
   --brand:#000000; --brand-2:#141414; --brand-ink:#FFFFFF;
   --bg:#0B0B0B; --surface:#161616; --sunk:#202020; --hover:#1C1C1C; --ink:#F7F3EC; --muted:#AAA59C; --faint:#7D7972; --line:#2A2A2A;
   --accent:#6FD38A; --accent-soft:#16301E;
   --klant:#6FD38A; --klant-soft:#16301E; --prospect:#F2E901; --prospect-soft:#2E2C08;
-  --commissie:#000000; --commissie-soft:#FBF4E9; --warn:#FF9C76; --warn-soft:#3A1E14;
+  --mail:#000000; --mail-soft:#FBF4E9; --warn:#FF9C76; --warn-soft:#3A1E14;
   --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -111,7 +111,6 @@ a{color:var(--accent)}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:.75rem;font-weight:650;white-space:nowrap;background:var(--sunk);color:var(--muted);line-height:1.3}
 .k-klant{background:var(--klant-soft);color:var(--klant)}
 .k-prospect{background:var(--prospect-soft);color:var(--prospect)}
-.k-commissie{background:var(--commissie-soft);color:var(--commissie)}
 .chip.warn{background:var(--warn-soft);color:var(--warn)}
 .chip.tag{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:500}
 .chip.tag::before{content:"#";opacity:.5}
@@ -215,7 +214,7 @@ a{color:var(--accent)}
 .ag-item .t span{display:block;color:var(--muted);font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ag-item .soort{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;color:var(--muted)}
 .ag-item.late .tijd{color:var(--warn)}
-.ag-route{--kleur:#51C26F}.ag-opvolg{--kleur:#1F7A3C}.ag-mail{--kleur:var(--ink)}.ag-afspraak{--kleur:#D9CB00}.ag-commissie{--kleur:#8A8A8A}
+.ag-route{--kleur:#51C26F}.ag-opvolg{--kleur:#1F7A3C}.ag-mail{--kleur:var(--ink)}.ag-afspraak{--kleur:#D9CB00}
 .maand{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .maand .wd{font-size:.72rem;font-weight:700;color:var(--muted);text-align:center;padding:2px 0}
 .maand button{aspect-ratio:1/1;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5px 2px;cursor:pointer;color:var(--ink);font:inherit;font-weight:650}
@@ -390,12 +389,6 @@ a{color:var(--accent)}
 .row.static:hover{background:transparent}
 @media (max-width:440px){.row .lbl{display:none}.row .btn.small{padding:0 10px}}
 .row .meta.wrap{white-space:normal}
-.money{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
-.money div{background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:3px;min-width:0}
-.money span{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
-.money b{font-size:1rem;font-variant-numeric:tabular-nums;font-family:var(--font-display);font-weight:650}
-.money div:last-child b{color:var(--klant)}
-@media (max-width:440px){.money{grid-template-columns:repeat(2,1fr)}}
 
 /* detail */
 .detail-head{display:flex;gap:16px;align-items:flex-start}
@@ -441,7 +434,7 @@ a{color:var(--accent)}
 .ev .ico .ic{width:16px;height:16px}
 .ev.sys .ico{background:var(--sunk);color:var(--faint)}
 .ev.t-bel .ico{background:var(--prospect-soft);color:var(--prospect)}
-.ev.t-mail_in .ico,.ev.t-mail_uit .ico{background:var(--commissie-soft);color:var(--commissie)}
+.ev.t-mail_in .ico,.ev.t-mail_uit .ico{background:var(--mail-soft);color:var(--mail)}
 .ev .body{min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:6px}
 .ev .head{display:flex;justify-content:space-between;gap:8px;font-size:.88rem;flex-wrap:wrap}
 .ev .head b{font-weight:650}
@@ -450,15 +443,12 @@ a{color:var(--accent)}
 .ev-edit{border:0;background:none;color:var(--accent);font:inherit;font-size:.8rem;font-weight:650;cursor:pointer;padding:4px 0 4px 10px;text-decoration:underline;text-underline-offset:2px}
 .ev .bewerkt{color:var(--faint);font-size:.75rem}
 .ev.sys p{color:var(--muted);font-size:.86rem}
-.deal{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--line)}
-.deal:first-of-type{border-top:0;padding-top:0}
-.deal .line{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .detail-cols{display:grid;grid-template-columns:1fr;gap:22px}
 .detail-cols > div{display:flex;flex-direction:column;gap:22px;min-width:0}
 
 /* nav: bottom bar on phone, sidebar on desktop */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr)}
+nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
 nav.tabs .side-brand,nav.tabs .side-foot{display:none}
 nav.tabs button{border:0;background:transparent;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7rem;font-weight:650;color:var(--faint);cursor:pointer;position:relative}
 nav.tabs button .pill{display:grid;place-items:center;width:44px;max-width:100%;height:28px;border-radius:999px;transition:background .15s}
@@ -574,17 +564,15 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
 /* ============================================================
    Desko CRM — eenvoudige versie
    Opslag: privé GitHub-repository (zie db.js). Collecties:
-   bedrijven, activiteiten, deals, weergaven, exportlog, instellingen.
+   bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
-  prospect:  {naam:'Prospects',      enk:'Prospect'},
-  commissie: {naam:'Lead commissie', enk:'Commissie'}
+  prospect:  {naam:'Prospects',      enk:'Prospect'}
 };
 const STATUSSEN = ['nieuw','contact gehad','bezocht','afspraak','offerte','gewonnen','verloren'];
 const GROOTTES = ['1-10','11-50','51-100','101-250','250+'];
-const DEALSTATUS = ['verwacht','verdiend','gefactureerd','ontvangen'];
 const BRANCHES = ['Bouw','Zorg','Onderwijs','Overheid','Zakelijke dienstverlening','ICT','Financiële dienstverlening','Logistiek','Retail','Horeca','Industrie','Vastgoed','Juridisch','Architectuur'];
 const ACT_TYPES = {
   bezoek:   {naam:'Bezoek'},
@@ -596,7 +584,6 @@ const ACT_TYPES = {
   systeem:  {naam:'Systeem'}
 };
 const CONTACT_TYPES = ['bezoek','bel','mail_uit','mail_in','afspraak'];
-const COMMISSIE_TAG = 'commissierelatie';
 
 const DEFAULT_INST = REEKS.DEFAULT_INST;
 
@@ -612,7 +599,6 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const {clone, pad, ds, parse, addDays, diffDays, addWerkdagen} = REEKS;
 const today = () => ds(new Date());
-const euro = n => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Number(n)||0);
 const DAGEN = ['zo','ma','di','wo','do','vr','za'];
 const MAANDEN = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
 const fmtDag = s => { if(!s) return ''; const d = parse(s); return `${DAGEN[d.getDay()]} ${d.getDate()} ${MAANDEN[d.getMonth()]}`; };
@@ -645,7 +631,7 @@ let db = null;
 const SESSIE_KEY = 'desko-crm-sessie';
 const lees = k => { try{ return localStorage.getItem(k); }catch{ return null; } };
 const bewaar = (k,v) => { try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch{} };
-const S = {bedrijven:[], routes:[], deals:[], weergaven:[], exportlog:[], mails:[], robot:null, inst:REEKS.instellingen({}), laden:true, geenDb:false, gebruiker:null, login:{}, gebruikers:null, beheer:null};
+const S = {bedrijven:[], routes:[], weergaven:[], exportlog:[], mails:[], robot:null, inst:REEKS.instellingen({}), laden:true, geenDb:false, gebruiker:null, login:{}, gebruikers:null, beheer:null};
 const V = {tab:'vandaag', detail:null, zoek:{}, filters:{}, filterOpen:false, terugNaar:'vandaag'};
 let acts = [], actUnsub = null;
 
@@ -653,7 +639,7 @@ const bedrijf = id => S.bedrijven.find(b => b.id===id);
 const T = b => S.inst.termijnen[b?.kopje] || S.inst.termijnen.prospect;
 const contactVan = (b,i) => (b.contacten||[])[i ?? 0] || null;
 const voornaam = c => (c?.naam||'').trim().split(/\s+/)[0] || '';
-function alleTags(){ const m = new Map(); S.bedrijven.forEach(b => (b.tags||[]).forEach(t => m.set(t.toLowerCase(), t))); m.set(COMMISSIE_TAG, COMMISSIE_TAG); (S.inst?.mailreeksen || []).forEach(r => r.tag && m.set(r.tag.toLowerCase(), r.tag)); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
+function alleTags(){ const m = new Map(); S.bedrijven.forEach(b => (b.tags||[]).forEach(t => m.set(t.toLowerCase(), t))); (S.inst?.mailreeksen || []).forEach(r => r.tag && m.set(r.tag.toLowerCase(), r.tag)); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
 function normTags(list){
   const bestaand = new Map(alleTags().map(t => [t.toLowerCase(), t]));
   const out = new Map();
@@ -762,30 +748,6 @@ async function verwerkActiviteit(b, a, opts={}){
   else if(a.type==='bezoek') await stopReeks(fresh, 'nieuw bezoek vastgelegd');
 }
 
-/* ---------- commissie ---------- */
-function berekenCommissie(afspraak, waarde){
-  const a = afspraak || {};
-  if(a.type==='vast') return Math.round((Number(a.waarde)||0)*100)/100;
-  return Math.round((Number(waarde)||0) * (Number(a.waarde)||0)) / 100;
-}
-function commissieTotalen(deals){
-  const t = {verwacht:0, verdiend:0, gefactureerd:0, ontvangen:0};
-  deals.forEach(d => { if(t[d.status]!==undefined) t[d.status] += Number(d.commissie)||0; });
-  return t;
-}
-function commissieTaken(){
-  const out = [];
-  S.deals.forEach(d => {
-    const b = bedrijf(d.bedrijfId); if(!b) return;
-    if(d.status==='verdiend') out.push({soort:'factureren', b, d, datum:d.verdiendOp||d.datum||today(), label:`Commissie factureren: ${euro(d.commissie)} voor ${d.omschrijving||'deal'}`});
-    if(d.status==='gefactureerd' && d.gefactureerdOp){
-      const vervalt = addDays(d.gefactureerdOp, Number(T(b).betaaltermijnDagen)||30);
-      if(vervalt <= today()) out.push({soort:'ontvangen', b, d, datum:vervalt, label:`Commissie nog niet ontvangen: ${euro(d.commissie)} voor ${d.omschrijving||'deal'} (gefactureerd ${fmtDag(d.gefactureerdOp)})`});
-    }
-  });
-  return out;
-}
-
 /* ---------- filters ---------- */
 function filterDefs(kopje){
   const bs = S.bedrijven.filter(b => kopje==='alle' || b.kopje===kopje);
@@ -800,7 +762,6 @@ function filterDefs(kopje){
   if(kopje==='prospect' || kopje==='alle') defs.push({k:'status', naam:'Status', opts:STATUSSEN.map(x=>[x,x])});
   defs.push({k:'stap', naam:'Opvolging', opts:[['geen','Geen opvolging'],['eerste','Eerste opvolging'],['wacht','Wacht op reactie'],['terug','Niet opgenomen'],['actie','Geplande actie'],['gepauzeerd','Gepauzeerd'],['nu','Nu te doen']]});
   defs.push({k:'contact', naam:'Laatste contact', opts:[['30','Minder dan 30 dagen'],['30-90','30 tot 90 dagen'],['90','Meer dan 90 dagen'],['nooit','Nog nooit'],['stil','Al lang niets van gehoord']]});
-  if(kopje==='commissie') defs.push({k:'dealstatus', naam:'Commissiestatus', opts:DEALSTATUS.map(x=>[x,x])});
   return defs;
 }
 function matches(b, f, zoek){
@@ -823,7 +784,6 @@ function matches(b, f, zoek){
     if(f.contact==='30-90' && !(lc && d>=30 && d<=90)) return false;
     if(f.contact==='90' && !(lc && d>90)) return false;
   }
-  if(f.dealstatus && !S.deals.some(d => d.bedrijfId===b.id && d.status===f.dealstatus)) return false;
   if(zoek){
     const hay = [b.naam,b.plaats,b.branche,b.postcode,...(b.tags||[]),...(b.contacten||[]).flatMap(c=>[c.naam,c.email,c.functie])].join(' ').toLowerCase();
     if(!zoek.toLowerCase().split(/\s+/).every(w => hay.includes(w))) return false;
@@ -870,7 +830,7 @@ const ICONS = {
 };
 const ic = (n, cls='') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`;
 const LOGO = `<span class="brand"><img class="logo" src="logo-wit.png" alt="Desko"><span class="tag">CRM</span></span>`;
-const KOPJE_ICON = {klant:'building', prospect:'target', commissie:'euro'};
+const KOPJE_ICON = {klant:'building', prospect:'target'};
 function initialen(naam){
   const w = String(naam||'').replace(/^Voorbeeld\s*[–-]\s*/,'').split(/[\s\-–]+/).filter(x => /[A-Za-zÀ-ÿ0-9]/.test(x) && !/^(b\.?v\.?|de|het|van|en|&)$/i.test(x));
   return ((w[0]||'?')[0] + (w[1] ? w[1][0] : (w[0]||'')[1]||'')).toUpperCase();
@@ -904,7 +864,6 @@ function isStil(b){
 function vandaagView(){
   const taken = [];
   S.bedrijven.forEach(b => { const s = opvolgStatus(b); if(s) taken.push({soort:'opvolg', b, s, datum:s.datum}); });
-  commissieTaken().forEach(t => taken.push(t));
   const nu = taken.filter(t => t.soort!=='opvolg' || t.s.due).sort((a,b) => a.datum.localeCompare(b.datum));
   const straks = taken.filter(t => t.soort==='opvolg' && !t.s.due && !t.s.gepauzeerd && t.datum <= addDays(today(),7)).sort((a,b)=>a.datum.localeCompare(b.datum));
   const n = k => S.bedrijven.filter(b => b.kopje===k).length;
@@ -913,9 +872,7 @@ function vandaagView(){
   const stil = S.bedrijven.filter(isStil).sort((a,b) => (a.laatsteContact||a.aangemaakt||'').localeCompare(b.laatsteContact||b.aangemaakt||''));
   const kaart = t => {
     const late = diffDays(t.datum, today()) > 0;
-    const knoppen = t.soort==='opvolg' ? taakKnoppen(t.b, t.s)
-      : t.soort==='factureren' ? `<button class="btn primary" data-act="dealStatus" data-deal="${t.d.id}" data-status="gefactureerd">${ic('check','sm')}Gefactureerd</button>`
-      : `<button class="btn primary" data-act="dealStatus" data-deal="${t.d.id}" data-status="ontvangen">${ic('check','sm')}Ontvangen</button>`;
+    const knoppen = taakKnoppen(t.b, t.s);
     return `<article class="task">
       <div class="task-head">${mono(t.b)}<div class="t">
         <div class="top">${chipKopje(t.b.kopje)}<span class="due ${late?'late':''}">${ic('clock')}${esc(dueTekst(t.datum))}${t.s?.tijd ? ' · ' + esc(t.s.tijd) : ''}</span></div>
@@ -931,7 +888,6 @@ function vandaagView(){
       <div class="stats">
         <button class="stat" data-act="tab" data-tab="klant"><b class="num">${n('klant')}</b><span>${ic('building')}Klanten</span></button>
         <button class="stat" data-act="tab" data-tab="prospect"><b class="num">${n('prospect')}</b><span>${ic('target')}Prospects</span></button>
-        <button class="stat" data-act="tab" data-tab="commissie"><b class="num">${n('commissie')}</b><span>${ic('euro')}Commissie</span></button>
       </div>
       <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
       <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button></div>
@@ -957,11 +913,6 @@ function lijstView(kopje){
   const f = V.filters[kopje] || {}, aantalF = Object.values(f).filter(Boolean).length;
   const lijst = gefilterd(kopje);
   const views = S.weergaven.filter(w => w.kopje===kopje);
-  let geld = '';
-  if(kopje==='commissie'){
-    const ids = new Set(lijst.map(b=>b.id)), t = commissieTotalen(S.deals.filter(d=>ids.has(d.bedrijfId)));
-    geld = `<div class="money"><div><span>Verwacht</span><b>${euro(t.verwacht)}</b></div><div><span>Verdiend</span><b>${euro(t.verdiend)}</b></div><div><span>Gefactureerd</span><b>${euro(t.gefactureerd)}</b></div><div><span>Ontvangen</span><b>${euro(t.ontvangen)}</b></div></div>`;
-  }
   const kiezen = V.selectie?.kopje === kopje;
   const rij = b => {
     const s = opvolgStatus(b);
@@ -992,7 +943,6 @@ function lijstView(kopje){
         <button class="btn small" data-act="bewaarWeergave" data-kopje="${kopje}" ${aantalF?'':'disabled'}>${ic('star','sm')}Bewaar als weergave</button>
         ${views.length?`<button class="btn small ghost" data-act="beheerWeergaven" data-kopje="${kopje}">Weergaven beheren</button>`:''}
       </div></div>` : ''}
-    ${geld}
     <div class="listbar"><span class="sub num">${lijst.length} ${lijst.length===1?'bedrijf':'bedrijven'}${aantalF?' gefilterd':''}</span><span class="btns"><button class="btn small ${kiezen?'on':'ghost'}" data-act="selecteer" data-kopje="${kopje}">${ic('check','sm')}${kiezen?'Klaar met selecteren':'Selecteren'}</button><button class="btn small ghost" data-act="export" data-kopje="${kopje}">${ic('download','sm')}Exporteren</button></span></div>
     ${kiezen ? `<div class="bulkbalk" role="toolbar" aria-label="Acties voor selectie">
       <span class="num"><b>${V.selectie.ids.size}</b> gekozen</span>
@@ -1021,9 +971,6 @@ function detailView(b){
     </section>`
     : `<section class="opvolg idle"><p class="label">${ic('clock')}Opvolging</p><p>Geen opvolging actief.</p>
       <div class="btns"><button class="btn primary" data-act="planActie" data-id="${b.id}">${ic('calendar','sm')}Opvolging inplannen</button>${(b.contacten||[]).length?`<button class="btn" data-act="reeksStart" data-id="${b.id}">${ic('bolt','sm')}Opvolgreeks starten</button>`:''}</div></section>`;
-  const deals = S.deals.filter(d => d.bedrijfId===b.id).sort((x,y)=>(y.datum||'').localeCompare(x.datum||''));
-  const ct = commissieTotalen(deals);
-  const ca = b.commissie || {};
   const q = (act, icon, label, extra='') => `<button data-act="${act}" data-id="${b.id}" ${extra}><span class="c">${ic(icon,'lg')}</span>${label}</button>`;
   const links = `
     ${opvolg}
@@ -1042,20 +989,6 @@ function detailView(b){
         <button class="icon-btn" data-act="contactForm" data-id="${b.id}" data-ci="${i}" aria-label="${esc(c.naam)} bewerken">${ic('note')}</button>
       </div>`).join('') : `<p class="sub">Nog geen contactpersonen.</p>`}
     </section>
-    ${b.kopje==='commissie' ? `<section class="card">
-      <div class="section-title"><h2>Commissie</h2><button class="btn small" data-act="dealForm" data-id="${b.id}">${ic('plus','sm')}Lead of deal</button></div>
-      <dl class="kv">
-        <dt>Afspraak</dt><dd>${ca.type==='vast' ? euro(ca.waarde)+' vast per deal' : ca.waarde ? `${esc(ca.waarde)}% van de dealwaarde` : '<span class="sub">Nog niet ingevuld</span>'}</dd>
-        <dt>Verdiend bij</dt><dd>${ca.moment==='lead' ? 'Aanbrengen van de lead' : 'Closen van de deal'}</dd>
-        ${ca.afspraken ? `<dt>Overige afspraken</dt><dd style="white-space:pre-wrap">${esc(ca.afspraken)}</dd>` : ''}
-      </dl>
-      <div class="money"><div><span>Verwacht</span><b>${euro(ct.verwacht)}</b></div><div><span>Verdiend</span><b>${euro(ct.verdiend)}</b></div><div><span>Gefactureerd</span><b>${euro(ct.gefactureerd)}</b></div><div><span>Ontvangen</span><b>${euro(ct.ontvangen)}</b></div></div>
-      ${deals.length ? deals.map(d => `<div class="deal">
-        <div class="line"><b>${esc(d.omschrijving||'Deal')}</b><span class="chip ${d.status==='ontvangen'?'k-klant':d.status==='gefactureerd'?'k-prospect':d.status==='verdiend'?'k-commissie':''}">${esc(d.status)}</span></div>
-        <div class="line sub num"><span>${esc(fmtDag(d.datum))}${d.eindklant?' · '+esc(d.eindklant):''}</span><span>${euro(d.waarde)} → <b>${euro(d.commissie)}</b></span></div>
-        <div class="btns"><button class="btn small ghost" data-act="dealForm" data-id="${b.id}" data-deal="${d.id}">Bewerken</button>${d.status!=='ontvangen'?`<button class="btn small" data-act="dealStatus" data-deal="${d.id}" data-status="${DEALSTATUS[DEALSTATUS.indexOf(d.status)+1]}">${ic('right','sm')}${DEALSTATUS[DEALSTATUS.indexOf(d.status)+1]}</button>`:''}</div>
-      </div>`).join('') : `<p class="sub">Nog geen leads of deals.</p>`}
-    </section>` : ''}
     <section class="card">
       <div class="section-title"><h2>Gegevens</h2><button class="btn small" data-act="bedrijfForm" data-id="${b.id}">${ic('note','sm')}Bewerken</button></div>
       <dl class="kv">
@@ -1100,8 +1033,7 @@ function meerView(){
   const veld = (k, key, label, suffix) => `<label class="f"><span>${label}</span><input type="number" min="0" id="t-${k}-${key}" name="${k}.${key}" value="${esc(t[k][key])}" inputmode="numeric"><span class="hint">${suffix}</span></label>`;
   const blok = k => `<fieldset class="card" style="margin:0"><legend class="eyebrow" style="padding:0 4px">${KOPJES[k].naam}</legend>
     <div class="grid2">${veld(k,'opvolgWerkdagen','Eerste opvolging na','werkdagen na het bezoek')}${veld(k,'geenReactieWerkdagen','Geen reactie na','werkdagen na een mail: herinnering om op te volgen')}
-    ${veld(k,'nietOpgenomenWerkdagen','Niet opgenomen, opnieuw na','werkdagen')}${veld(k,'maxPogingen','Maximaal aantal pogingen','daarna kies je hoe verder')}
-    ${k==='commissie'?veld(k,'betaaltermijnDagen','Betaaltermijn commissie','dagen na factureren'):''}</div></fieldset>`;
+    ${veld(k,'nietOpgenomenWerkdagen','Niet opgenomen, opnieuw na','werkdagen')}${veld(k,'maxPogingen','Maximaal aantal pogingen','daarna kies je hoe verder')}</div></fieldset>`;
   // eenvoudige cijfers: conversie per tag
   const perTag = new Map();
   S.bedrijven.filter(b => b.kopje==='prospect' || (b.kopje==='klant' && b.wasProspect)).forEach(b => (b.tags||['(geen tag)']).forEach(tag => {
@@ -1118,7 +1050,7 @@ function meerView(){
     <form id="inst-form" class="section">
       <div class="section-title"><h2>Termijnen</h2></div>
       <p class="sub">Werkdagen slaan weekenden en Nederlandse feestdagen over.</p>
-      ${blok('prospect')}${blok('commissie')}${blok('klant')}
+      ${blok('prospect')}${blok('klant')}
       <div class="section-title"><h2>Regio's</h2></div>
       <p class="sub">Eén regio per regel: naam, dan een dubbele punt en postcodereeksen. De eerste regel die past wint.</p>
       <label class="f"><span>Regio-indeling</span><textarea id="regios" name="regios" rows="5">${esc((S.inst.regios||[]).map(r=>`${r.naam}: ${r.postcodes}`).join('\n'))}</textarea></label>
@@ -1160,8 +1092,8 @@ function render(){
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
-  const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length + commissieTaken().length;
-  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['plannen','route','Plannen'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
+  const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length;
+  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['plannen','route','Plannen'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['klant','building','Klanten'],['prospect','target','Prospects'],['mail','mail','Mail'],['meer','menu','Meer']];
   const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&V.tab==='resultaten'&&matchMedia('(max-width:959px)').matches) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
   $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${['plannen','pijplijn','resultaten'].includes(k)?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
@@ -1239,7 +1171,6 @@ function bedrijfForm(b, kopje, voor){
   const nieuw = !b; b = b || {kopje: kopje || 'prospect', status:'nieuw', tags:[], ...(voor?.bedrijf || {})};
   const vc = voor?.contact || {};
   const branches = [...new Set([...BRANCHES, ...S.bedrijven.map(x=>x.branche).filter(Boolean)])].sort();
-  const ca = b.commissie || {};
   openSheet(nieuw ? (voor ? 'Controleer en sla op' : 'Nieuw bedrijf') : 'Gegevens bewerken', `<form id="bf" class="section">
     ${voor?.ruw ? `<p class="note">Gelezen van het kaartje. Controleer de velden; niet alles wordt altijd goed herkend.</p><details><summary class="sub" style="cursor:pointer">Herkende tekst bekijken</summary><pre style="white-space:pre-wrap;font:inherit;font-size:.85rem;color:var(--muted);margin:8px 0 0">${esc(voor.ruw)}</pre></details>` : ''}
     <label class="f"><span>Bedrijfsnaam *</span><input id="bf-naam" name="naam" required value="${esc(b.naam)}" autocomplete="off"></label>
@@ -1259,15 +1190,6 @@ function bedrijfForm(b, kopje, voor){
     </div>
     <label class="f"><span>Regio (laat leeg voor automatisch)</span><select id="bf-regio" name="regio"><option value="">Automatisch uit postcode</option>${(S.inst.regios||[]).map(r=>`<option ${b.regio===r.naam?'selected':''}>${esc(r.naam)}</option>`).join('')}</select></label>
     ${tagField(b.tags||[])}
-    <div id="bf-comm" class="section" ${b.kopje==='commissie'?'':'hidden'}>
-      <h3>Commissieafspraak</h3>
-      <div class="grid2">
-        <label class="f"><span>Soort</span><select id="bf-ctype" name="ctype"><option value="percentage" ${ca.type!=='vast'?'selected':''}>Percentage van de deal</option><option value="vast" ${ca.type==='vast'?'selected':''}>Vast bedrag per deal</option></select></label>
-        <label class="f"><span>Percentage of bedrag</span><input id="bf-cwaarde" name="cwaarde" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(ca.waarde)}"></label>
-      </div>
-      <label class="f"><span>Commissie is verdiend bij</span><select id="bf-cmoment" name="cmoment"><option value="deal" ${ca.moment!=='lead'?'selected':''}>Closen van de deal</option><option value="lead" ${ca.moment==='lead'?'selected':''}>Aanbrengen van de lead</option></select></label>
-      <label class="f"><span>Overige afspraken</span><textarea id="bf-cafspr" name="cafspraken">${esc(ca.afspraken)}</textarea></label>
-    </div>
     ${nieuw ? `<h3>Contactpersoon</h3>
       <div class="grid2"><label class="f"><span>Naam</span><input id="bf-cnaam" name="cnaam" autocomplete="off" value="${esc(vc.naam||'')}"></label><label class="f"><span>Functie</span><input id="bf-cfunctie" name="cfunctie" autocomplete="off" value="${esc(vc.functie||'')}"></label></div>
       <div class="grid2"><label class="f"><span>Telefoon</span><input id="bf-ctel" name="ctel" type="tel" autocomplete="off" value="${esc(vc.telefoon||'')}"></label><label class="f"><span>E-mail</span><input id="bf-cmail" name="cmail" type="email" autocomplete="off" value="${esc(vc.email||'')}"></label></div>` : ''}
@@ -1275,7 +1197,7 @@ function bedrijfForm(b, kopje, voor){
   </form>`, s => {
     mountTags(s);
     const k = s.querySelector('#bf-kopje');
-    k.onchange = () => { s.querySelector('#bf-status-wrap').hidden = k.value!=='prospect'; s.querySelector('#bf-comm').hidden = k.value!=='commissie'; };
+    k.onchange = () => { s.querySelector('#bf-status-wrap').hidden = k.value!=='prospect'; };
     if(nieuw){
       const box = s.querySelector('#bf-dubbel'), naamIn = s.querySelector('#bf-naam'), mailIn = s.querySelector('#bf-cmail');
       const toon = () => {
@@ -1291,11 +1213,9 @@ function bedrijfForm(b, kopje, voor){
       const d = formData(e.target);
       const kopje = nieuw ? d.kopje : b.kopje;
       let tags = normTags(String(d.tags||'').split(','));
-      if(kopje==='commissie' && !tags.some(t=>t.toLowerCase()===COMMISSIE_TAG)) tags.push(COMMISSIE_TAG);
       const data = {naam:d.naam.trim(), adres:d.adres.trim(), postcode:d.postcode.trim().toUpperCase(), plaats:d.plaats.trim(),
         grootte:d.grootte, branche:d.branche.trim(), regio:d.regio, tags};
       if(kopje==='prospect') data.status = d.status;
-      if(kopje==='commissie') data.commissie = {type:d.ctype, waarde:Number(d.cwaarde)||0, moment:d.cmoment, afspraken:d.cafspraken.trim()};
       let newId;
       const ok = await veilig(async () => {
         if(nieuw){
@@ -1927,7 +1847,7 @@ function snelMenu(){
     <button type="button" data-act="snelKies" data-doel="plan">${ic('calendar')}<b>Opvolging inplannen</b><span>Bellen, mailen of langsgaan</span></button>
     <button type="button" data-act="inspreken">${ic('mic')}<b>Inspreken</b><span>Zeg wat er gebeurde en wanneer je opvolgt</span></button>
     <button type="button" data-act="snelKies" data-doel="bel">${ic('phone')}<b>Telefoontje vastleggen</b><span>Met uitkomst en notitie</span></button>
-    <button type="button" data-act="nieuw">${ic('plus')}<b>Nieuw bedrijf</b><span>Prospect, klant of commissie</span></button>
+    <button type="button" data-act="nieuw">${ic('plus')}<b>Nieuw bedrijf</b><span>Prospect of klant</span></button>
     <button type="button" data-act="scan">${ic('camera')}<b>Kaartje scannen</b><span>Foto van een visitekaartje</span></button>
     <button type="button" data-act="tab" data-tab="buurt">${ic('pin')}<b>In de buurt</b><span>Prospects en klanten dichtbij</span></button>
   </div>`);
@@ -1993,53 +1913,6 @@ function laterSheet(b){
   });
 }
 
-function dealForm(b, dealId){
-  const d = dealId ? S.deals.find(x=>x.id===dealId) : {datum:today(), status:'verwacht'};
-  const ca = b.commissie || {};
-  openSheet(dealId ? 'Deal bewerken' : 'Lead of deal toevoegen', `<form id="df" class="section">
-    <label class="f"><span>Omschrijving *</span><input id="df-oms" name="omschrijving" required value="${esc(d.omschrijving)}" placeholder="bijv. Inrichting nieuwbouw kantoor" autocomplete="off"></label>
-    <div class="grid2"><label class="f"><span>Datum</span><input id="df-datum" type="date" name="datum" value="${esc(d.datum)}"></label><label class="f"><span>Eindklant (optioneel)</span><input id="df-eind" name="eindklant" value="${esc(d.eindklant)}" list="bedrijfnamen" autocomplete="off"><datalist id="bedrijfnamen">${S.bedrijven.filter(x=>x.kopje!=='commissie').map(x=>`<option value="${esc(x.naam)}">`).join('')}</datalist></label></div>
-    <div class="grid2"><label class="f"><span>Dealwaarde (excl. btw)</span><input id="df-waarde" type="number" step="0.01" min="0" inputmode="decimal" name="waarde" value="${esc(d.waarde)}"></label>
-      <label class="f"><span>Commissie</span><input id="df-comm" type="number" step="0.01" min="0" inputmode="decimal" name="commissie" value="${esc(d.commissie ?? '')}"><span class="hint">${ca.type==='vast'?`Vast: ${euro(ca.waarde)}`:ca.waarde?`${esc(ca.waarde)}% van de dealwaarde`:'Vul de afspraak in bij Gegevens om automatisch te rekenen'}</span></label></div>
-    <label class="f"><span>Status</span><select id="df-status" name="status">${DEALSTATUS.map(x=>`<option ${d.status===x?'selected':''}>${x}</option>`).join('')}</select></label>
-    <div class="sheet-actions">${dealId?`<button type="button" class="btn danger" id="df-del">Verwijderen</button>`:''}<button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
-  </form>`, s => {
-    const w = s.querySelector('#df-waarde'), c = s.querySelector('#df-comm');
-    let handmatig = dealId && d.commissie!=null && Number(d.commissie)!==berekenCommissie(ca, d.waarde);
-    c.oninput = () => handmatig = c.value!=='';
-    const calc = () => { if(!handmatig) c.value = berekenCommissie(ca, w.value) || ''; };
-    w.oninput = calc; if(!dealId) calc();
-    s.querySelector('#df').onsubmit = async e => {
-      e.preventDefault(); const f = formData(e.target);
-      const data = {bedrijfId:b.id, omschrijving:f.omschrijving.trim(), datum:f.datum, eindklant:f.eindklant.trim(), waarde:Number(f.waarde)||0, commissie:f.commissie===''?berekenCommissie(ca,f.waarde):Number(f.commissie), status:f.status};
-      if(await veilig(async () => {
-        if(dealId){
-          const vorige = d.status; await db.collection('deals').doc(dealId).update(data);
-          if(vorige!==data.status) await zetStatusDatum(dealId, data.status);
-          await systeem(b, `Deal "${data.omschrijving}" gewijzigd${vorige!==data.status?`: ${vorige} → ${data.status}`:''}.`);
-        } else {
-          const ref = await db.collection('deals').add({...data, aangemaakt:new Date().toISOString()});
-          await zetStatusDatum(ref.id, data.status);
-          await systeem(b, `Deal toegevoegd: "${data.omschrijving}", commissie ${euro(data.commissie)} (${data.status}).`);
-        }
-      }, 'Opgeslagen')) closeSheet();
-    };
-    const del = s.querySelector('#df-del');
-    if(del) del.onclick = () => bevestig('Deal verwijderen', `"${d.omschrijving}" wordt verwijderd.`, 'Verwijderen', () => veilig(async () => { await db.collection('deals').doc(dealId).delete(); await systeem(b, `Deal "${d.omschrijving}" verwijderd.`); }, 'Verwijderd'));
-  });
-}
-async function zetStatusDatum(dealId, status){
-  const veld = {verdiend:'verdiendOp', gefactureerd:'gefactureerdOp', ontvangen:'ontvangenOp'}[status];
-  if(veld) await db.collection('deals').doc(dealId).update({[veld]:today()});
-}
-async function dealStatus(dealId, status){
-  const d = S.deals.find(x=>x.id===dealId); const b = d && bedrijf(d.bedrijfId); if(!d || !b) return;
-  await veilig(async () => {
-    await db.collection('deals').doc(dealId).update({status});
-    await zetStatusDatum(dealId, status);
-    await systeem(b, `Commissie "${d.omschrijving}": ${d.status} → ${status}.`);
-  }, `Gemarkeerd als ${status}`);
-}
 
 function verplaatsSheet(b){
   openSheet('Verplaatsen', `<form id="vp" class="section">
@@ -2057,7 +1930,6 @@ async function verplaatsIntern(b, naar){
     const patch = {kopje:naar};
     if(naar==='prospect') patch.status = b.status && b.status!=='gewonnen' ? b.status : 'nieuw';
     if(b.kopje==='prospect' && naar==='klant'){ patch.wasProspect = true; patch.klantSinds = today(); patch.laatsteFase = b.status || 'nieuw'; }
-    if(naar==='commissie' && !(b.tags||[]).some(t=>t.toLowerCase()===COMMISSIE_TAG)) patch.tags = [...(b.tags||[]), COMMISSIE_TAG];
     if(b.opvolging?.actief) patch.opvolging = {...clone(b.opvolging), actief:false};
     await annuleerGepland(b, 'verplaatst naar een ander kopje');
     await updBedrijf(b.id, patch);
@@ -2115,7 +1987,6 @@ async function verwijderBedrijf(b){
   await veilig(async () => {
     const as = await db.collection('activiteiten').where('bedrijfId','==',b.id).get();
     for(const d of as.docs) await db.collection('activiteiten').doc(d.id).delete();
-    for(const d of S.deals.filter(x=>x.bedrijfId===b.id)) await db.collection('deals').doc(d.id).delete();
     await db.collection('bedrijven').doc(b.id).delete();
   }, 'Bedrijf en alle gegevens verwijderd');
   sluitDetail();
@@ -2129,15 +2000,13 @@ const KOLOMMEN = [
   ['adres','Adres', b=>b.adres, false], ['postcode','Postcode', b=>b.postcode, false], ['plaats','Plaats', b=>b.plaats, true],
   ['provincie','Provincie', b=>provincie(b.postcode), false], ['regio','Regio', b=>regio(b), true], ['grootte','Medewerkers', b=>b.grootte, true],
   ['branche','Branche', b=>b.branche, true], ['tags','Tags', b=>(b.tags||[]).join(', '), true], ['laatste','Laatste contact', b=>b.laatsteContact, true],
-  ['stap','Opvolgstap', b=>{const s=opvolgStatus(b); return s?(STAP_NAAM[s.stap]||s.stap):'';}, false], ['volgende','Volgende actie', b=>opvolgStatus(b)?.datum||'', false],
-  ['cverwacht','Commissie verwacht', b=>commissieTotalen(S.deals.filter(d=>d.bedrijfId===b.id)).verwacht, false],
-  ['contvangen','Commissie ontvangen', b=>commissieTotalen(S.deals.filter(d=>d.bedrijfId===b.id)).ontvangen, false]
+  ['stap','Opvolgstap', b=>{const s=opvolgStatus(b); return s?(STAP_NAAM[s.stap]||s.stap):'';}, false], ['volgende','Volgende actie', b=>opvolgStatus(b)?.datum||'', false]
 ];
 function exportSheet(kopje){
   const lijst = gefilterd(kopje);
   openSheet('Exporteren', `<form id="ex" class="section">
     <p class="sub num">${lijst.length} ${lijst.length===1?'bedrijf':'bedrijven'} uit ${kopje==='alle'?'alle kopjes':KOPJES[kopje].naam}, met de huidige zoekopdracht en filters. Exports worden gelogd.</p>
-    <div class="f"><span>Kolommen</span><div class="cols">${KOLOMMEN.map(([k,l,,aan])=>`<label class="check"><input type="checkbox" name="kol" value="${k}" id="kol-${k}" ${aan||(kopje==='commissie'&&k.startsWith('c'))?'checked':''}><span>${l}</span></label>`).join('')}</div></div>
+    <div class="f"><span>Kolommen</span><div class="cols">${KOLOMMEN.map(([k,l,,aan])=>`<label class="check"><input type="checkbox" name="kol" value="${k}" id="kol-${k}" ${aan?'checked':''}><span>${l}</span></label>`).join('')}</div></div>
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button type="submit" class="btn" value="csv">CSV</button><button type="submit" class="btn primary" value="xlsx">Excel (.xlsx)</button></div>
   </form>`, s => {
     s.querySelector('#ex').onsubmit = async e => {
@@ -2429,11 +2298,7 @@ function cijfers(){
   const perBedrijf = new Map(); verstuurd.forEach(m => { const t = m.verstuurdOp; if(!perBedrijf.has(m.bedrijfId) || t < perBedrijf.get(m.bedrijfId)) perBedrijf.set(m.bedrijfId, t); });
   const terug = [...perBedrijf.entries()].filter(([id, t]) => (alleActs||[]).some(a => a.bedrijfId===id && a.datum > t && a.datum <= new Date(new Date(t).getTime()+14*864e5).toISOString() &&
     (a.type==='mail_in' || a.type==='afspraak' || (a.type==='bel' && a.uitkomst==='gesproken'))) || S.mails.some(m => m.bedrijfId===id && m.status==='ontvangen' && (m.verstuurdOp||'') > t)).length;
-  // commissie
-  const deals = S.deals.filter(d => ids.has(d.bedrijfId) && (!d.datum || d.datum >= begin || d.status!=='ontvangen'));
-  const ct = commissieTotalen(deals);
-  const perRelatie = [...new Set(deals.map(d => d.bedrijfId))].map(id => ({label: bedrijf(id)?.naam || '?', waarde: deals.filter(d => d.bedrijfId===id).reduce((t,d) => t+(Number(d.commissie)||0), 0)})).sort((a,b) => b.waarde-a.waarde).slice(0,8);
-  return {f, weken, begin, bs, n, gewonnen, convPer, convLijst, soorten, mailsVerstuurd:perBedrijf.size, terug, ct, perRelatie,
+  return {f, weken, begin, bs, n, gewonnen, convPer, convLijst, soorten, mailsVerstuurd:perBedrijf.size, terug,
     perRegio: telPer(bs, b => regio(b) || provincie(b.postcode)), perGrootte: telPer(bs, b => b.grootte, 6), perBranche: telPer(bs, b => b.branche),
     open: bs.filter(b => opvolgStatus(b)?.due).length};
 }
@@ -2457,7 +2322,6 @@ function cijfersView(){
     <div class="tegels">
       <div class="tegel"><b>${c.n('klant')}</b><span>Klanten</span></div>
       <div class="tegel"><b>${c.n('prospect')}</b><span>Prospects</span></div>
-      <div class="tegel"><b>${c.n('commissie')}</b><span>Commissierelaties</span></div>
       <div class="tegel"><b>${c.gewonnen}</b><span>Prospect → klant</span></div>
       <div class="tegel"><b>${c.open}</b><span>Nu op te volgen</span></div>
     </div>
@@ -2476,10 +2340,6 @@ function cijfersView(){
       <section class="card"><h3>Per grootte</h3>${staafLijst(c.perGrootte)}</section>
       <section class="card"><h3>Per branche</h3>${staafLijst(c.perBranche)}</section>
     </div>
-    <section class="section"><div class="section-title"><h2>Commissie</h2></div>
-      <div class="money"><div><span>Verwacht</span><b>${euro(c.ct.verwacht)}</b></div><div><span>Verdiend</span><b>${euro(c.ct.verdiend)}</b></div><div><span>Gefactureerd</span><b>${euro(c.ct.gefactureerd)}</b></div><div><span>Ontvangen</span><b>${euro(c.ct.ontvangen)}</b></div></div>
-      <div class="card"><h3>Per relatie</h3>${staafLijst(c.perRelatie, euro)}</div>
-    </section>
     <p class="hint">Activiteiten van alle bedrijven worden bij het openen geladen. <button class="btn small ghost" data-act="dashVernieuw">${ic('refresh','sm')}Vernieuwen</button></p>
   </div>`;
 }
@@ -2487,14 +2347,13 @@ async function dashExport(){
   if(!window.XLSX){ toast('Excel is niet beschikbaar. Probeer het opnieuw.'); return; }
   const c = cijfers(), wb = XLSX.utils.book_new();
   const blad = (naam, rijen) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rijen), naam);
-  blad('Overzicht', [['Onderdeel','Aantal'],['Klanten',c.n('klant')],['Prospects',c.n('prospect')],['Commissierelaties',c.n('commissie')],['Prospect → klant',c.gewonnen],['Nu op te volgen',c.open],
+  blad('Overzicht', [['Onderdeel','Aantal'],['Klanten',c.n('klant')],['Prospects',c.n('prospect')],['Prospect → klant',c.gewonnen],['Nu op te volgen',c.open],
     [],['Gemailde bedrijven (periode)',c.mailsVerstuurd],['Reactie binnen 14 dagen',c.terug],[],['Periode vanaf',c.begin],['Filters',JSON.stringify(c.f)]]);
   blad('Activiteit per week', [['Week','Start', ...c.soorten.map(x => x.naam)], ...c.soorten[0].reeks.map((w,i) => [w.wk, w.start, ...c.soorten.map(x => x.reeks[i].waarde)])]);
   blad('Conversie', [[`Conversie ${c.convPer}`,'Percentage','Klant / totaal'], ...c.convLijst.map(x => [x.label, x.waarde, x.sub])]);
   blad('Per regio', [['Regio','Aantal'], ...c.perRegio.map(x => [x.label, x.waarde])]);
   blad('Per grootte', [['Grootte','Aantal'], ...c.perGrootte.map(x => [x.label, x.waarde])]);
   blad('Per branche', [['Branche','Aantal'], ...c.perBranche.map(x => [x.label, x.waarde])]);
-  blad('Commissie', [['Status','Bedrag'],['Verwacht',c.ct.verwacht],['Verdiend',c.ct.verdiend],['Gefactureerd',c.ct.gefactureerd],['Ontvangen',c.ct.ontvangen],[],['Relatie','Commissie'], ...c.perRelatie.map(x => [x.label, x.waarde])]);
   bewaarBestand(`desko-cijfers-${today()}.xlsx`, new Uint8Array(XLSX.write(wb, {type:'array', bookType:'xlsx'})), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   await db.collection('exportlog').add({datum:new Date().toISOString(), lijst:'Cijfers', door:S.gebruiker?.naam||'', filters:JSON.stringify(c.f), aantal:c.bs.length, formaat:'xlsx'});
   toast('Cijfers geëxporteerd');
@@ -2545,7 +2404,7 @@ function buurtView(){
     <header class="page-head"><button class="btn ghost back" data-act="tab" data-tab="vandaag">${ic('left','sm')}Vandaag</button><p class="eyebrow">Onderweg</p><h1>In de buurt</h1>
       <p class="sub">${v.hier ? `Vanaf ${esc(v.plek)}.` : v.status==='geen' ? 'Je locatie is niet beschikbaar. Typ een plaats of postcode.' : 'Locatie bepalen…'}</p></header>
     <form id="buurt-form" class="toolbar"><label class="search">${ic('pin')}<input id="buurt-plek" name="plek" placeholder="Of zoek vanaf een plaats of postcode" autocomplete="off" value="${esc(v.zoek||'')}" aria-label="Plaats of postcode"></label><button class="btn" type="submit">Zoeken</button><button class="btn" type="button" data-act="buurtHier" aria-label="Mijn locatie">${ic('pin','sm')}</button></form>
-    <div class="keuzes">${kiesFilter('alle','Alles')}${kiesFilter('prospect','Prospects')}${kiesFilter('klant','Klanten')}${kiesFilter('commissie','Commissie')}${kiesFilter('actie','Met openstaande actie')}</div>
+    <div class="keuzes">${kiesFilter('alle','Alles')}${kiesFilter('prospect','Prospects')}${kiesFilter('klant','Klanten')}${kiesFilter('actie','Met openstaande actie')}</div>
     ${v.todo ? `<p class="hint">${ic('refresh','sm')} Adressen opzoeken (${v.todo})…</p>` : ''}
     ${routeKaart()}
     ${lijst.length ? `<div class="section-title"><h2>${kiezen ? 'Kies je stops' : 'Dichtbij'}</h2><button class="btn small ${kiezen?'':'primary'}" data-act="routeKiezen">${kiezen ? 'Annuleren' : ic('route','sm')+(route() ? 'Nieuwe dagroute' : 'Dagroute plannen')}</button></div>
@@ -2827,9 +2686,9 @@ function tagSheet(b){
 }
 
 /* ---------- agenda ---------- */
-const AG_SOORT = {route:{naam:'Route', ic:'route'}, opvolg:{naam:'Opvolging', ic:'phone'}, mail:{naam:'Mail', ic:'mail'}, afspraak:{naam:'Afspraak', ic:'calendar'}, commissie:{naam:'Commissie', ic:'euro'}};
+const AG_SOORT = {route:{naam:'Route', ic:'route'}, opvolg:{naam:'Opvolging', ic:'phone'}, mail:{naam:'Mail', ic:'mail'}, afspraak:{naam:'Afspraak', ic:'calendar'}};
 const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-/* Alles wat gepland staat, per dag: opvolgingen, ingeplande mails, afspraken en commissie. */
+/* Alles wat gepland staat, per dag: routes, opvolgingen, ingeplande mails en afspraken. */
 function agendaItems(){
   const uit = [];
   S.bedrijven.forEach(b => {
@@ -2842,10 +2701,6 @@ function agendaItems(){
   S.mails.filter(m => m.status==='gepland').forEach(m => { const b = bedrijf(m.bedrijfId); if(b) uit.push({soort:'mail', datum:m.datum, tijd:m.tijd||'09:30', b, titel:`Mail${m.reeks ? ' '+(m.stap+1) : ''}: ${m.onderwerp}`, wie:m.aan, m}); });
   (alleActs || []).filter(a => a.type==='afspraak' && a.afspraakOp).forEach(a => { const b = bedrijf(a.bedrijfId); if(b) uit.push({soort:'afspraak', datum:ds(new Date(a.afspraakOp)), tijd:hhmm(a.afspraakOp), b, titel:a.tekst || 'Afspraak', wie:a.contactNaam || '', a}); });
   S.routes.filter(r => r.stops?.length).forEach(r => uit.push({soort:'route', datum:r.datum, tijd:null, b:{naam:`Route ${r.voor || ''}`.trim(), id:null}, titel:`${r.stops.length} bezoek${r.stops.length > 1 ? 'en' : ''}: ${r.stops.map(x => bedrijf(x.id)?.naam).filter(Boolean).slice(0, 3).join(', ')}${r.stops.length > 3 ? '…' : ''}`, wie:'', r}));
-  commissieTaken().forEach(t => uit.push({soort:'commissie', datum:t.datum, b:t.b, titel:t.soort==='factureren' ? `Factureren: ${euro(t.d.commissie)}` : `Betaling navragen: ${euro(t.d.commissie)}`, wie:t.d.omschrijving || ''}));
-  S.deals.filter(d => d.status==='gefactureerd' && d.gefactureerdOp).forEach(d => { const b = bedrijf(d.bedrijfId); if(!b) return;
-    const vervalt = addDays(d.gefactureerdOp, Number(T(b).betaaltermijnDagen)||30);
-    if(vervalt > today()) uit.push({soort:'commissie', datum:vervalt, b, titel:`Betaling verwacht: ${euro(d.commissie)}`, wie:d.omschrijving || ''}); });
   return uit.sort((x,y) => x.datum.localeCompare(y.datum) || (x.tijd||'99').localeCompare(y.tijd||'99'));
 }
 function agItem(x, i){
@@ -2884,7 +2739,7 @@ function agendaView(){
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Planning</p><h1>Agenda</h1><p class="sub">Wie wanneer een opvolging, mail of afspraak heeft.</p><div class="btns"><button class="btn small" data-act="tab" data-tab="plannen">${ic('route','sm')}Route plannen</button></div></header>
     <div class="keuzes"><div class="seg" style="flex:0 0 auto">${['week','maand'].map(m => `<button class="keuze ${v.modus===m?'on':''}" data-act="agendaModus" data-m="${m}">${m==='week'?'Week':'Maand'}</button>`).join('')}</div></div>
-    <div class="keuzes">${fk('alle','Alles')}${fk('route','Routes')}${fk('opvolg','Opvolgingen')}${fk('mail','Mails')}${fk('afspraak','Afspraken')}${fk('commissie','Commissie')}</div>
+    <div class="keuzes">${fk('alle','Alles')}${fk('route','Routes')}${fk('opvolg','Opvolgingen')}${fk('mail','Mails')}${fk('afspraak','Afspraken')}</div>
     <div class="agenda-nav"><h2>${kop}</h2>
       <span class="btns"><button class="btn small" data-act="agendaStap" data-n="-1" aria-label="Vorige">${ic('left','sm')}</button><button class="btn small" data-act="agendaStap" data-n="0">Nu</button><button class="btn small" data-act="agendaStap" data-n="1" aria-label="Volgende">${ic('right','sm')}</button></span></div>
     ${!alleActs ? `<p class="hint">${ic('refresh','sm')} Afspraken laden${V.actsVoortgang ? ` (${V.actsVoortgang}/${S.bedrijven.length})` : ''}…</p>` : ''}
@@ -3599,7 +3454,7 @@ const ACT = {
   open: d => openDetail(d.id),
   sluitDetail,
   closeSheet,
-  nieuw: d => bedrijfForm(null, d.kopje || (['klant','prospect','commissie'].includes(V.tab) ? V.tab : 'prospect')),
+  nieuw: d => bedrijfForm(null, d.kopje || (['klant','prospect'].includes(V.tab) ? V.tab : 'prospect')),
   bedrijfForm: d => bedrijfForm(bedrijf(d.id)),
   contactForm: d => contactForm(bedrijf(d.id), d.ci!=null ? Number(d.ci) : null),
   actForm: d => actForm(bedrijf(d.id), d.type),
@@ -3700,9 +3555,7 @@ const ACT = {
       await updBedrijf(b.id, patch); await systeem(b, 'Op verloren gezet na het maximum aantal pogingen.'); }, 'Op verloren gezet')); },
   omzetten: d => { const b = bedrijf(d.id); bevestig('Omzetten naar klant', `${b.naam} wordt een klant. De tijdlijn gaat mee.`, 'Omzetten', () => verplaats(b, 'klant')); },
   verplaats: d => verplaatsSheet(bedrijf(d.id)),
-  verwijder: d => { const b = bedrijf(d.id); bevestig('Bedrijf verwijderen', `${b.naam}, alle contactpersonen, de tijdlijn en commissiedeals worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.`, 'Definitief verwijderen', () => verwijderBedrijf(b)); },
-  dealForm: d => dealForm(bedrijf(d.id), d.deal),
-  dealStatus: d => dealStatus(d.deal, d.status),
+  verwijder: d => { const b = bedrijf(d.id); bevestig('Bedrijf verwijderen', `${b.naam}, alle contactpersonen, en de tijdlijn worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.`, 'Definitief verwijderen', () => verwijderBedrijf(b)); },
   filters: () => { V.filterOpen = !V.filterOpen; render(); },
   wisFilters: d => { V.filters[d.kopje] = {}; V.zoek[d.kopje] = ''; render(); },
   weergave: d => { const w = S.weergaven.find(x=>x.id===d.id); if(!w) return; V.filters[w.kopje] = {...w.filters}; V.zoek[w.kopje] = w.zoek||''; render(); },
@@ -3781,7 +3634,6 @@ function start(sessie){
   db.collection('bedrijven').onSnapshot(s => { S.bedrijven = s.docs.map(d => ({id:d.id, ...d.data()})); S.laden = false;
     if(eersteRoute){ eersteRoute = false; const r = leesHash(); history.replaceState({tab:r.tab||null, detail:r.detail||null}, '', location.hash || '#/vandaag'); if(r.detail || (r.tab && r.tab!=='vandaag')){ toonRoute(r); return; } }
     render(); }, e => { S.laden = false; render(); fout(e); });
-  db.collection('deals').onSnapshot(s => { S.deals = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('weergaven').onSnapshot(s => { S.weergaven = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('mails').onSnapshot(s => { S.mails = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.collection('routes').onSnapshot(s => { S.routes = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
