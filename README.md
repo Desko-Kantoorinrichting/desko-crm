@@ -10,7 +10,8 @@ Eenvoudig CRM voor Desko Kantoormeubelen. Werkt op telefoon en computer en is al
 - **Externe diensten:** voor *In de buurt* worden alleen bedrijfsadressen omgezet naar coördinaten via de PDOK Locatieserver (Rijksoverheid). Het lezen van visitekaartjes gebeurt op het toestel; alleen de leessoftware (Tesseract) wordt van jsdelivr geladen, de foto gaat nergens heen.
 - **Agenda:** per week of maand wie wanneer gebeld, gemaild of bezocht moet worden; ook als agenda-bestand voor Outlook.
 - **Meldingen op de telefoon:** herinneringen als "Neem vandaag contact op met ...", met een link naar het profiel (zie stap 6).
-- **Nog niet gebouwd:** directe koppeling met de Outlook-agenda, spraakmemo's.
+- **Inspreken:** grote microfoonknop op Vandaag en bij elk bedrijf; de app haalt bedrijf, wat er gebeurde en de volgende stap (dag en tijd) uit de zin, de rest wordt notitie. Spraak naar tekst gaat via de browser (Google of Apple), net als dicteren.
+- **Nog niet gebouwd:** directe koppeling met de Outlook-agenda.
 
 ## Eenmalig instellen
 
@@ -74,6 +75,7 @@ Een opvolging van vandaag geeft een melding aan het begin van de werkdag, of om 
 | `site/auth.js` | Inloggen met e-mail en wachtwoord (versleuteling) |
 | `site/gebruikers.json` | Gebruikers met hun versleutelde sleutel |
 | `site/config.js` | Welke repositories worden gebruikt |
+| `site/spraak.js` | Ingesproken zin begrijpen (bedrijf, soort, datum en tijd) |
 | `site/reeks.js` | Gedeelde logica: werkdagen, mailreeksen, inplannen (app en mailrobot) |
 | `scripts/mailrobot.mjs` | Mailrobot: verstuurt ingeplande mails, herkent antwoorden |
 | `scripts/herinneringen.mjs` | Meldingen op de telefoon voor opvolgingen |

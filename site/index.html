@@ -16,6 +16,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="config.js"></script>
 <script src="reeks.js"></script>
+<script src="spraak.js"></script>
 <script src="db.js"></script>
 <script src="auth.js"></script>
 <style>
@@ -223,6 +224,20 @@ a{color:var(--accent)}
 .opslag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kleur,#1F7A3C)}
 .opslag.wacht{--kleur:var(--warn)}
 .banner{display:flex;flex-direction:column;gap:10px;border:1px solid var(--accent);background:var(--accent-soft)}
+.spreekknop{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;border-radius:20px;padding:14px 16px;background:var(--jade);color:#000;font:inherit;cursor:pointer;box-shadow:0 8px 24px rgba(81,194,111,.25)}
+.spreekknop > .ic{width:52px;height:52px;padding:13px;border-radius:50%;background:#000;color:#fff;flex:none}
+.spreekknop b{display:block;font-size:1.1rem}.spreekknop small{display:block;font-size:.82rem;opacity:.75;line-height:1.3;margin-top:2px}
+.spreekknop.licht{box-shadow:none}
+.hero .spreekknop{margin:4px 0 12px}
+.mic{width:104px;height:104px;border-radius:50%;border:0;background:var(--jade);color:#000;display:grid;place-items:center;margin:6px auto 2px;cursor:pointer;position:relative}
+.mic .ic{width:42px;height:42px}
+.mic.aan{background:#000;color:#fff}
+.mic.aan::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:3px solid #51C26F;animation:puls 1.2s ease-out infinite}
+@keyframes puls{from{transform:scale(.9);opacity:1}to{transform:scale(1.25);opacity:0}}
+@media (prefers-reduced-motion:reduce){.mic.aan::after{animation:none}}
+.mic-status{text-align:center;color:var(--muted);font-size:.9rem;min-height:1.3em}
+.begrepen{display:flex;flex-direction:column;gap:6px;background:var(--accent-soft);border-radius:14px;padding:12px 14px;font-size:.92rem}
+.begrepen span{display:flex;gap:8px;align-items:flex-start}.begrepen .ic{flex:none;margin-top:2px}
 .stopnr{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);margin-right:4px}
 .stopnr.nu{background:var(--jade);border-color:transparent;color:#000}
 .row.gedaan{opacity:.6}
@@ -724,6 +739,7 @@ const ICONS = {
   search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   filter:'<path d="M3 5h18M6 12h12M10 19h4"/>',
   download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   check:'<path d="M20 6 9 17l-5-5"/>', clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   x:'<path d="M18 6 6 18M6 6l12 12"/>', pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
   users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
@@ -801,6 +817,7 @@ function vandaagView(){
         <button class="stat" data-act="tab" data-tab="prospect"><b class="num">${n('prospect')}</b><span>${ic('target')}Prospects</span></button>
         <button class="stat" data-act="tab" data-tab="commissie"><b class="num">${n('commissie')}</b><span>${ic('euro')}Commissie</span></button>
       </div>
+      <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
       <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
       </div></div>
     ${meldingBanner()}
@@ -895,6 +912,7 @@ function detailView(b){
   const q = (act, icon, label, extra='') => `<button data-act="${act}" data-id="${b.id}" ${extra}><span class="c">${ic(icon,'lg')}</span>${label}</button>`;
   const links = `
     ${opvolg}
+    <button class="spreekknop licht" data-act="inspreken" data-id="${b.id}">${ic('mic')}<span><b>Inspreken</b><small>Wat er gebeurde en wanneer je opvolgt</small></span></button>
     <div class="quick" role="group" aria-label="Vastleggen">
       ${q('bel','phone','Bellen')}${q('actForm','door','Bezoek','data-type="bezoek"')}${q('mailen','mail','Mail')}
       ${q('actForm','inbox','Reactie','data-type="mail_in"')}${q('actForm','calendar','Afspraak','data-type="afspraak"')}${q('actForm','note','Notitie','data-type="notitie"')}
@@ -1058,7 +1076,7 @@ function openSheet(title, body, onMount){
   onMount && onMount(w.querySelector('.sheet'));
   const first = w.querySelector('input:not([type=hidden]):not([type=radio]):not([type=checkbox]),textarea,select'); first && first.focus({preventScroll:true});
 }
-function closeSheet(){ const w = $('#sheet'); w.hidden = true; w.innerHTML = ''; }
+function closeSheet(){ stopLuisteren(); const w = $('#sheet'); w.hidden = true; w.innerHTML = ''; }
 function bevestig(title, tekst, knop, fn){
   openSheet(title, `<p>${esc(tekst)}</p><div class="sheet-actions"><button class="btn" data-act="closeSheet">Annuleren</button><button class="btn danger" id="bev-ok">${esc(knop)}</button></div>`,
     s => s.querySelector('#bev-ok').onclick = async () => { closeSheet(); await fn(); });
@@ -1778,6 +1796,7 @@ function snelMenu(){
   openSheet('Wat wil je doen?', `<div class="snel">
     <button type="button" data-act="snelKies" data-doel="bezoek">${ic('door')}<b>Bezoek vastleggen</b><span>Bij een bedrijf in de CRM</span></button>
     <button type="button" data-act="snelKies" data-doel="plan">${ic('calendar')}<b>Opvolging inplannen</b><span>Bellen, mailen of langsgaan</span></button>
+    <button type="button" data-act="inspreken">${ic('mic')}<b>Inspreken</b><span>Zeg wat er gebeurde en wanneer je opvolgt</span></button>
     <button type="button" data-act="snelKies" data-doel="bel">${ic('phone')}<b>Telefoontje vastleggen</b><span>Met uitkomst en notitie</span></button>
     <button type="button" data-act="nieuw">${ic('plus')}<b>Nieuw bedrijf</b><span>Prospect, klant of commissie</span></button>
     <button type="button" data-act="scan">${ic('camera')}<b>Kaartje scannen</b><span>Foto van een visitekaartje</span></button>
@@ -2486,6 +2505,74 @@ if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('messa
   const h = new URL(url).hash, r = leesHash(h); if(h && h !== location.hash){ history.pushState({tab:r.tab || null, detail:r.detail || null, vanApp:true}, '', h); toonRoute(r); }
 });
 
+/* ---------- inspreken ----------
+   Spraak naar tekst via de browser (Chrome: Google, Safari: Apple), net als dicteren met het
+   toetsenbord. SPRAAK.lees haalt er bedrijf, wat er gebeurde en de volgende stap uit. */
+const Herkenning = window.SpeechRecognition || window.webkitSpeechRecognition;
+let herkenner = null;
+function stopLuisteren(){ if(herkenner){ try{ herkenner.stop(); }catch{} herkenner = null; } }
+function inspreken(vast, tekst = ''){
+  stopLuisteren();
+  openSheet('Inspreken', `<div class="section" id="sp">
+    ${vast ? `<p class="sub">Bij <b>${esc(vast.naam)}</b></p>` : ''}
+    ${Herkenning ? `<button type="button" class="mic" id="sp-mic" aria-label="Inspreken starten">${ic('mic')}</button><p class="mic-status" id="sp-status" aria-live="polite">Tik op de microfoon en vertel wat er gebeurde</p>`
+      : `<p class="hint">Tik in het veld hieronder en gebruik de microfoon op je toetsenbord.</p>`}
+    <label class="f"><span>Wat je zei</span><textarea id="sp-tekst" rows="4" placeholder="Bijv. ${vast ? '' : 'Hoek Advocaten '}gebeld, Aukje gesproken, volgende week dinsdag om 2 uur terugbellen">${esc(tekst)}</textarea></label>
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button type="button" class="btn primary" id="sp-verder">Verder</button></div>
+  </div>`, s => {
+    const ta = s.querySelector('#sp-tekst'), mic = s.querySelector('#sp-mic'), status = s.querySelector('#sp-status');
+    const zet = (aan, tekst) => { if(!mic) return; mic.classList.toggle('aan', aan); mic.setAttribute('aria-label', aan ? 'Stoppen' : 'Inspreken starten'); if(tekst) status.textContent = tekst; };
+    const start = () => {
+      stopLuisteren();
+      const h = herkenner = new Herkenning(); h.lang = 'nl-NL'; h.interimResults = true; h.continuous = true;
+      const basis = ta.value.trim() ? ta.value.trim() + ' ' : '';
+      h.onresult = e => { let t = ''; for(const r of e.results) t += r[0].transcript; ta.value = basis + t.trim(); };
+      h.onerror = e => { zet(false, e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'Geen toegang tot de microfoon. Sta dat toe in de instellingen, of typ of dicteer hieronder.' : e.error === 'no-speech' ? 'Niets gehoord. Tik opnieuw op de microfoon.' : 'Inspreken lukte niet. Typ of dicteer hieronder.'); };
+      h.onend = () => { if(herkenner === h) herkenner = null; zet(false); if(status && /Luisteren/.test(status.textContent)) status.textContent = ta.value.trim() ? 'Klaar? Tik op Verder.' : 'Tik op de microfoon en vertel wat er gebeurde'; };
+      try{ h.start(); zet(true, 'Luisteren… tik nogmaals om te stoppen'); }catch{ zet(false, 'Inspreken lukte niet. Typ of dicteer hieronder.'); }
+    };
+    if(mic){ mic.onclick = () => herkenner ? (stopLuisteren(), zet(false, 'Klaar? Tik op Verder.')) : start(); if(!tekst) start(); }
+    s.querySelector('#sp-verder').onclick = () => { stopLuisteren(); const t = ta.value.trim(); if(!t){ toast('Er is nog niets ingesproken.'); return; } spraakBegrepen(t, vast); };
+  });
+}
+/* Stap 2: laten zien wat er begrepen is; alles is nog aan te passen. */
+function spraakBegrepen(tekst, vast, gekozenId){
+  const b0 = gekozenId ? bedrijf(gekozenId) : vast;
+  const r = SPRAAK.lees(tekst, {bedrijven:S.bedrijven, bedrijf:b0, vandaag:today()});
+  const b = b0 || (r.bedrijfId && bedrijf(r.bedrijfId));
+  const soorten = [['notitie','','Notitie'], ['bezoek','','Bezoek'], ['bel','gesproken','Gebeld, gesproken'], ['bel','niet opgenomen','Niet opgenomen']];
+  const huidig = r.type + '|' + (r.uitkomst || '');
+  const gezien = [b && `${ic('building','sm')}<b>${esc(b.naam)}</b>`, r.contact >= 0 && b && `${ic('users','sm')}${esc(b.contacten[r.contact].naam)}`,
+    `${ic(r.type==='bezoek'?'door':r.type==='bel'?'phone':'note','sm')}${esc(soorten.find(x => x[0]+'|'+x[1]===huidig)?.[2] || 'Notitie')}`,
+    r.plan && `${ic('calendar','sm')}${esc(r.plan.actie)} op ${esc(fmtDag(r.plan.datum))}${r.plan.tijd ? ' om '+esc(r.plan.tijd) : ''}${r.plan.geschat ? ' <small>(geen dag genoemd)</small>' : ''}`].filter(Boolean);
+  openSheet('Klopt dit?', `<form id="sb" class="section">
+    <div class="begrepen">${gezien.map(x => `<span>${x}</span>`).join('')}</div>
+    ${vast ? '' : `<label class="f"><span>Bedrijf</span><select id="sb-bedrijf" name="bedrijf" required><option value="">Kies een bedrijf…</option>${[...S.bedrijven].sort((x,y) => x.naam.localeCompare(y.naam)).map(x => `<option value="${x.id}" ${b && x.id===b.id ? 'selected' : ''}>${esc(x.naam)}</option>`).join('')}</select></label>`}
+    <div class="f"><span>Wat gebeurde er?</span><div class="seg">${soorten.map(([t,u,l]) => `<label><input type="radio" name="soort" value="${t}|${u}" ${t+'|'+u===huidig?'checked':''}><span>${l}</span></label>`).join('')}</div></div>
+    ${b ? contactSelect(b, r.contact >= 0 ? r.contact : b.opvolging?.contact) : ''}
+    <label class="f"><span>Tekst voor de tijdlijn</span><textarea name="tekst" id="sb-tekst" rows="3">${esc(r.tekst)}</textarea></label>
+    ${planVelden({id:'sb', wat:r.plan?.actie || 'Bellen', datum:r.plan?.datum || null, metGeen:!r.plan, titel:'Volgende stap'})}
+    <div class="sheet-actions"><button type="button" class="btn" id="sb-terug">${ic('mic','sm')}Opnieuw</button><button class="btn primary" type="submit">Opslaan</button></div>
+  </form>`, s => {
+    mountPlan(s, 'sb');
+    if(r.plan){ const t = s.querySelector('#sb-tijd'); if(t && r.plan.tijd) t.value = r.plan.tijd;
+      if(r.plan.actie && !PLAN_WAT.includes(r.plan.actie)) s.querySelector('#sb-actie').value = r.plan.actie; }
+    const sel = s.querySelector('#sb-bedrijf'); if(sel) sel.onchange = () => spraakBegrepen(s.querySelector('#sb-tekst').value, null, sel.value || null);
+    s.querySelector('#sb-terug').onclick = () => inspreken(vast, s.querySelector('#sb-tekst').value);
+    s.querySelector('#sb').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target);
+      const bb = vast || bedrijf(d.bedrijf); if(!bb){ toast('Kies eerst een bedrijf.'); return; }
+      const [type, uitkomst] = (d.soort || 'notitie|').split('|'), idx = d.ci != null ? Number(d.ci) : (bb.opvolging?.contact ?? 0), c = contactVan(bb, idx);
+      const plan = leesPlan(d);
+      const ok = await veilig(async () => {
+        await verwerkActiviteit(bb, {type, ...(uitkomst ? {uitkomst} : {}), tekst:d.tekst.trim(), contactNaam:c?.naam || '', bron:'spraak'}, {contact:idx});
+        if(plan) await slaPlanOp(bedrijf(bb.id) || bb, plan, idx);
+      }, plan ? `Vastgelegd, opvolging ${fmtDag(plan.datum)}${plan.tijd ? ' om '+plan.tijd : ''}` : 'Vastgelegd');
+      if(ok){ closeSheet(); if(V.detail !== bb.id) openDetail(bb.id); }
+    };
+  });
+}
+
 /* ---------- agenda ---------- */
 const AG_SOORT = {opvolg:{naam:'Opvolging', ic:'phone'}, mail:{naam:'Mail', ic:'mail'}, afspraak:{naam:'Afspraak', ic:'calendar'}, commissie:{naam:'Commissie', ic:'euro'}};
 const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -2858,6 +2945,7 @@ const ACT = {
   actBewerk: d => { const a = acts.find(x => x.id===d.akt), b = bedrijf(V.detail); if(a && b) actBewerk(b, a); },
   snel: () => snelMenu(),
   snelKies: d => kiesBedrijf(d.doel),
+  inspreken: d => inspreken(d.id ? bedrijf(d.id) : null),
   snelDoel: d => { const b = bedrijf(d.id); closeSheet(); if(d.doel==='bezoek') actForm(b, 'bezoek'); else if(d.doel==='bel') belSheet(b); else planActie(b); },
   pauzeer: d => { const b = bedrijf(d.id); veilig(async () => { await updBedrijf(b.id, {opvolging:{...clone(b.opvolging), gepauzeerd:true}}); await systeem(b, 'Opvolging gepauzeerd.'); }, 'Gepauzeerd'); },
   hervat: d => { const b = bedrijf(d.id); veilig(async () => { const o = clone(b.opvolging); o.gepauzeerd = false; if(o.datum < today()) o.datum = today(); await updBedrijf(b.id, {opvolging:o}); await systeem(b, 'Opvolging hervat.'); }, 'Hervat'); },
