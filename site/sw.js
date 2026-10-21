@@ -1,12 +1,13 @@
 /* Service worker: maakt de app installeerbaar, toont de laatst geladen versie als er
    geen internet is (altijd eerst het netwerk) en toont herinneringen als melding. */
-const CACHE = 'desko-crm-v30';
+const CACHE = 'desko-crm-v31';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if(e.request.method !== 'GET' || url.origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then(r => {
+  // Altijd bij de server controleren of er een nieuwere versie is (niet de HTTP-cache van de browser gebruiken)
+  e.respondWith(fetch(e.request, {cache:'no-cache'}).then(r => {
     const kopie = r.clone(); caches.open(CACHE).then(c => c.put(e.request, kopie)); return r;
   }).catch(() => caches.match(e.request)));
 });

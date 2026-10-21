@@ -353,6 +353,12 @@ a{color:var(--accent)}
 .plan-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
 .plan-tags .chip.tag{font-size:.78rem;padding:2px 9px;background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:650}
 .plan-tags .chip.tag::before{opacity:.7}
+.nieuwe-versie{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:70;border:0;border-radius:999px;background:#000;color:#fff;padding:10px 16px;font:inherit;font-weight:650;display:flex;gap:8px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.3);cursor:pointer;white-space:nowrap}
+@media (min-width:960px){.nieuwe-versie{bottom:24px}}
+.row .t.plan-rij{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+.plan-rij .links{min-width:0;display:flex;flex-direction:column;gap:2px}.plan-rij .links b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan-rij .rechts{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.plan-rij .rechts .chip.tag{font-size:.76rem;padding:2px 9px;background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:650;white-space:nowrap}
 .geen-tag{font-size:.75rem;color:var(--faint);font-style:italic}
 .plan-tagkeuze{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 8px;font:inherit;max-width:44%}
 .stop-knoppen{display:flex;gap:2px}.stop-knoppen .icon-btn{width:34px;height:34px;font-size:1rem}
@@ -576,6 +582,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
+const APP_VERSIE = '2026-10-21.3';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1093,7 +1100,7 @@ function meerView(){
     </section>
     ${S.gebruiker?.admin ? beheerView() : ''}
     ${meldingSectie()}
-    <section class="section"><div class="section-title"><h2>Account</h2></div>
+    <section class="section"><div class="section-title"><h2>Account</h2><span class="sub">versie ${APP_VERSIE}</span></div>
       <p class="sub">Ingelogd als ${esc(S.gebruiker?.naam||'')}${S.gebruiker?.admin?' (beheerder)':''}</p>
       <div class="btns"><a class="btn" href="https://github.com/${esc(window.DESKO_CONFIG?.DATA_REPO||'')}/commits/main" target="_blank" rel="noopener">Wijzigingsgeschiedenis</a><button class="btn" data-act="wachtwoord">Wachtwoord wijzigen</button><button class="btn" data-act="uitloggen">Uitloggen</button></div>
     </section>
@@ -3229,7 +3236,8 @@ function plannenView(){
         <div class="toolbar"><label class="search">${ic('search')}<input id="plan-zoek" type="search" placeholder="Zoek op naam, plaats of tag" value="${esc(v.zoek||'')}" autocomplete="off" aria-label="Zoek een bedrijf"></label>
           <select id="plan-tag" class="plan-tagkeuze" aria-label="Tag"><option value="">Alle tags</option>${[...new Set(S.bedrijven.flatMap(b => b.tags||[]).map(t => t.toLowerCase()))].sort().map(t => `<option value="${esc(t)}" ${v.tag===t?'selected':''}>#${esc(t)}</option>`).join('')}<option value="(geen tag)" ${v.tag==='(geen tag)'?'selected':''}>Zonder tag</option></select></div>
         <div class="rows">${kand.length ? kand.map(x => `<div class="row static" style="grid-template-columns:1fr auto">
-          <span class="t"><span class="row-top"><b>${esc(x.b.naam)}</b>${chipKopje(x.b.kopje)}</span><span class="meta">${esc(x.b.plaats || '')}${x.km != null ? ` · ${x.km < 10 ? x.km.toFixed(1).replace('.', ',') : Math.round(x.km)} km` : ''}${x.reden ? ' · '+esc(x.reden) : ''}${x.elders ? ` · al gepland ${esc(fmtDag(x.elders.datum))}` : ''}</span><span class="plan-tags">${(x.b.tags||[]).length ? x.b.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('') : '<span class="geen-tag">geen tag</span>'}</span></span>
+          <span class="t plan-rij"><span class="links"><b>${esc(x.b.naam)}</b><span class="meta">${esc(x.b.plaats || '')}${x.km != null ? ` · ${x.km < 10 ? x.km.toFixed(1).replace('.', ',') : Math.round(x.km)} km` : ''}${x.reden ? ' · '+esc(x.reden) : ''}${x.elders ? ` · al gepland ${esc(fmtDag(x.elders.datum))}` : ''}</span></span>
+            <span class="rechts">${chipKopje(x.b.kopje)}${(x.b.tags||[]).length ? x.b.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('') : '<span class="geen-tag">geen tag</span>'}</span></span>
           <button class="btn small ${x.elders?'':'primary'}" data-act="planErbij" data-id="${x.b.id}" ${r.stops.length >= ROUTE_MAX ? 'disabled' : ''} aria-label="${esc(x.b.naam)} toevoegen">${ic('plus','sm')}<span class="lbl">Toevoegen</span></button></div>`).join('')
           : `<p class="sub" style="padding:10px 4px">Geen voorstellen. Kies "Alles" of zoek op naam.</p>`}</div>
         ${S.bedrijven.some(b => b.plaats && !b.geo) ? `<p class="hint">Sommige adressen worden nog opgezocht…</p>` : ''}
@@ -3574,7 +3582,9 @@ const ACT = {
   inspreken: d => inspreken(d.id ? bedrijf(d.id) : null),
   tagSheet: d => tagSheet(bedrijf(d.id)),
   tagWeg: d => { const b = bedrijf(d.id); veilig(() => zetTags(b, (b.tags||[]).filter(t => t !== d.tag)), `#${d.tag} verwijderd`); },
-  verversen: (d, el) => { document.querySelectorAll('.ververs').forEach(x => x.classList.add('bezig')); setTimeout(() => location.reload(), 150); },
+  verversen: async () => { document.querySelectorAll('.ververs').forEach(x => x.classList.add('bezig'));
+    try{ const reg = await navigator.serviceWorker?.getRegistration(); await reg?.update(); await fetch(location.pathname, {cache:'reload'}); }catch{}
+    location.reload(); },
   appOpname: () => inspreken(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-tekst')?.value || ''),
   toetsenbordOpname: () => { const t = $('#sp-live')?.textContent || ''; inspreekToetsenbord(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-live .sub') ? '' : t); },
   snelDoel: d => { const b = bedrijf(d.id); closeSheet(); if(d.doel==='bezoek') actForm(b, 'bezoek'); else if(d.doel==='bel') belSheet(b); else planActie(b); },
@@ -3690,7 +3700,16 @@ function start(sessie){
   try{ await controleerToegang(cfg.DATA_REPO, sessie.token); start(sessie); }
   catch(err){ bewaar(SESSIE_KEY, null); S.laden = false; S.login = {fout:'Je sessie is verlopen. Log opnieuw in.'}; render(); }
 })();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if('serviceWorker' in navigator){
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then(reg => { setInterval(() => reg.update().catch(() => {}), 30*60*1000); }).catch(() => {});
+  // Nieuwe versie geïnstalleerd: aanbieden om te verversen
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(!hadController || $('#nieuwe-versie')) return;
+    const el = document.createElement('button'); el.id = 'nieuwe-versie'; el.className = 'nieuwe-versie'; el.dataset.act = 'verversen';
+    el.innerHTML = `${ic('refresh','sm')}Nieuwe versie beschikbaar · tik om te verversen`; document.body.appendChild(el);
+  });
+}
 </script>
 </body>
 </html>
