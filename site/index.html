@@ -256,6 +256,29 @@ a{color:var(--accent)}
 .dicteer{display:flex;gap:12px;align-items:flex-start;background:var(--accent-soft);border-radius:14px;padding:12px 14px;font-size:.92rem;line-height:1.4}
 .dicteer .ic{flex:none;width:28px;height:28px;padding:5px;border-radius:50%;background:#000;color:#fff}
 .alleen-groot{display:none!important}
+@media (min-width:960px){.alleen-klein{display:none!important}}
+.wrap.pijplijn{max-width:1400px}
+.pijp-balk{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pijp-balk .search{min-width:220px}
+.pijp-balk select{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 10px;font:inherit}
+.pijp-rit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--accent-soft);border-radius:14px;padding:8px 12px;font-size:.92rem}
+.pijp-rit select{height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:0 8px;font:inherit;font-weight:650}
+.kolommen-pijp{display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
+@media (min-width:960px){.kolommen-pijp{margin:0;padding-left:0;padding-right:0}}
+@media (max-width:959px){.kolommen-pijp{grid-template-columns:repeat(4,82vw)}}
+.pkolom{background:var(--sunk);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:8px;scroll-snap-align:start;min-height:200px;border:2px dashed transparent;transition:border-color .15s}
+.pkolom.over{border-color:var(--accent);background:var(--accent-soft)}
+.pkolom h2{display:flex;justify-content:space-between;align-items:center;font-size:.95rem;margin:2px 4px}
+.pk-lijst{display:flex;flex-direction:column;gap:8px}
+.pk-leeg{padding:8px 4px}
+.pkaart{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 10px 6px;display:flex;flex-direction:column;gap:4px;cursor:grab;box-shadow:var(--shadow)}
+.pkaart.sleept{opacity:.4}
+.pk-naam{border:0;background:none;padding:0;font:inherit;font-weight:700;text-align:left;color:var(--ink);cursor:pointer}
+.pk-naam:hover{text-decoration:underline}
+.pkaart .meta{color:var(--muted);font-size:.82rem}
+.pk-chips{display:flex;flex-wrap:wrap;gap:4px}.pk-chips .chip .ic{width:12px;height:12px}
+.pk-knoppen{display:flex;justify-content:space-between;align-items:center;gap:4px;margin-top:2px}
+.pk-knoppen .icon-btn{width:36px;height:36px}.pk-knoppen .icon-btn:disabled{opacity:.25}
 @media (min-width:960px){.alleen-groot{display:flex!important}}
 .plan-kop{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .plan-kop select{min-width:160px}
@@ -510,7 +533,7 @@ const KOPJES = {
   prospect:  {naam:'Prospects',      enk:'Prospect'},
   commissie: {naam:'Lead commissie', enk:'Commissie'}
 };
-const STATUSSEN = ['nieuw','contact gehad','afspraak','offerte','gewonnen','verloren'];
+const STATUSSEN = ['nieuw','contact gehad','bezocht','afspraak','offerte','gewonnen','verloren'];
 const GROOTTES = ['1-10','11-50','51-100','101-250','250+'];
 const DEALSTATUS = ['verwacht','verdiend','gefactureerd','ontvangen'];
 const BRANCHES = ['Bouw','Zorg','Onderwijs','Overheid','Zakelijke dienstverlening','ICT','Financiële dienstverlening','Logistiek','Retail','Horeca','Industrie','Vastgoed','Juridisch','Architectuur'];
@@ -669,8 +692,10 @@ async function verwerkActiviteit(b, a, opts={}){
   await logAct(b, a);
   const patch = {};
   if(CONTACT_TYPES.includes(a.type)) patch.laatsteContact = today();
-  if(b.kopje==='prospect' && b.status==='nieuw' && (a.type==='bezoek' || (a.type==='bel' && a.uitkomst==='gesproken') || a.type==='mail_in')) patch.status = 'contact gehad';
-  if(b.kopje==='prospect' && a.type==='afspraak' && ['nieuw','contact gehad'].includes(b.status)) patch.status = 'afspraak';
+  const st = b.status || 'nieuw';
+  if(b.kopje==='prospect' && a.type==='bezoek' && ['nieuw','contact gehad'].includes(st)) patch.status = 'bezocht';
+  else if(b.kopje==='prospect' && st==='nieuw' && ((a.type==='bel' && a.uitkomst==='gesproken') || a.type==='mail_in')) patch.status = 'contact gehad';
+  if(b.kopje==='prospect' && a.type==='afspraak' && ['nieuw','contact gehad','bezocht'].includes(st)) patch.status = 'afspraak';
   if(Object.keys(patch).length) await updBedrijf(b.id, patch);
   const fresh = {...b, ...patch};
   const actief = b.opvolging?.actief && b.opvolging.stap!=='actie';
@@ -780,6 +805,7 @@ const ICONS = {
   search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   filter:'<path d="M3 5h18M6 12h12M10 19h4"/>',
   download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  kolom:'<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>',
   mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   check:'<path d="M20 6 9 17l-5-5"/>', clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   x:'<path d="M18 6 6 18M6 6l12 12"/>', pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
@@ -905,7 +931,7 @@ function lijstView(kopje){
     </button>`;
   };
   return `<div class="wrap">
-    <header class="page-head">${kopje==='alle'?`<button class="btn ghost back" data-act="tab" data-tab="meer">${ic('left','sm')}Meer</button>`:''}<p class="eyebrow">${kopje==='alle'?'Zoeken':'Overzicht'}</p><h1>${titel}</h1></header>
+    <header class="page-head">${kopje==='alle'?`<button class="btn ghost back" data-act="tab" data-tab="meer">${ic('left','sm')}Meer</button>`:''}<p class="eyebrow">${kopje==='alle'?'Zoeken':'Overzicht'}</p><h1>${titel}</h1>${kopje==='prospect' ? `<div class="btns"><button class="btn small" data-act="tab" data-tab="pijplijn">${ic('kolom','sm')}Pijplijn</button></div>` : ''}</header>
     <div class="toolbar">
       <label class="search">${ic('search')}<input id="zoek-${kopje}" type="search" placeholder="Zoek op naam, plaats, contact of tag" value="${esc(V.zoek[kopje]||'')}" data-zoek="${kopje}" autocomplete="off" aria-label="Zoeken"></label>
       <button class="btn ${aantalF||V.filterOpen?'on':''}" data-act="filters" aria-expanded="${V.filterOpen}">${ic('filter','sm')}Filters${aantalF?` (${aantalF})`:''}</button>
@@ -1081,13 +1107,14 @@ function render(){
   else if(V.tab==='buurt') html = buurtView();
   else if(V.tab==='agenda') html = agendaView();
   else if(V.tab==='plannen') html = plannenView();
+  else if(V.tab==='pijplijn') html = pijplijnView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length + commissieTaken().length;
-  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['plannen','route','Plannen'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
-  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
-  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${k==='plannen'?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
+  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['plannen','route','Plannen'],['pijplijn','kolom','Pijplijn'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
+  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
+  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${k==='plannen'||k==='pijplijn'?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
   const ini = esc(initialen(S.gebruiker?.naam||''));
   $('#side-brand').innerHTML = `${LOGO}`;
@@ -2905,6 +2932,58 @@ function routeMaak(){
   window.open(routeUrl(volgorde), '_blank', 'noopener');
 }
 
+/* ---------- pijplijn ----------
+   Prospects (standaard zonder #netwerk) per fase. Doorschuiven met slepen of pijltjes;
+   met één tik op de rit van de gekozen dag (zelfde keuze als bij Plannen). */
+const FASEN = [['nieuw','Nog te contacten'], ['contact gehad','Contact gehad'], ['bezocht','Bezocht'], ['afspraak','Afspraak']];
+function pijplijnView(){
+  const p = V.pijp = V.pijp || {zoek:'', metNetwerk:false, regio:''};
+  const v = planStaat(), r = planRoute(v), inRit = new Set(r.stops.map(x => x.id));
+  const elders = new Map(); S.routes.filter(x => x.datum >= today()).forEach(x => x.stops.forEach(st => { if(!(x.datum===v.datum && x.voor===v.voor)) elders.set(st.id, x); }));
+  const zoek = p.zoek.toLowerCase();
+  const alle = S.bedrijven.filter(b => b.kopje==='prospect' && (p.metNetwerk || !(b.tags||[]).some(t => t.toLowerCase()==='netwerk')));
+  const lijst = alle.filter(b => (!p.regio || regio(b)===p.regio) && (!zoek || [b.naam, b.plaats, ...(b.tags||[]), ...(b.contacten||[]).map(c => c.naam)].join(' ').toLowerCase().includes(zoek)));
+  const verder = lijst.filter(b => !FASEN.some(([f]) => f===(b.status||'nieuw'))).length;
+  const regios = [...new Set(alle.map(regio).filter(Boolean))].sort();
+  const dagen = werkdagenVanaf(today(), 10);
+  const kaart = b => { const o = opvolgStatus(b), i = FASEN.findIndex(([f]) => f===(b.status||'nieuw')), x = elders.get(b.id), op = inRit.has(b.id);
+    return `<article class="pkaart" draggable="true" data-pijp="${b.id}">
+      <button class="pk-naam" data-act="open" data-id="${b.id}">${esc(b.naam)}</button>
+      <span class="meta">${esc([b.plaats, b.laatsteContact ? 'contact '+fmtDag(b.laatsteContact) : 'nog geen contact'].filter(Boolean).join(' · '))}</span>
+      ${o || x ? `<span class="pk-chips">${o ? `<span class="chip ${o.due?'warn':''}">${ic('clock','sm')}${esc(o.due ? 'nu opvolgen' : fmtDag(o.datum))}</span>` : ''}${x ? `<span class="chip">${ic('route','sm')}rit ${esc(fmtDag(x.datum))}</span>` : ''}</span>` : ''}
+      <span class="pk-knoppen">
+        <button class="icon-btn" data-act="pijpSchuif" data-id="${b.id}" data-n="-1" ${i>0?'':'disabled'} aria-label="Terug naar ${i>0?esc(FASEN[i-1][1]):''}">${ic('left','sm')}</button>
+        <button class="btn small ${op?'on':''}" data-act="pijpRit" data-id="${b.id}" ${b.geo?.lat || op ? '' : 'title="Adres onbekend"'} aria-pressed="${op}">${op ? ic('check','sm')+'In rit' : ic('plus','sm')+'Rit'}</button>
+        <button class="icon-btn" data-act="pijpSchuif" data-id="${b.id}" data-n="1" ${i<FASEN.length-1?'':'disabled'} aria-label="Door naar ${i<FASEN.length-1?esc(FASEN[i+1][1]):''}">${ic('right','sm')}</button>
+      </span></article>`; };
+  const rd = parse(v.datum);
+  return `<div class="wrap pijplijn">
+    <header class="page-head"><button class="btn ghost back alleen-klein" data-act="tab" data-tab="prospect">${ic('left','sm')}Prospects</button><p class="eyebrow">Prospects</p><h1>Pijplijn</h1>
+      <p class="sub">${p.metNetwerk ? 'Alle prospects' : 'Prospects zonder #netwerk'}. Sleep een kaart of gebruik de pijltjes om door te schuiven.</p></header>
+    <div class="pijp-balk">
+      <label class="search">${ic('search')}<input id="pijp-zoek" type="search" placeholder="Zoek op naam, plaats of contact" value="${esc(p.zoek)}" autocomplete="off" aria-label="Zoeken"></label>
+      ${regios.length ? `<select id="pijp-regio" aria-label="Regio"><option value="">Alle regio's</option>${regios.map(x => `<option ${x===p.regio?'selected':''}>${esc(x)}</option>`).join('')}</select>` : ''}
+      <label class="check"><input type="checkbox" id="pijp-netwerk" ${p.metNetwerk?'checked':''}><span>Ook #netwerk</span></label>
+    </div>
+    <div class="pijp-rit">${ic('route','sm')}<span>Rit van</span>
+      <select id="pijp-dag" aria-label="Dag van de rit">${dagen.map(d => { const x = parse(d), n = routeVan(d, v.voor)?.stops.length || 0; return `<option value="${d}" ${d===v.datum?'selected':''}>${DAGEN[x.getDay()]} ${x.getDate()} ${MAANDEN[x.getMonth()]}${n ? ` (${n})` : ''}</option>`; }).join('')}</select>
+      <span>voor <b>${esc(v.voor || '')}</b>: ${r.stops.length} stop${r.stops.length===1?'':'s'}${r.stops.length ? ` · ± ${routeMaat(r).km} km` : ''}</span>
+      <button class="btn small" data-act="tab" data-tab="plannen">Open in Plannen</button></div>
+    <div class="kolommen-pijp">${FASEN.map(([f, naam]) => { const l = lijst.filter(b => (b.status||'nieuw')===f).sort((a, c) => (a.plaats||'').localeCompare(c.plaats||'') || a.naam.localeCompare(c.naam));
+      return `<section class="pkolom" data-fase="${f}" aria-label="${naam}"><h2>${naam}<span class="count num">${l.length}</span></h2><div class="pk-lijst">${l.map(kaart).join('') || '<p class="sub pk-leeg">Leeg</p>'}</div></section>`; }).join('')}</div>
+    ${verder ? `<p class="hint">${verder} prospect${verder===1?' staat':'s staan'} al verder (offerte, gewonnen of verloren) en ${verder===1?'staat':'staan'} hier niet tussen.</p>` : ''}
+  </div>`;
+}
+async function zetFase(b, status){
+  if(!b || (b.status||'nieuw')===status) return;
+  await veilig(async () => { await updBedrijf(b.id, {status}); await systeem(b, `Status: ${b.status||'nieuw'} → ${status}.`); }, `${b.naam}: ${FASEN.find(([f]) => f===status)?.[1] || status}`);
+}
+/* Slepen tussen kolommen (computer). */
+document.addEventListener('dragstart', e => { const k = e.target.closest?.('[data-pijp]'); if(!k) return; e.dataTransfer.setData('text/plain', k.dataset.pijp); e.dataTransfer.effectAllowed = 'move'; k.classList.add('sleept'); });
+document.addEventListener('dragend', e => { e.target.closest?.('[data-pijp]')?.classList.remove('sleept'); document.querySelectorAll('.pkolom.over').forEach(x => x.classList.remove('over')); });
+document.addEventListener('dragover', e => { const k = e.target.closest?.('.pkolom'); if(!k) return; e.preventDefault(); document.querySelectorAll('.pkolom.over').forEach(x => x !== k && x.classList.remove('over')); k.classList.add('over'); });
+document.addEventListener('drop', e => { const k = e.target.closest?.('.pkolom'); if(!k) return; e.preventDefault(); k.classList.remove('over'); zetFase(bedrijf(e.dataTransfer.getData('text/plain')), k.dataset.fase); });
+
 /* ---------- plannen ----------
    Op kantoor (of onderweg) een dag voor iemand inplannen: kaart, slimme voorstellen,
    afstand en reistijd, volgorde optimaliseren. */
@@ -3303,6 +3382,11 @@ const ACT = {
   naBezoek: d => naBezoek(bedrijf(d.id)),
   routeStop2: () => bevestig('Route wissen', 'De dagroute van vandaag verdwijnt. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => veilig(() => zetRoute({...route(), stops:[]}))),
   planDag: d => { planStaat().datum = d.d; render(); },
+  pijpSchuif: d => { const b = bedrijf(d.id), i = FASEN.findIndex(([f]) => f===(b.status||'nieuw')) + Number(d.n); if(FASEN[i]) zetFase(b, FASEN[i][0]); },
+  pijpRit: d => { const v = planStaat(), r = planRoute(v);
+    if(r.stops.some(x => x.id===d.id)){ planStops(r.stops.filter(x => x.id!==d.id)); return; }
+    if(!bedrijf(d.id)?.geo?.lat){ toast('Adres onbekend: vul eerst de plaats in.'); return; }
+    ACT.planErbij({id:d.id}); toast(`Op de rit van ${fmtDag(v.datum)}`); },
   planFilter: d => { planStaat().filter = d.f; render(); },
   planVertrek: () => planVertrekSheet(),
   planErbij: d => { const v = planStaat(), r = planRoute(v); if(r.stops.some(x => x.id===d.id)) return; if(r.stops.length >= ROUTE_MAX){ toast(`Maximaal ${ROUTE_MAX} stops.`); return; }
@@ -3378,12 +3462,16 @@ document.addEventListener('submit', e => {
 }, true);
 document.addEventListener('input', e => { const f = e.target.closest?.('form'); if(f) delete f.dataset.bezig; }, true);   // iets aangepast: opnieuw versturen mag
 document.addEventListener('input', e => {
+  if(e.target.id === 'pijp-zoek'){ V.pijp.zoek = e.target.value; clearTimeout(V._pz); V._pz = setTimeout(() => { const pos = e.target.selectionStart; render(); const el = $('#pijp-zoek'); if(el){ el.focus(); try{ el.setSelectionRange(pos, pos); }catch{} } }, 200); return; }
   if(e.target.id === 'plan-zoek'){ planStaat().zoek = e.target.value; clearTimeout(V._pz); V._pz = setTimeout(() => { const pos = e.target.selectionStart; render(); const el = $('#plan-zoek'); if(el){ el.focus(); try{ el.setSelectionRange(pos, pos); }catch{} } }, 200); return; }
   const z = e.target.dataset?.zoek; if(z==null) return;
   V.zoek[z] = e.target.value; render();
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if(t.id==='pijp-regio'){ V.pijp.regio = t.value; render(); return; }
+  if(t.id==='pijp-netwerk'){ V.pijp.metNetwerk = t.checked; render(); return; }
+  if(t.id==='pijp-dag'){ planStaat().datum = t.value; render(); return; }
   if(t.dataset?.planVoor !== undefined && t.id==='plan-voor'){ planStaat().voor = t.value; render(); return; }
   if(t.dataset?.dash){ V.filters.dash = {...(V.filters.dash||{}), [t.dataset.dash]: t.value}; render(); return; }
   if(t.dataset?.filter){ const k = t.dataset.kopje; V.filters[k] = {...(V.filters[k]||{}), [t.dataset.filter]: t.value}; render(); }
