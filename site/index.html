@@ -582,7 +582,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-21.3';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-21.4';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -657,7 +657,11 @@ const bedrijf = id => S.bedrijven.find(b => b.id===id);
 const T = b => S.inst.termijnen[b?.kopje] || S.inst.termijnen.prospect;
 const contactVan = (b,i) => (b.contacten||[])[i ?? 0] || null;
 const voornaam = c => (c?.naam||'').trim().split(/\s+/)[0] || '';
-function alleTags(){ const m = new Map(); S.bedrijven.forEach(b => (b.tags||[]).forEach(t => m.set(t.toLowerCase(), t))); (S.inst?.mailreeksen || []).forEach(r => r.tag && m.set(r.tag.toLowerCase(), r.tag)); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
+/* Vaste tags met hun betekenis. "koud" en "klant" worden automatisch bijgehouden. */
+const VASTE_TAGS = {'koud':'Nog 0 contact gehad', 'klant':'Is klant', 'uw garantie verloopt':'Garantie van de klant verloopt', 'werkplekcheck':'Ferry komt de werkplek checken'};
+const heeftTag = (b, t) => (b.tags||[]).some(x => x.toLowerCase()===t);
+const zonderTag = (tags, t) => (tags||[]).filter(x => x.toLowerCase()!==t);
+function alleTags(){ const m = new Map(); Object.keys(VASTE_TAGS).forEach(t => m.set(t, t)); S.bedrijven.forEach(b => (b.tags||[]).forEach(t => m.set(t.toLowerCase(), t))); (S.inst?.mailreeksen || []).forEach(r => r.tag && m.set(r.tag.toLowerCase(), r.tag)); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
 function normTags(list){
   const bestaand = new Map(alleTags().map(t => [t.toLowerCase(), t]));
   const out = new Map();
@@ -747,6 +751,7 @@ async function verwerkActiviteit(b, a, opts={}){
   const opDag = a.datum ? ds(new Date(a.datum)) : today();
   if(CONTACT_TYPES.includes(a.type) && opDag > (b.laatsteContact || '')) patch.laatsteContact = opDag;
   if(a.type==='bestelling' && opDag > (b.laatsteBestelling || '')) patch.laatsteBestelling = opDag;
+  if(CONTACT_TYPES.includes(a.type) && heeftTag(b, 'koud')) patch.tags = zonderTag(b.tags, 'koud');   // niet meer koud na het eerste contact
   const st = b.status || 'nieuw';
   if(b.kopje==='prospect' && a.type==='bezoek' && ['nieuw','contact gehad'].includes(st)) patch.status = 'bezocht';
   else if(b.kopje==='prospect' && st==='nieuw' && ((a.type==='bel' && a.uitkomst==='gesproken') || a.type==='mail_in')) patch.status = 'contact gehad';
@@ -1259,7 +1264,11 @@ function bedrijfForm(b, kopje, voor){
           const ref = db.collection('bedrijven').doc(); newId = ref.id;
           const nu = new Date().toISOString();
           const contacten = d.cnaam?.trim() ? [{naam:d.cnaam.trim(), functie:d.cfunctie.trim(), afdeling:'', telefoon:d.ctel.trim(), email:d.cmail.trim()}] : [];
-          await ref.set({...data, kopje, status:kopje==='prospect'?(data.status||'nieuw'):'', contacten, aangemaakt:nu, bijgewerkt:nu, laatsteContact:'', opvolging:{actief:false}});
+          let tags = data.tags || [];
+          if(kopje==='klant' && !tags.some(t => t.toLowerCase()==='klant')) tags = [...tags, 'klant'];
+          // nieuwe prospect zonder contact (niet uit het netwerk of van een visitekaartje): koud
+          if(kopje==='prospect' && (data.status||'nieuw')==='nieuw' && !voor?.bron && !tags.some(t => ['netwerk','koud'].includes(t.toLowerCase()))) tags = [...tags, 'koud'];
+          await ref.set({...data, tags, kopje, status:kopje==='prospect'?(data.status||'nieuw'):'', contacten, aangemaakt:nu, bijgewerkt:nu, laatsteContact:'', opvolging:{actief:false}});
           await db.collection('activiteiten').add({bedrijfId:newId, datum:nu, type:'systeem', tekst:`Aangemaakt als ${KOPJES[kopje].enk.toLowerCase()}${voor?.bron?' ('+voor.bron+')':''}.`});
           if(voor?.notitie) await db.collection('activiteiten').add({bedrijfId:newId, datum:nu, type:'notitie', door:S.gebruiker?.naam||'', tekst:voor.notitie});
         } else {
@@ -1966,6 +1975,8 @@ async function verplaats(b, naar){
 async function verplaatsIntern(b, naar){
   {
     const patch = {kopje:naar};
+    if(naar==='klant') patch.tags = [...zonderTag(b.tags, 'koud'), ...(heeftTag(b, 'klant') ? [] : ['klant'])];
+    else if(b.kopje==='klant') patch.tags = zonderTag(b.tags, 'klant');
     if(naar==='prospect') patch.status = b.status && b.status!=='gewonnen' ? b.status : 'nieuw';
     if(b.kopje==='prospect' && naar==='klant'){ patch.wasProspect = true; patch.klantSinds = today(); patch.laatsteFase = b.status || 'nieuw'; }
     if(b.opvolging?.actief) patch.opvolging = {...clone(b.opvolging), actief:false};
@@ -2701,7 +2712,7 @@ function tagSheet(b){
     const alle = [...new Set([...huidig, ...alleTags()])].sort((x, y) => (reeksTags.has(y.toLowerCase()) - reeksTags.has(x.toLowerCase())) || x.localeCompare(y));
     return `<div class="section">
       <p class="sub">${esc(b.naam)} · tik om aan of uit te zetten</p>
-      <div class="tagkeuze">${alle.map(t => `<button type="button" class="keuze ${aan.has(t.toLowerCase())?'on':''}" data-tagwissel="${esc(t)}" aria-pressed="${aan.has(t.toLowerCase())}">#${esc(t)}${reeksTags.has(t.toLowerCase()) ? '<small>mailreeks</small>' : ''}</button>`).join('')}</div>
+      <div class="tagkeuze">${alle.map(t => `<button type="button" class="keuze ${aan.has(t.toLowerCase())?'on':''}" data-tagwissel="${esc(t)}" aria-pressed="${aan.has(t.toLowerCase())}">#${esc(t)}${reeksTags.has(t.toLowerCase()) ? '<small>mailreeks</small>' : VASTE_TAGS[t.toLowerCase()] ? `<small>${esc(VASTE_TAGS[t.toLowerCase()])}</small>` : ''}</button>`).join('')}</div>
       <form id="tg-nieuw" class="toolbar" style="margin-top:6px"><label class="search">${ic('plus')}<input id="tg-tekst" name="tag" placeholder="Nieuwe tag" autocomplete="off" enterkeyhint="done" data-geenfocus></label><button class="btn" type="submit">Toevoegen</button></form>
       <div class="sheet-actions"><button type="button" class="btn primary" data-act="closeSheet">Klaar</button></div></div>`;
   };
@@ -2937,6 +2948,8 @@ function trajecten(periode){
   }).filter(t => !grens || (t.start && t.start >= grens) || (t.klantOp && t.klantOp >= grens));
 }
 /* Conversie per groep: aandeel dat klant werd. */
+/* Bron: de tags, zonder de automatische (klant, koud). */
+const bronTags = t => { const l = (t.b.tags || []).filter(x => !['klant','koud'].includes(x.toLowerCase())); return l.length ? l : ['(geen tag)']; };
 function convPer(ts, sleutel){
   const m = new Map();
   ts.forEach(t => [].concat(sleutel(t)).forEach(k => { const r = m.get(k) || {n:0, k:0}; r.n++; if(t.klant) r.k++; m.set(k, r); }));
@@ -2956,7 +2969,7 @@ function inzichten(ts){
     if(best.pct - slechtst.pct >= 10) uit.push(`<b>${esc(naam)}:</b> "${esc(best.label)}" wordt het vaakst klant (${Math.round(best.pct)}%, ${best.k} van ${best.n}), tegen ${Math.round(slechtst.pct)}% bij "${esc(slechtst.label)}".`);
   };
   vergelijk('Eerste aanpak', convPer(ts, t => t.eersteAanpak));
-  vergelijk('Bron', convPer(ts, t => (t.b.tags || []).length ? t.b.tags : ['(geen tag)']));
+  vergelijk('Bron', convPer(ts, bronTags));
   vergelijk('Aantal bezoeken', convPer(ts, t => t.bezoeken >= 3 ? '3 of meer' : String(t.bezoeken)));
   vergelijk('Mailreeks', convPer(ts, t => t.reeks));
   const kl = ts.filter(t => t.klant && t.dagen != null);
@@ -2999,7 +3012,7 @@ function resultatenView(){
       <div class="trechter">${fases.map(([naam, n], i) => `<div class="tr-rij ${i===fases.length-1?'succes':''}"><span class="lbl">${naam}</span><span class="baan"><span class="staaf" style="width:${(n / max * 100).toFixed(1)}%"></span></span><span class="w"><b>${n}</b>${i ? ` <small>${fases[i-1][1] ? Math.round(n / fases[i-1][1] * 100) : 0}% van vorige</small>` : ''}</span></div>`).join('')}</div></section>
     <div class="multiples res-groepen">
       <div class="card"><h3>Eerste aanpak</h3><p class="sub">Hoe het eerste contact was</p>${convBalken(convPer(ts, t => t.eersteAanpak))}</div>
-      <div class="card"><h3>Bron (tag)</h3><p class="sub">Bijv. #deuren intrappen of #netwerk</p>${convBalken(convPer(ts, t => (t.b.tags || []).length ? t.b.tags : ['(geen tag)']))}</div>
+      <div class="card"><h3>Bron (tag)</h3><p class="sub">Bijv. #deuren intrappen of #netwerk</p>${convBalken(convPer(ts, bronTags))}</div>
       <div class="card"><h3>Aantal bezoeken</h3><p class="sub">Bezoeken tot klant (of tot nu)</p>${convBalken(convPer(ts, t => t.bezoeken >= 3 ? '3 of meer' : String(t.bezoeken)))}</div>
       <div class="card"><h3>Mailreeks</h3><p class="sub">Welke reeks ze kregen</p>${convBalken(convPer(ts, t => t.reeks))}</div>
       <div class="card"><h3>Regio</h3>${convBalken(convPer(ts, t => regio(t.b) || 'Onbekend'))}</div>
