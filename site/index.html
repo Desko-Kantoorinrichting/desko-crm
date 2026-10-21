@@ -115,6 +115,13 @@ a{color:var(--accent)}
 .chip.warn{background:var(--warn-soft);color:var(--warn)}
 .chip.tag{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:500}
 .chip.tag::before{content:"#";opacity:.5}
+.tags-bewerk .chip{font-size:.82rem;padding:4px 6px 4px 10px;gap:2px}
+.tag-x{border:0;background:none;color:var(--muted);width:24px;height:24px;margin:-4px -2px -4px 0;border-radius:50%;display:grid;place-items:center;cursor:pointer}
+.tag-x:hover{background:var(--sunk);color:var(--ink)}.tag-x .ic{width:13px;height:13px}
+.chip.tag-plus{border:1px dashed var(--accent);background:transparent;color:var(--accent);cursor:pointer;padding:4px 10px;font-weight:650}
+.chip.tag-plus .ic{width:13px;height:13px}
+.tagkeuze{display:flex;flex-wrap:wrap;gap:8px}
+.tagkeuze .keuze small{opacity:.7}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .mono{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:.95rem;flex:none;letter-spacing:.02em}
 .mono.lg{width:62px;height:62px;font-size:1.35rem}
@@ -982,7 +989,7 @@ function detailView(b){
       <div class="chips">${chipKopje(b.kopje)}${b.kopje==='prospect'?`<span class="chip ${b.status==='verloren'?'warn':''}">${esc(b.status||'nieuw')}</span>`:''}</div>
       <h1>${esc(b.naam)}</h1>
       <p class="meta">${[b.plaats&&`<span>${ic('pin')}${esc([b.plaats, prov].filter(Boolean).join(', '))}</span>`, b.grootte&&`<span>${ic('users')}${esc(b.grootte)} medewerkers</span>`, b.branche&&`<span>${ic('building')}${esc(b.branche)}</span>`, reg&&`<span>${ic('target')}${esc(reg)}</span>`].filter(Boolean).join('') || '<span>Nog geen adres of gegevens</span>'}</p>
-      ${(b.tags||[]).length ? `<div class="chips">${b.tags.map(t=>`<span class="chip tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      <div class="chips tags-bewerk">${(b.tags||[]).map(t=>`<span class="chip tag">${esc(t)}<button class="tag-x" data-act="tagWeg" data-id="${b.id}" data-tag="${esc(t)}" aria-label="Tag ${esc(t)} verwijderen">${ic('x','sm')}</button></span>`).join('')}<button class="chip tag-plus" data-act="tagSheet" data-id="${b.id}">${ic('plus','sm')}Tag</button></div>
     </div></header>
     ${b.kopje==='prospect' ? `<div class="statusbar"><label class="f" style="flex:1;min-width:180px;max-width:320px"><span>Status</span><select id="status-sel" data-act-change="status" data-id="${b.id}">${STATUSSEN.map(x=>`<option ${b.status===x?'selected':''}>${x}</option>`).join('')}</select></label>
       ${b.status==='gewonnen'?`<button class="btn primary" data-act="omzetten" data-id="${b.id}">${ic('check','sm')}Omzetten naar klant</button>`:''}</div>` : ''}
@@ -1084,7 +1091,7 @@ function openSheet(title, body, onMount){
   w.innerHTML = `<div class="sheet-backdrop" data-act="closeSheet"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sheet-head"><h2>${esc(title)}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Sluiten">${ic('x')}</button></div><div class="sheet-body">${body}</div></div>`;
   w.hidden = false;
   onMount && onMount(w.querySelector('.sheet'));
-  const first = w.querySelector('input:not([type=hidden]):not([type=radio]):not([type=checkbox]),textarea:not([data-geenfocus]),select'); first && first.focus({preventScroll:true});
+  const first = w.querySelector('input:not([type=hidden]):not([type=radio]):not([type=checkbox]):not([data-geenfocus]),textarea:not([data-geenfocus]),select'); first && first.focus({preventScroll:true});
 }
 function closeSheet(){ stopLuisteren(); const w = $('#sheet'); w.hidden = true; w.innerHTML = ''; }
 function bevestig(title, tekst, knop, fn){
@@ -2631,6 +2638,43 @@ function spraakBegrepen(tekst, vast, gekozenId){
   });
 }
 
+/* ---------- tags snel aanpassen ---------- */
+/* Tags zetten; bij een tag van een mailreeks blijft er maar één reeks over, en ingeplande mails
+   van een reeks waarvan de tag weg is, worden geannuleerd. */
+async function zetTags(b, tags){
+  const nieuw = normTags(tags);
+  await updBedrijf(b.id, {tags:nieuw});
+  const reeks = REEKS.reeksVoor({...b, tags:nieuw}, S.inst);
+  if(S.mails.some(m => m.bedrijfId===b.id && m.status==='gepland' && m.reeks && m.reeks !== reeks?.id)) await annuleerGepland(b, 'tag van de mailreeks verwijderd');
+}
+function tagSheet(b){
+  const reeksTags = new Set((S.inst.mailreeksen || []).map(r => r.tag.toLowerCase()));
+  const teken = () => {
+    const huidig = bedrijf(b.id)?.tags || [], aan = new Set(huidig.map(t => t.toLowerCase()));
+    const alle = [...new Set([...huidig, ...alleTags()])].sort((x, y) => (reeksTags.has(y.toLowerCase()) - reeksTags.has(x.toLowerCase())) || x.localeCompare(y));
+    return `<div class="section">
+      <p class="sub">${esc(b.naam)} · tik om aan of uit te zetten</p>
+      <div class="tagkeuze">${alle.map(t => `<button type="button" class="keuze ${aan.has(t.toLowerCase())?'on':''}" data-tagwissel="${esc(t)}" aria-pressed="${aan.has(t.toLowerCase())}">#${esc(t)}${reeksTags.has(t.toLowerCase()) ? '<small>mailreeks</small>' : ''}</button>`).join('')}</div>
+      <form id="tg-nieuw" class="toolbar" style="margin-top:6px"><label class="search">${ic('plus')}<input id="tg-tekst" name="tag" placeholder="Nieuwe tag" autocomplete="off" enterkeyhint="done" data-geenfocus></label><button class="btn" type="submit">Toevoegen</button></form>
+      <div class="sheet-actions"><button type="button" class="btn primary" data-act="closeSheet">Klaar</button></div></div>`;
+  };
+  openSheet('Tags', teken(), function mount(s){
+    const body = s.querySelector('.sheet-body');
+    s.querySelectorAll('[data-tagwissel]').forEach(k => k.onclick = async () => {
+      const bb = bedrijf(b.id), t = k.dataset.tagwissel, l = t.toLowerCase(), had = (bb.tags||[]).some(x => x.toLowerCase()===l);
+      let tags = had ? (bb.tags||[]).filter(x => x.toLowerCase()!==l) : [...(bb.tags||[]), t];
+      if(!had && reeksTags.has(l)) tags = tagsMetReeks(tags, (S.inst.mailreeksen||[]).find(r => r.tag.toLowerCase()===l).id);
+      await veilig(() => zetTags(bb, tags));
+      body.innerHTML = teken(); mount(s);
+    });
+    s.querySelector('#tg-nieuw').onsubmit = async e => {
+      e.preventDefault(); const t = s.querySelector('#tg-tekst').value.replace(/^#/, '').trim(); if(!t) return;
+      const bb = bedrijf(b.id); await veilig(() => zetTags(bb, [...(bb.tags||[]), t]), `#${t} toegevoegd`);
+      body.innerHTML = teken(); mount(s); s.querySelector('#tg-tekst')?.focus();
+    };
+  });
+}
+
 /* ---------- agenda ---------- */
 const AG_SOORT = {opvolg:{naam:'Opvolging', ic:'phone'}, mail:{naam:'Mail', ic:'mail'}, afspraak:{naam:'Afspraak', ic:'calendar'}, commissie:{naam:'Commissie', ic:'euro'}};
 const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -3004,6 +3048,8 @@ const ACT = {
   snel: () => snelMenu(),
   snelKies: d => kiesBedrijf(d.doel),
   inspreken: d => inspreken(d.id ? bedrijf(d.id) : null),
+  tagSheet: d => tagSheet(bedrijf(d.id)),
+  tagWeg: d => { const b = bedrijf(d.id); veilig(() => zetTags(b, (b.tags||[]).filter(t => t !== d.tag)), `#${d.tag} verwijderd`); },
   verversen: (d, el) => { document.querySelectorAll('.ververs').forEach(x => x.classList.add('bezig')); setTimeout(() => location.reload(), 150); },
   appOpname: () => inspreken(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-tekst')?.value || ''),
   toetsenbordOpname: () => { const t = $('#sp-live')?.textContent || ''; inspreekToetsenbord(V.inspreekBij ? bedrijf(V.inspreekBij) : null, $('#sp-live .sub') ? '' : t); },
