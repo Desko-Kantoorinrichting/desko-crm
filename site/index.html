@@ -315,6 +315,19 @@ a{color:var(--accent)}
 .plan-kaart-plek .hint{padding:16px}
 .plan-kaart{height:420px;width:100%}
 @media (min-width:1100px){.plan-kaart-plek{position:sticky;top:20px;align-self:start}.plan-kaart{height:calc(100vh - 60px);min-height:520px}}
+.resultaten .tegel.succes{border-color:#51C26F;background:var(--accent-soft)}
+.inzichten{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.45}
+.trechter{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.tr-rij{display:grid;grid-template-columns:120px 1fr auto;gap:10px;align-items:center;font-size:.9rem}
+.tr-rij .baan{height:22px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.tr-rij .staaf{display:block;height:100%;background:var(--accent);border-radius:6px;min-width:2px}
+.tr-rij.succes .staaf{background:linear-gradient(90deg,#51C26F,#F2E901)}
+.tr-rij .w small,.conv .w small{color:var(--muted);font-weight:500}
+.grafiek.conv{grid-template-columns:minmax(110px,46%) 1fr auto}.conv .staaf{min-width:0}
+.conv .rij.weinig .staaf{opacity:.35}.conv .rij.weinig .w b{color:var(--muted)}
+.res-groepen .card h3{margin:0}.res-groepen .card .sub{margin:0 0 6px;font-size:.82rem}
+.card.succes .kolommen .k i{background:linear-gradient(180deg,#51C26F,#1F7A3C)}
+@media (max-width:520px){.tr-rij{grid-template-columns:96px 1fr auto}}
 .week{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .wk-dag{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font:inherit;color:var(--ink);cursor:pointer;width:100%}
 .wk-dag:first-child{border-top:0}
@@ -684,7 +697,7 @@ function dueTekst(datum){
 }
 
 async function updBedrijf(id, patch){ await db.collection('bedrijven').doc(id).update({...patch, bijgewerkt:new Date().toISOString()}); }
-async function logAct(b, a){ const doc = {bedrijfId:b.id, datum:new Date().toISOString(), ...a}; await db.collection('activiteiten').add(doc); if(alleActs) alleActs.push(doc); }
+async function logAct(b, a){ const doc = {bedrijfId:b.id, datum:new Date().toISOString(), ...(S.gebruiker?.naam && a.type !== 'systeem' ? {door:S.gebruiker.naam} : {}), ...a}; await db.collection('activiteiten').add(doc); if(alleActs) alleActs.push(doc); }
 async function systeem(b, tekst){ await logAct(b, {type:'systeem', tekst}); }
 
 async function startReeks(b, ci){
@@ -921,7 +934,7 @@ function vandaagView(){
         <button class="stat" data-act="tab" data-tab="commissie"><b class="num">${n('commissie')}</b><span>${ic('euro')}Commissie</span></button>
       </div>
       <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
-      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
+      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button></div>
       </div></div>
     ${weekOverzicht()}
     ${routeKaart()}
@@ -1096,7 +1109,7 @@ function meerView(){
   }));
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Instellingen en overzicht</p><h1>Meer</h1></header>
-    <div class="btns"><button class="btn primary" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
+    <div class="btns"><button class="btn primary" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
     <section class="section"><div class="section-title"><h2>Conversie per tag</h2></div>
       ${perTag.size ? `<div class="card scroll-x"><table class="mini"><thead><tr><th>Tag</th><th class="r">Prospects</th><th class="r">Klant geworden</th><th class="r">Conversie</th></tr></thead><tbody>
       ${[...perTag.entries()].sort((a,b)=>b[1].tot-a[1].tot).map(([tag,r])=>`<tr><td>${esc(tag)}</td><td class="r">${r.tot}</td><td class="r">${r.klant}</td><td class="r">${Math.round(r.klant/r.tot*100)}%</td></tr>`).join('')}
@@ -1143,13 +1156,14 @@ function render(){
   else if(V.tab==='agenda') html = agendaView();
   else if(V.tab==='plannen') html = plannenView();
   else if(V.tab==='pijplijn') html = pijplijnView();
+  else if(V.tab==='resultaten') html = resultatenView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length + commissieTaken().length;
-  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['plannen','route','Plannen'],['pijplijn','kolom','Pijplijn'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
-  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
-  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${k==='plannen'||k==='pijplijn'?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
+  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['plannen','route','Plannen'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
+  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&V.tab==='resultaten'&&matchMedia('(max-width:959px)').matches) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
+  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${['plannen','pijplijn','resultaten'].includes(k)?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
   const ini = esc(initialen(S.gebruiker?.naam||''));
   $('#side-brand').innerHTML = `${LOGO}`;
@@ -2042,7 +2056,7 @@ async function verplaatsIntern(b, naar){
   {
     const patch = {kopje:naar};
     if(naar==='prospect') patch.status = b.status && b.status!=='gewonnen' ? b.status : 'nieuw';
-    if(b.kopje==='prospect' && naar==='klant') patch.wasProspect = true;
+    if(b.kopje==='prospect' && naar==='klant'){ patch.wasProspect = true; patch.klantSinds = today(); patch.laatsteFase = b.status || 'nieuw'; }
     if(naar==='commissie' && !(b.tags||[]).some(t=>t.toLowerCase()===COMMISSIE_TAG)) patch.tags = [...(b.tags||[]), COMMISSIE_TAG];
     if(b.opvolging?.actief) patch.opvolging = {...clone(b.opvolging), actief:false};
     await annuleerGepland(b, 'verplaatst naar een ander kopje');
@@ -2999,6 +3013,116 @@ function routeMaak(){
   window.open(routeUrl(volgorde), '_blank', 'noopener');
 }
 
+/* ---------- resultaten: wat werkt ----------
+   Een prospect die klant wordt is een succes. Per bedrijf wordt uit de tijdlijn afgeleid hoe
+   het traject liep (eerste aanpak, aantal bezoeken, mails, doorlooptijd), zodat te zien is
+   welke aanpak het vaakst tot een klant leidt. Kleine aantallen worden als zodanig gemarkeerd. */
+const MIN_N = 5;
+const KLANT_TEKST = /Verplaatst van Prospects naar Klanten/;
+function trajecten(periode){
+  const grens = periode ? addDays(today(), -periode) : '';
+  const perBedrijf = new Map(); (alleActs || []).forEach(a => { if(!perBedrijf.has(a.bedrijfId)) perBedrijf.set(a.bedrijfId, []); perBedrijf.get(a.bedrijfId).push(a); });
+  return S.bedrijven.filter(b => b.kopje==='prospect' || b.wasProspect).map(b => {
+    const acts = (perBedrijf.get(b.id) || []).filter(a => a.datum).sort((x, y) => x.datum.localeCompare(y.datum));
+    const klant = b.kopje==='klant' && b.wasProspect;
+    const klantOp = klant ? (b.klantSinds || acts.find(a => a.type==='systeem' && KLANT_TEKST.test(a.tekst||''))?.datum?.slice(0, 10) || '') : '';
+    const voor = klantOp ? acts.filter(a => a.datum.slice(0, 10) <= klantOp) : acts;
+    const contact = voor.filter(a => CONTACT_TYPES.includes(a.type));
+    const eerste = contact[0];
+    const st = b.kopje==='prospect' ? (b.status || 'nieuw') : (b.laatsteFase || 'afspraak');
+    const na = f => STATUSSEN.indexOf(st) >= STATUSSEN.indexOf(f) && st !== 'verloren';
+    const bezoeken = voor.filter(a => a.type==='bezoek').length;
+    const reeks = REEKS.reeksVoor(b, S.inst)?.naam || [...new Set(S.mails.filter(m => m.bedrijfId===b.id && m.reeks).map(m => (S.inst.mailreeksen||[]).find(r => r.id===m.reeks)?.naam).filter(Boolean))][0] || 'Geen mailreeks';
+    const start = (eerste?.datum || b.aangemaakt || '').slice(0, 10);
+    return {b, klant, klantOp, start, verloren:b.status==='verloren',
+      bereikt:{contact:klant || !!contact.length || na('contact gehad'), bezocht:klant && bezoeken > 0 || bezoeken > 0 || na('bezocht'), afspraak:voor.some(a => a.type==='afspraak') || na('afspraak') || (klant && b.laatsteFase==='afspraak'), klant},
+      eersteAanpak:eerste ? ({bezoek:'Bezoek', bel:'Telefoon', mail_uit:'Mail', mail_in:'Zij namen contact op', afspraak:'Afspraak'}[eerste.type] || 'Anders') : 'Nog geen contact',
+      bezoeken, mails:voor.filter(a => a.type==='mail_uit').length, gesprekken:voor.filter(a => a.type==='bel' && a.uitkomst==='gesproken').length, contactmomenten:contact.length,
+      dagen:klantOp && start ? diffDays(start, klantOp) : null, reeks, door:eerste?.door || 'Onbekend'};
+  }).filter(t => !grens || (t.start && t.start >= grens) || (t.klantOp && t.klantOp >= grens));
+}
+/* Conversie per groep: aandeel dat klant werd. */
+function convPer(ts, sleutel){
+  const m = new Map();
+  ts.forEach(t => [].concat(sleutel(t)).forEach(k => { const r = m.get(k) || {n:0, k:0}; r.n++; if(t.klant) r.k++; m.set(k, r); }));
+  return [...m.entries()].map(([label, r]) => ({label, n:r.n, k:r.k, pct:r.n ? r.k / r.n * 100 : 0}))
+    .sort((a, c) => (c.n >= MIN_N) - (a.n >= MIN_N) || c.pct - a.pct || c.n - a.n);
+}
+function convBalken(rijen){
+  if(!rijen.length) return '<p class="sub">Nog geen gegevens.</p>';
+  return `<div class="grafiek conv">${rijen.slice(0, 8).map(r => `<div class="rij ${r.n < MIN_N ? 'weinig' : ''}" title="${esc(r.label)}: ${r.k} van ${r.n} werd klant${r.n < MIN_N ? ' (te weinig om te vergelijken)' : ''}">
+    <span class="lbl">${esc(r.label)}</span><span class="baan"><span class="staaf" style="width:${Math.max(r.pct, r.k ? 2 : 0).toFixed(1)}%"></span></span><span class="w"><b>${Math.round(r.pct)}%</b> <small>${r.k}/${r.n}</small></span></div>`).join('')}</div>`;
+}
+function inzichten(ts){
+  const uit = [], totaal = ts.length ? ts.filter(t => t.klant).length / ts.length * 100 : 0;
+  const vergelijk = (naam, rijen) => {
+    const ok = rijen.filter(r => r.n >= MIN_N); if(ok.length < 2) return;
+    const best = ok[0], slechtst = ok[ok.length - 1];
+    if(best.pct - slechtst.pct >= 10) uit.push(`<b>${esc(naam)}:</b> "${esc(best.label)}" wordt het vaakst klant (${Math.round(best.pct)}%, ${best.k} van ${best.n}), tegen ${Math.round(slechtst.pct)}% bij "${esc(slechtst.label)}".`);
+  };
+  vergelijk('Eerste aanpak', convPer(ts, t => t.eersteAanpak));
+  vergelijk('Bron', convPer(ts, t => (t.b.tags || []).length ? t.b.tags : ['(geen tag)']));
+  vergelijk('Aantal bezoeken', convPer(ts, t => t.bezoeken >= 3 ? '3 of meer' : String(t.bezoeken)));
+  vergelijk('Mailreeks', convPer(ts, t => t.reeks));
+  const kl = ts.filter(t => t.klant && t.dagen != null);
+  if(kl.length >= 3){ const med = [...kl].sort((a, c) => a.dagen - c.dagen)[Math.floor(kl.length / 2)].dagen; uit.push(`<b>Doorlooptijd:</b> de helft van de nieuwe klanten was binnen ${med} dagen na het eerste contact klant.`); }
+  if(kl.length >= 3){ const gem = kl.reduce((t, x) => t + x.contactmomenten, 0) / kl.length; uit.push(`<b>Inspanning:</b> gemiddeld ${gem.toFixed(1).replace('.', ',')} contactmomenten per nieuwe klant.`); }
+  return {lijst:uit, totaal};
+}
+function resultatenView(){
+  if(!alleActs && !actsLaden) setTimeout(() => laadAlleActiviteiten(), 0);
+  const r = V.resultaten = V.resultaten || {periode:''};
+  const ts = trajecten(Number(r.periode) || 0), klanten = ts.filter(t => t.klant), ins = inzichten(ts);
+  const fases = [['Prospects', ts.length], ['Contact gehad', ts.filter(t => t.bereikt.contact).length], ['Bezocht', ts.filter(t => t.bereikt.bezocht).length], ['Afspraak', ts.filter(t => t.bereikt.afspraak).length], ['Klant geworden', klanten.length]];
+  const max = Math.max(1, fases[0][1]);
+  const kl = klanten.filter(t => t.dagen != null);
+  const mediaan = kl.length ? [...kl].sort((a, c) => a.dagen - c.dagen)[Math.floor(kl.length / 2)].dagen : null;
+  // activiteit per maand (12 maanden)
+  const nu = parse(today()), maanden = Array.from({length:12}, (_, i) => { const d = new Date(nu.getFullYear(), nu.getMonth() - 11 + i, 1); return ds(d).slice(0, 7); });
+  const acts = (alleActs || []).filter(a => a.datum && a.type !== 'systeem');
+  const perMaand = filt => maanden.map(m => ({m, waarde:acts.filter(a => a.datum.slice(0, 7)===m && filt(a)).length}));
+  const reeksen = [['Bezoeken', a => a.type==='bezoek'], ['Gesprekken', a => a.type==='bel' && a.uitkomst==='gesproken'], ['Mails verstuurd', a => a.type==='mail_uit'], ['Afspraken', a => a.type==='afspraak']].map(([naam, f]) => ({naam, reeks:perMaand(f)}));
+  reeksen.push({naam:'Nieuwe klanten', reeks:maanden.map(m => ({m, waarde:S.bedrijven.filter(b => b.wasProspect && b.kopje==='klant' && (b.klantSinds || '').slice(0, 7)===m).length})), succes:true});
+  const mk = (x) => { const mx = Math.max(1, ...x.reeks.map(y => y.waarde)); return `<div class="kolommen" role="img" aria-label="${x.reeks.map(y => `${y.m}: ${y.waarde}`).join(', ')}">${x.reeks.map((y, i) => `<span class="k ${y.waarde?'':'leeg'}" title="${MAANDEN[Number(y.m.slice(5)) - 1]} ${y.m.slice(0, 4)}: ${y.waarde}">${y.waarde && (i===x.reeks.length-1 || y.waarde===mx) ? `<em>${y.waarde}</em>` : ''}<i style="height:${(y.waarde / mx * 100).toFixed(1)}%"></i></span>`).join('')}</div>
+    <div class="kolom-labels" aria-hidden="true">${x.reeks.map((y, i) => `<span>${(x.reeks.length - 1 - i) % 3 === 0 ? MAANDEN[Number(y.m.slice(5)) - 1] : ''}</span>`).join('')}</div>`; };
+  // per persoon (wie legde het eerste contact)
+  const personen = convPer(ts.filter(t => t.door !== 'Onbekend'), t => t.door);
+  const pk = (k, l) => `<button class="keuze ${String(r.periode)===k?'on':''}" data-act="resPeriode" data-p="${k}">${l}</button>`;
+  return `<div class="wrap resultaten">
+    <header class="page-head"><p class="eyebrow">Wat werkt</p><h1>Resultaten</h1><p class="sub">Een prospect die klant wordt, is een succes. Hier zie je hoe die trajecten liepen en welke aanpak het vaakst werkt.</p></header>
+    <div class="keuzes">${pk('','Altijd')}${pk('365','12 maanden')}${pk('182','6 maanden')}${pk('91','3 maanden')}</div>
+    ${actsLaden ? `<p class="hint">${ic('refresh','sm')} Tijdlijnen laden… ${V.actsVoortgang||0} van ${S.bedrijven.length}</p>` : ''}
+    <div class="tegels">
+      <div class="tegel succes"><b>${klanten.length}</b><span>Prospects klant geworden</span></div>
+      <div class="tegel"><b>${ts.length ? Math.round(klanten.length / ts.length * 100) : 0}%</b><span>Wordt klant (${klanten.length} van ${ts.length})</span></div>
+      <div class="tegel"><b>${mediaan != null ? mediaan : '–'}</b><span>Dagen tot klant (mediaan)</span></div>
+      <div class="tegel"><b>${kl.length ? (kl.reduce((t, x) => t + x.contactmomenten, 0) / kl.length).toFixed(1).replace('.', ',') : '–'}</b><span>Contactmomenten per klant</span></div>
+    </div>
+    <section class="card"><h2>Wat we tot nu toe zien</h2>
+      ${ins.lijst.length ? `<ul class="inzichten">${ins.lijst.map(x => `<li>${x}</li>`).join('')}</ul>` : `<p class="sub">Nog te weinig gegevens om conclusies te trekken. ${klanten.length < 3 ? `Er ${klanten.length===1?'is':'zijn'} ${klanten.length} prospect${klanten.length===1?'':'s'} klant geworden; ` : ''}vergelijkingen verschijnen vanaf ${MIN_N} bedrijven per groep. Blijf bezoeken, gesprekken en mails vastleggen, dan wordt dit vanzelf rijker.</p>`}</section>
+    <section class="card"><h2>Van prospect naar klant</h2><p class="sub">Hoeveel prospects elke fase hebben bereikt.</p>
+      <div class="trechter">${fases.map(([naam, n], i) => `<div class="tr-rij ${i===fases.length-1?'succes':''}"><span class="lbl">${naam}</span><span class="baan"><span class="staaf" style="width:${(n / max * 100).toFixed(1)}%"></span></span><span class="w"><b>${n}</b>${i ? ` <small>${fases[i-1][1] ? Math.round(n / fases[i-1][1] * 100) : 0}% van vorige</small>` : ''}</span></div>`).join('')}</div></section>
+    <div class="multiples res-groepen">
+      <div class="card"><h3>Eerste aanpak</h3><p class="sub">Hoe het eerste contact was</p>${convBalken(convPer(ts, t => t.eersteAanpak))}</div>
+      <div class="card"><h3>Bron (tag)</h3><p class="sub">Bijv. #deuren intrappen of #netwerk</p>${convBalken(convPer(ts, t => (t.b.tags || []).length ? t.b.tags : ['(geen tag)']))}</div>
+      <div class="card"><h3>Aantal bezoeken</h3><p class="sub">Bezoeken tot klant (of tot nu)</p>${convBalken(convPer(ts, t => t.bezoeken >= 3 ? '3 of meer' : String(t.bezoeken)))}</div>
+      <div class="card"><h3>Mailreeks</h3><p class="sub">Welke reeks ze kregen</p>${convBalken(convPer(ts, t => t.reeks))}</div>
+      <div class="card"><h3>Regio</h3>${convBalken(convPer(ts, t => regio(t.b) || 'Onbekend'))}</div>
+      <div class="card"><h3>Grootte</h3>${convBalken(convPer(ts, t => t.b.grootte || 'Onbekend'))}</div>
+      <div class="card"><h3>Branche</h3>${convBalken(convPer(ts, t => t.b.branche || 'Onbekend'))}</div>
+      ${personen.length > 1 ? `<div class="card"><h3>Wie</h3><p class="sub">Wie het eerste contact legde</p>${convBalken(personen)}</div>` : ''}
+    </div>
+    <p class="hint">Balk = aandeel dat klant werd. Lichte balken: minder dan ${MIN_N} bedrijven in die groep, nog niet te vergelijken.</p>
+    <section class="section"><div class="section-title"><h2>Wat er is gedaan</h2><span class="sub">laatste 12 maanden</span></div>
+      <div class="multiples">${reeksen.map(x => `<div class="card ${x.succes?'succes':''}"><h3>${esc(x.naam)}<span>${x.reeks.reduce((t, y) => t + y.waarde, 0)}</span></h3>${alleActs || x.succes ? mk(x) : '<p class="sub">Laden…</p>'}</div>`).join('')}</div></section>
+    <section class="card"><h2>Klant geworden</h2>
+      ${klanten.length ? `<div class="rows">${[...klanten].sort((a, c) => (c.klantOp || '').localeCompare(a.klantOp || '')).map(t => `<button class="row" data-act="open" data-id="${t.b.id}" style="grid-template-columns:1fr auto">
+        <span class="t"><span class="row-top"><b>${esc(t.b.naam)}</b>${t.klantOp ? `<span class="chip">${esc(fmtDag(t.klantOp))}</span>` : ''}</span>
+        <span class="meta">eerste contact: ${esc(t.eersteAanpak.toLowerCase())} · ${t.bezoeken} bezoek${t.bezoeken===1?'':'en'} · ${t.gesprekken} gesprek${t.gesprekken===1?'':'ken'} · ${t.mails} mail${t.mails===1?'':'s'}${t.dagen != null ? ` · ${t.dagen} dagen` : ''}${(t.b.tags||[]).length ? ' · #' + esc(t.b.tags.join(' #')) : ''}</span></span>${ic('right')}</button>`).join('')}</div>`
+        : '<p class="sub">Nog geen prospects klant geworden in deze periode. Verplaats een prospect naar Klanten zodra hij klant wordt; dan telt hij hier mee.</p>'}</section>
+  </div>`;
+}
+
 /* ---------- pijplijn ----------
    Prospects (standaard zonder #netwerk) per fase. Doorschuiven met slepen of pijltjes;
    met één tik op de rit van de gekozen dag (zelfde keuze als bij Plannen). */
@@ -3514,6 +3638,7 @@ const ACT = {
   naBezoek: d => naBezoek(bedrijf(d.id)),
   routeStop2: () => bevestig('Route wissen', 'De dagroute van vandaag verdwijnt. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => veilig(() => zetRoute({...route(), stops:[]}))),
   planDag: d => { planStaat().datum = d.d; render(); },
+  resPeriode: d => { V.resultaten.periode = d.p; render(); },
   weekDag: d => { if(d.rit){ const v = planStaat(); v.datum = d.d; v.voor = S.gebruiker?.naam || v.voor; ACT.tab({tab:'plannen'}); return; }
     V.agenda = {modus:'week', filter:'alle', ...(V.agenda || {}), datum:d.d}; ACT.tab({tab:'agenda'}); },
   pijpFase: d => { V.pijp.fase = d.f; render(); },
