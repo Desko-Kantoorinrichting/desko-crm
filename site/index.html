@@ -350,6 +350,8 @@ a{color:var(--accent)}
 .stoplijst li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 10px;background:var(--surface)}
 .stoplijst li.gedaan{opacity:.6}
 .stoplijst .t{min-width:0}.stoplijst .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stoplijst .meta{display:block;color:var(--muted);font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.plan-tags .chip{font-size:.72rem;padding:1px 7px}
+.plan-tagkeuze{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 8px;font:inherit;max-width:44%}
 .stop-knoppen{display:flex;gap:2px}.stop-knoppen .icon-btn{width:34px;height:34px;font-size:1rem}
 .kaartnr span{width:30px;height:30px;border-radius:50%;background:linear-gradient(90deg,#51C26F,#F2E901);color:#000;font:700 .9rem/30px var(--font-body, sans-serif);text-align:center;display:block;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #000}
 .kaartnr.thuis span{background:#000;color:#fff}
@@ -2881,7 +2883,7 @@ function routeKaart(){
     <p class="hint">${ic('route','sm')} ${m.weg ? '' : '± '}${m.km} km · ${urenMin(m.rijMin)} rijden · vertrek ${esc(sch.start)}, ${vertrekpunt() ? 'terug' : 'klaar'} ± ${sch.terug}${r.door && r.door !== S.gebruiker?.naam ? ` · klaargezet door ${esc(r.door)}` : ''}</p>
     <div class="rows">${r.stops.map((x,i) => { const b = bedrijf(x.id); if(!b) return ''; const volgende = open[0]?.id===x.id; return `<div class="row static ${x.status!=='open'?'gedaan':''}" style="grid-template-columns:auto 1fr auto">
       <span class="stopnr ${volgende?'nu':''}">${x.status==='klaar' ? ic('check','sm') : i+1}</span>
-      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${x.status!=='open' ? `<span class="chip">${naam[x.status]}</span>` : ''}</span><span class="meta">${sch.aankomst[b.id] && x.status==='open' ? `<b>± ${sch.aankomst[b.id].tijd}</b> · ` : ''}${esc([b.adres, b.plaats].filter(Boolean).join(', '))}${x.notitie ? ' · '+esc(x.notitie) : ''}</span></span>
+      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${x.status!=='open' ? `<span class="chip">${naam[x.status]}</span>` : ''}${(b.tags||[]).map(t => `<span class="chip tag">${esc(t)}</span>`).join('')}</span><span class="meta">${sch.aankomst[b.id] && x.status==='open' ? `<b>± ${sch.aankomst[b.id].tijd}</b> · ` : ''}${esc([b.adres, b.plaats].filter(Boolean).join(', '))}${x.notitie ? ' · '+esc(x.notitie) : ''}</span></span>
       <span class="btns" style="flex-wrap:nowrap">${x.status==='open' ? `<button class="btn small" data-act="routeNaar" data-id="${b.id}" aria-label="Navigeer naar ${esc(b.naam)}">${ic('route','sm')}<span class="lbl">Navigeer</span></button><button class="btn small ${volgende?'primary':''}" data-act="naBezoek" data-id="${b.id}">${ic('check','sm')}<span class="lbl">Klaar</span></button>`
         : `<button class="btn small" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button>`}</span></div>`; }).join('')}</div>
     <div class="btns">${open.length ? `<button class="btn primary" data-act="routeHeel">${ic('route','sm')}Route openen${open.length>1 ? ` (${open.length} stops)` : ''}</button>` : `<p class="sub">Alle stops gedaan. Goed bezig!</p>`}<button class="btn ghost" data-act="routeStop2">Route wissen</button></div></section>`;
@@ -3162,6 +3164,7 @@ function planKandidaten(v, r){
   const zoek = (v.zoek || '').toLowerCase();
   return S.bedrijven.filter(b => b.geo?.lat && !inRoute.has(b.id) && b.status!=='verloren')
     .filter(b => !zoek || [b.naam, b.plaats, ...(b.tags||[])].join(' ').toLowerCase().includes(zoek))
+    .filter(b => !v.tag || (v.tag==='(geen tag)' ? !(b.tags||[]).length : (b.tags||[]).some(t => t.toLowerCase()===v.tag.toLowerCase())))
     .map(b => { const {p, reden} = planReden(b, v.datum); const km = basis.length ? Math.min(...basis.map(g => afstandKm(g, b.geo))) : null; return {b, p, reden, km, elders:elders.get(b.id)}; })
     .filter(x => v.filter==='alle' || zoek ? true : v.filter==='opvolging' ? /Opvolging|Langsgaan/.test(x.reden) : v.filter==='stil' ? /stil|nooit/.test(x.reden) : v.filter==='nieuw' ? x.reden==='Nieuwe prospect' : x.p > 0)
     .sort((a, c) => (a.elders ? 1 : 0) - (c.elders ? 1 : 0) || (c.p - (c.km ?? 0) * 1.5) - (a.p - (a.km ?? 0) * 1.5));
@@ -3208,7 +3211,7 @@ function plannenView(){
         <p class="hint">${ic('pin','sm')} Vertrek: ${vp ? esc(vp.adres) : 'huidige locatie'} · <a href="#" data-act="planVertrek">wijzigen</a></p>
         ${r.stops.length ? `<ol class="stoplijst">${r.stops.map((x, i) => { const b = bedrijf(x.id), w = planReden(b, v.datum);
           const a = sch.aankomst[b.id];
-          return `<li class="${x.status!=='open'?'gedaan':''}"><span class="stopnr">${x.status==='klaar' ? ic('check','sm') : i+1}</span><span class="t"><b>${esc(b.naam)}</b><span class="meta">${a ? `<b class="aankomst">${a.tijd}</b>${a.rij != null ? ` (${a.rij} min rijden)` : ''} · ` : ''}${esc(b.plaats || '')}${w.reden ? ' · '+esc(w.reden) : ''}</span></span>
+          return `<li class="${x.status!=='open'?'gedaan':''}"><span class="stopnr">${x.status==='klaar' ? ic('check','sm') : i+1}</span><span class="t"><b>${esc(b.naam)}</b><span class="meta">${a ? `<b class="aankomst">${a.tijd}</b>${a.rij != null ? ` (${a.rij} min rijden)` : ''} · ` : ''}${esc(b.plaats || '')}${w.reden ? ' · '+esc(w.reden) : ''}</span>${(b.tags||[]).length ? `<span class="plan-tags">${b.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('')}</span>` : ''}</span>
             <span class="stop-knoppen"><button class="icon-btn" data-act="planSchuif" data-i="${i}" data-n="-1" ${i?'':'disabled'} aria-label="Eerder">↑</button><button class="icon-btn" data-act="planSchuif" data-i="${i}" data-n="1" ${i<r.stops.length-1?'':'disabled'} aria-label="Later">↓</button><button class="icon-btn" data-act="planWeg" data-id="${b.id}" aria-label="${esc(b.naam)} uit de route">${ic('x','sm')}</button></span></li>`; }).join('')}</ol>` : ''}
         <div class="btns">
           <button class="btn primary" data-act="planSlim">${ic('bolt','sm')}Slim vullen</button>
@@ -3220,9 +3223,10 @@ function plannenView(){
       <section class="card plan-voorstel">
         <div class="section-title"><h2>Voorstellen</h2><span class="count num">${kand.length}</span></div>
         <div class="keuzes">${fk('slim','Aanbevolen')}${fk('opvolging','Opvolging nodig')}${fk('stil','Lang stil')}${fk('nieuw','Nieuwe prospects')}${fk('alle','Alles')}</div>
-        <div class="toolbar"><label class="search">${ic('search')}<input id="plan-zoek" type="search" placeholder="Zoek op naam, plaats of tag" value="${esc(v.zoek||'')}" autocomplete="off" aria-label="Zoek een bedrijf"></label></div>
+        <div class="toolbar"><label class="search">${ic('search')}<input id="plan-zoek" type="search" placeholder="Zoek op naam, plaats of tag" value="${esc(v.zoek||'')}" autocomplete="off" aria-label="Zoek een bedrijf"></label>
+          <select id="plan-tag" class="plan-tagkeuze" aria-label="Tag"><option value="">Alle tags</option>${[...new Set(S.bedrijven.flatMap(b => b.tags||[]).map(t => t.toLowerCase()))].sort().map(t => `<option value="${esc(t)}" ${v.tag===t?'selected':''}>#${esc(t)}</option>`).join('')}<option value="(geen tag)" ${v.tag==='(geen tag)'?'selected':''}>Zonder tag</option></select></div>
         <div class="rows">${kand.length ? kand.map(x => `<div class="row static" style="grid-template-columns:1fr auto">
-          <span class="t"><span class="row-top"><b>${esc(x.b.naam)}</b>${chipKopje(x.b.kopje)}</span><span class="meta">${esc(x.b.plaats || '')}${x.km != null ? ` · ${x.km < 10 ? x.km.toFixed(1).replace('.', ',') : Math.round(x.km)} km` : ''}${x.reden ? ' · '+esc(x.reden) : ''}${x.elders ? ` · al gepland ${esc(fmtDag(x.elders.datum))}` : ''}</span></span>
+          <span class="t"><span class="row-top"><b>${esc(x.b.naam)}</b>${chipKopje(x.b.kopje)}</span><span class="meta">${esc(x.b.plaats || '')}${x.km != null ? ` · ${x.km < 10 ? x.km.toFixed(1).replace('.', ',') : Math.round(x.km)} km` : ''}${x.reden ? ' · '+esc(x.reden) : ''}${x.elders ? ` · al gepland ${esc(fmtDag(x.elders.datum))}` : ''}</span>${(x.b.tags||[]).length ? `<span class="plan-tags">${x.b.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join('')}</span>` : ''}</span>
           <button class="btn small ${x.elders?'':'primary'}" data-act="planErbij" data-id="${x.b.id}" ${r.stops.length >= ROUTE_MAX ? 'disabled' : ''} aria-label="${esc(x.b.naam)} toevoegen">${ic('plus','sm')}<span class="lbl">Toevoegen</span></button></div>`).join('')
           : `<p class="sub" style="padding:10px 4px">Geen voorstellen. Kies "Alles" of zoek op naam.</p>`}</div>
         ${S.bedrijven.some(b => b.plaats && !b.geo) ? `<p class="hint">Sommige adressen worden nog opgezocht…</p>` : ''}
@@ -3263,11 +3267,11 @@ function tekenPlanKaart(){
   const punten = [];
   planKandidaten({...v, filter:v.filter}, r).slice(0, 150).forEach(x => {
     L.circleMarker([x.b.geo.lat, x.b.geo.lng], {radius:x.p >= 40 ? 8 : 6, color:'#fff', weight:2, fillColor:x.elders ? '#B9B4AA' : x.p >= 40 ? '#C0392B' : '#6B6B6B', fillOpacity:.9})
-      .bindTooltip(`${esc(x.b.naam)}${x.reden ? ' · '+esc(x.reden) : ''}`).on('click', () => ACT.planErbij({id:x.b.id})).addTo(planLaag);
+      .bindTooltip(`${esc(x.b.naam)}${x.reden ? ' · '+esc(x.reden) : ''}${(x.b.tags||[]).length ? '<br>#' + x.b.tags.map(esc).join(' #') : ''}`).on('click', () => ACT.planErbij({id:x.b.id})).addTo(planLaag);
   });
   const lijn = vp ? [[vp.lat, vp.lng]] : [];
   r.stops.forEach((x, i) => { const b = bedrijf(x.id); if(!b?.geo?.lat) return; const ll = [b.geo.lat, b.geo.lng]; lijn.push(ll); punten.push(ll);
-    L.marker(ll, {icon:L.divIcon({className:'kaartnr', html:`<span>${i+1}</span>`, iconSize:[30, 30], iconAnchor:[15, 15]})}).bindTooltip(esc(b.naam)).addTo(planLaag); });
+    L.marker(ll, {icon:L.divIcon({className:'kaartnr', html:`<span>${i+1}</span>`, iconSize:[30, 30], iconAnchor:[15, 15]})}).bindTooltip(`${esc(b.naam)}${(b.tags||[]).length ? '<br>#' + b.tags.map(esc).join(' #') : ''}`).addTo(planLaag); });
   if(vp){ lijn.push([vp.lat, vp.lng]); L.marker([vp.lat, vp.lng], {icon:L.divIcon({className:'kaartnr thuis', html:'<span>⌂</span>', iconSize:[30, 30], iconAnchor:[15, 15]})}).bindTooltip('Vertrek: ' + esc(vp.adres)).addTo(planLaag); punten.push([vp.lat, vp.lng]); }
   const weg = reisCache.get(reisSleutel(routePunten(r).pts));
   if(weg?.lijn?.length) L.polyline(weg.lijn, {color:'#1F7A3C', weight:5, opacity:.85, lineJoin:'round'}).addTo(planLaag);
@@ -3621,6 +3625,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if(t.id==='plan-tag'){ planStaat().tag = t.value; render(); return; }
   if(t.id==='plan-start'){ const v = planStaat(), r = planRoute(v); if(r.stops.length) veilig(() => zetRoute({...r, id:routeId(v.datum, v.voor), start:t.value || null})); return; }
   if(t.dataset?.sorteer){ V.sorteer = {...(V.sorteer||{}), [t.dataset.sorteer]:t.value}; render(); return; }
   if(t.id==='pijp-prov'){ V.pijp.prov = t.value; render(); return; }
