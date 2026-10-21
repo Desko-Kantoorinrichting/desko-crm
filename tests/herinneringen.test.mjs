@@ -91,3 +91,14 @@ test('zonder DATA_TOKEN of zonder aangemelde telefoons: stil stoppen', async () 
   const w = wereld({bedrijven:{b1:bedrijf({stap:'actie', datum:'2026-10-21'})}, abonnementen:{}});
   assert.equal((await main(ENV, op('2026-10-21T07:00:00Z'), {stuur:w.stuur})).verstuurd, 0);
 });
+
+test('route van vandaag: één melding aan het begin van de werkdag', () => {
+  const bedrijven = {b1:bedrijf({stap:'actie', datum:'2026-10-30'}), b2:bedrijf({stap:'actie', datum:'2026-10-30'}, {naam:'Van Dijk Architecten'})};
+  const routes = {'2026-10-21--ferry':{datum:'2026-10-21', voor:'Ferry', stops:[{id:'b1', status:'open'}, {id:'b2', status:'open'}, {id:'weg', status:'open'}]},
+    '2026-10-22--ferry':{datum:'2026-10-22', voor:'Ferry', stops:[{id:'b1'}]}};
+  const args = {bedrijven, mails:{}, inst:{kantoortijden:{van:'08:30'}}, robotActief:false, datum:'2026-10-21', routes};
+  assert.equal(teVersturen({...args, log:{}, tijd:'08:00'}).length, 0);
+  const [m] = teVersturen({...args, log:{}, tijd:'08:45'});
+  assert.equal(m.titel, 'Route vandaag voor Ferry: 2 bezoeken'); assert.equal(m.tekst, 'Hoek Advocaten, Van Dijk Architecten'); assert.equal(m.url, '#/vandaag');
+  assert.equal(teVersturen({...args, log:{[m.sleutel]:'x'}, tijd:'09:00'}).length, 0);
+});

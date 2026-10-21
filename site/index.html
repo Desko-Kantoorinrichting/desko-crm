@@ -215,7 +215,7 @@ a{color:var(--accent)}
 .ag-item .t span{display:block;color:var(--muted);font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ag-item .soort{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;color:var(--muted)}
 .ag-item.late .tijd{color:var(--warn)}
-.ag-opvolg{--kleur:#1F7A3C}.ag-mail{--kleur:var(--ink)}.ag-afspraak{--kleur:#D9CB00}.ag-commissie{--kleur:#8A8A8A}
+.ag-route{--kleur:#51C26F}.ag-opvolg{--kleur:#1F7A3C}.ag-mail{--kleur:var(--ink)}.ag-afspraak{--kleur:#D9CB00}.ag-commissie{--kleur:#8A8A8A}
 .maand{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .maand .wd{font-size:.72rem;font-weight:700;color:var(--muted);text-align:center;padding:2px 0}
 .maand button{aspect-ratio:1/1;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5px 2px;cursor:pointer;color:var(--ink);font:inherit;font-weight:650}
@@ -255,6 +255,30 @@ a{color:var(--accent)}
 @keyframes draai{to{transform:rotate(360deg)}}
 .dicteer{display:flex;gap:12px;align-items:flex-start;background:var(--accent-soft);border-radius:14px;padding:12px 14px;font-size:.92rem;line-height:1.4}
 .dicteer .ic{flex:none;width:28px;height:28px;padding:5px;border-radius:50%;background:#000;color:#fff}
+.alleen-groot{display:none!important}
+@media (min-width:960px){.alleen-groot{display:flex!important}}
+.plan-kop{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.plan-kop select{min-width:160px}
+.dagstrip{display:flex;gap:6px;overflow-x:auto;padding:8px 4px 4px;flex:1;min-width:0}
+.dagstrip button{flex:none;width:52px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:6px 0;display:flex;flex-direction:column;align-items:center;cursor:pointer;color:var(--ink);font:inherit;position:relative}
+.dagstrip button small{font-size:.72rem;color:var(--muted);font-weight:650}.dagstrip button b{font-size:1.1rem}
+.dagstrip button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}.dagstrip button.on small{color:inherit;opacity:.8}
+.dagstrip i{position:absolute;top:-6px;right:-4px;font-style:normal;font-size:.68rem;font-weight:700;background:#1F7A3C;color:#fff;border-radius:9px;min-width:18px;height:18px;display:grid;place-items:center;padding:0 4px}
+.plan-grid{display:grid;gap:16px;align-items:start}
+.plan-grid > .card{display:flex;flex-direction:column;gap:10px}
+@media (min-width:1100px){.plan-grid{grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);grid-template-rows:auto 1fr;grid-template-areas:"route kaart" "voorstel kaart"}.plan-route{grid-area:route}.plan-kaart-plek{grid-area:kaart}.plan-voorstel{grid-area:voorstel}.wrap.plannen{max-width:1400px}}
+.plan-kaart-plek{min-height:320px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--sunk);position:relative}
+.plan-kaart-plek .hint{padding:16px}
+.plan-kaart{height:420px;width:100%}
+@media (min-width:1100px){.plan-kaart-plek{position:sticky;top:20px;align-self:start}.plan-kaart{height:calc(100vh - 60px);min-height:520px}}
+.plan-maat{font-weight:650;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.plan-maat small{color:var(--muted);font-weight:500}
+.stoplijst{list-style:none;margin:6px 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
+.stoplijst li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 10px;background:var(--surface)}
+.stoplijst li.gedaan{opacity:.6}
+.stoplijst .t{min-width:0}.stoplijst .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stoplijst .meta{display:block;color:var(--muted);font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stop-knoppen{display:flex;gap:2px}.stop-knoppen .icon-btn{width:34px;height:34px;font-size:1rem}
+.kaartnr span{width:30px;height:30px;border-radius:50%;background:linear-gradient(90deg,#51C26F,#F2E901);color:#000;font:700 .9rem/30px var(--font-body, sans-serif);text-align:center;display:block;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #000}
+.kaartnr.thuis span{background:#000;color:#fff}
 .stopnr{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);margin-right:4px}
 .stopnr.nu{background:var(--jade);border-color:transparent;color:#000}
 .row.gedaan{opacity:.6}
@@ -549,7 +573,7 @@ let db = null;
 const SESSIE_KEY = 'desko-crm-sessie';
 const lees = k => { try{ return localStorage.getItem(k); }catch{ return null; } };
 const bewaar = (k,v) => { try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch{} };
-const S = {bedrijven:[], deals:[], weergaven:[], exportlog:[], mails:[], robot:null, inst:REEKS.instellingen({}), laden:true, geenDb:false, gebruiker:null, login:{}, gebruikers:null, beheer:null};
+const S = {bedrijven:[], routes:[], deals:[], weergaven:[], exportlog:[], mails:[], robot:null, inst:REEKS.instellingen({}), laden:true, geenDb:false, gebruiker:null, login:{}, gebruikers:null, beheer:null};
 const V = {tab:'vandaag', detail:null, zoek:{}, filters:{}, filterOpen:false, terugNaar:'vandaag'};
 let acts = [], actUnsub = null;
 
@@ -835,7 +859,7 @@ function vandaagView(){
         <button class="stat" data-act="tab" data-tab="commissie"><b class="num">${n('commissie')}</b><span>${ic('euro')}Commissie</span></button>
       </div>
       <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
-      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
+      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
       </div></div>
     ${meldingBanner()}
     ${routeKaart()}
@@ -1056,12 +1080,14 @@ function render(){
   else if(V.tab==='cijfers') html = cijfersView();
   else if(V.tab==='buurt') html = buurtView();
   else if(V.tab==='agenda') html = agendaView();
+  else if(V.tab==='plannen') html = plannenView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
+  if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length + commissieTaken().length;
-  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
-  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt')) : (k===V.terugNaar);
-  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
+  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['plannen','route','Plannen'],['klant','building','Klanten'],['prospect','target','Prospects'],['commissie','euro','Commissie'],['mail','mail','Mail'],['meer','menu','Meer']];
+  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
+  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${k==='plannen'?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
   const ini = esc(initialen(S.gebruiker?.naam||''));
   $('#side-brand').innerHTML = `${LOGO}`;
@@ -2723,7 +2749,7 @@ function tagSheet(b){
 }
 
 /* ---------- agenda ---------- */
-const AG_SOORT = {opvolg:{naam:'Opvolging', ic:'phone'}, mail:{naam:'Mail', ic:'mail'}, afspraak:{naam:'Afspraak', ic:'calendar'}, commissie:{naam:'Commissie', ic:'euro'}};
+const AG_SOORT = {route:{naam:'Route', ic:'route'}, opvolg:{naam:'Opvolging', ic:'phone'}, mail:{naam:'Mail', ic:'mail'}, afspraak:{naam:'Afspraak', ic:'calendar'}, commissie:{naam:'Commissie', ic:'euro'}};
 const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 /* Alles wat gepland staat, per dag: opvolgingen, ingeplande mails, afspraken en commissie. */
 function agendaItems(){
@@ -2737,6 +2763,7 @@ function agendaItems(){
   });
   S.mails.filter(m => m.status==='gepland').forEach(m => { const b = bedrijf(m.bedrijfId); if(b) uit.push({soort:'mail', datum:m.datum, tijd:m.tijd||'09:30', b, titel:`Mail${m.reeks ? ' '+(m.stap+1) : ''}: ${m.onderwerp}`, wie:m.aan, m}); });
   (alleActs || []).filter(a => a.type==='afspraak' && a.afspraakOp).forEach(a => { const b = bedrijf(a.bedrijfId); if(b) uit.push({soort:'afspraak', datum:ds(new Date(a.afspraakOp)), tijd:hhmm(a.afspraakOp), b, titel:a.tekst || 'Afspraak', wie:a.contactNaam || '', a}); });
+  S.routes.filter(r => r.stops?.length).forEach(r => uit.push({soort:'route', datum:r.datum, tijd:null, b:{naam:`Route ${r.voor || ''}`.trim(), id:null}, titel:`${r.stops.length} bezoek${r.stops.length > 1 ? 'en' : ''}: ${r.stops.map(x => bedrijf(x.id)?.naam).filter(Boolean).slice(0, 3).join(', ')}${r.stops.length > 3 ? '…' : ''}`, wie:'', r}));
   commissieTaken().forEach(t => uit.push({soort:'commissie', datum:t.datum, b:t.b, titel:t.soort==='factureren' ? `Factureren: ${euro(t.d.commissie)}` : `Betaling navragen: ${euro(t.d.commissie)}`, wie:t.d.omschrijving || ''}));
   S.deals.filter(d => d.status==='gefactureerd' && d.gefactureerdOp).forEach(d => { const b = bedrijf(d.bedrijfId); if(!b) return;
     const vervalt = addDays(d.gefactureerdOp, Number(T(b).betaaltermijnDagen)||30);
@@ -2744,7 +2771,7 @@ function agendaItems(){
   return uit.sort((x,y) => x.datum.localeCompare(y.datum) || (x.tijd||'99').localeCompare(y.tijd||'99'));
 }
 function agItem(x, i){
-  const late = x.datum < today() && x.soort!=='afspraak';
+  const late = x.datum < today() && x.soort!=='afspraak' && x.soort!=='route';
   return `<button class="ag-item ag-${x.soort} ${late?'late':''}" data-act="agendaOpen" data-i="${i}">
     <span class="tijd">${x.tijd ? esc(x.tijd) : late ? esc(fmtDag(x.datum)) : 'Hele dag'}${late ? '<small>te laat</small>' : ''}</span>
     <span class="t"><span class="soort">${ic(AG_SOORT[x.soort].ic,'sm')}${AG_SOORT[x.soort].naam}</span><b>${esc(x.b.naam)}${x.wie ? ' · '+esc(x.wie) : ''}</b><span>${esc(x.titel)}</span></span>${ic('right','sm')}</button>`;
@@ -2763,7 +2790,7 @@ function agendaView(){
   if(v.modus==='week'){
     const ma = weekStart(basis), dagen = Array.from({length:7}, (_,i) => addDays(ma, i));
     const te = dagen.filter((d,i) => i < 5 || (perDag.get(d)||[]).length);   // weekend alleen als er iets is
-    const laat = ma <= today() && today() <= dagen[6] ? alle.map((x,i) => [x,i]).filter(([x]) => x.datum < today() && x.soort!=='afspraak') : [];
+    const laat = ma <= today() && today() <= dagen[6] ? alle.map((x,i) => [x,i]).filter(([x]) => x.datum < today() && x.soort!=='afspraak' && x.soort!=='route') : [];
     kop = `<small>Week ${weekNr(ma)}</small>${parse(ma).getDate()} ${MAANDEN[parse(ma).getMonth()]} – ${parse(dagen[6]).getDate()} ${MAANDEN[parse(dagen[6]).getMonth()]}`;
     inhoud = `${laat.length ? `<div class="dag"><div class="dag-kop" style="color:var(--warn)">Te laat <small>${laat.length}</small></div>${laat.map(([x,i]) => agItem(x,i)).join('')}</div>` : ''}${te.map(dagLijst).join('')}`;
   } else {
@@ -2777,9 +2804,9 @@ function agendaView(){
       ${dagLijst(gekozen)}`;
   }
   return `<div class="wrap">
-    <header class="page-head"><p class="eyebrow">Planning</p><h1>Agenda</h1><p class="sub">Wie wanneer een opvolging, mail of afspraak heeft.</p></header>
+    <header class="page-head"><p class="eyebrow">Planning</p><h1>Agenda</h1><p class="sub">Wie wanneer een opvolging, mail of afspraak heeft.</p><div class="btns"><button class="btn small" data-act="tab" data-tab="plannen">${ic('route','sm')}Route plannen</button></div></header>
     <div class="keuzes"><div class="seg" style="flex:0 0 auto">${['week','maand'].map(m => `<button class="keuze ${v.modus===m?'on':''}" data-act="agendaModus" data-m="${m}">${m==='week'?'Week':'Maand'}</button>`).join('')}</div></div>
-    <div class="keuzes">${fk('alle','Alles')}${fk('opvolg','Opvolgingen')}${fk('mail','Mails')}${fk('afspraak','Afspraken')}${fk('commissie','Commissie')}</div>
+    <div class="keuzes">${fk('alle','Alles')}${fk('route','Routes')}${fk('opvolg','Opvolgingen')}${fk('mail','Mails')}${fk('afspraak','Afspraken')}${fk('commissie','Commissie')}</div>
     <div class="agenda-nav"><h2>${kop}</h2>
       <span class="btns"><button class="btn small" data-act="agendaStap" data-n="-1" aria-label="Vorige">${ic('left','sm')}</button><button class="btn small" data-act="agendaStap" data-n="0">Nu</button><button class="btn small" data-act="agendaStap" data-n="1" aria-label="Volgende">${ic('right','sm')}</button></span></div>
     ${!alleActs ? `<p class="hint">${ic('refresh','sm')} Afspraken laden${V.actsVoortgang ? ` (${V.actsVoortgang}/${S.bedrijven.length})` : ''}…</p>` : ''}
@@ -2813,18 +2840,37 @@ function agendaIcs(){
   bewaarBestand(`desko-planning-${today()}.ics`, ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Desko//CRM//NL','CALSCALE:GREGORIAN','METHOD:PUBLISH', ...ev, 'END:VCALENDAR'].join('\r\n'), 'text/calendar;charset=utf-8');
 }
 
-/* ---------- dagroute ---------- */
-/* De dagroute is een persoonlijk plan en staat alleen op dit toestel. Google Maps krijgt
-   alleen de coördinaten van de stops, geen namen. */
-const ROUTE_KEY = 'desko-crm-route', ROUTE_MAX = 9, TERUG_NA_MS = 2*60*1000;
-function route(){ try{ const r = JSON.parse(lees(ROUTE_KEY) || 'null'); return r && r.datum===today() && r.stops ? r : null; }catch{ return null; } }
-const zetRoute = r => bewaar(ROUTE_KEY, r ? JSON.stringify(r) : null);
+/* ---------- dagroute ----------
+   Routes staan in de gedeelde gegevens (routes), per dag en per persoon: wat op kantoor bij
+   Plannen wordt klaargezet, ziet Ferry op Vandaag. Google Maps krijgt alleen coördinaten.
+   Of je net naar Google Maps ging (om daarna te vragen hoe het bezoek ging) blijft op dit toestel. */
+const ROUTE_MAX = 9, TERUG_NA_MS = 2*60*1000, ONDERWEG_KEY = 'desko-crm-onderweg';
+const naamSlug = n => String(n || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'iemand';
+const routeId = (datum, voor) => `${datum}--${naamSlug(voor)}`;
+const routeVan = (datum, voor) => S.routes.find(r => r.datum===datum && r.voor===voor) || null;
+const route = () => routeVan(today(), S.gebruiker?.naam);
+async function zetRoute(r){
+  if(!r) return;
+  const {id, ...data} = r;
+  if(!data.stops?.length) await db.collection('routes').doc(id || routeId(r.datum, r.voor)).delete();
+  else await db.collection('routes').doc(id || routeId(r.datum, r.voor)).set({...data, bijgewerkt:new Date().toISOString(), door:S.gebruiker?.naam || ''});
+}
+const onderweg = () => { try{ return JSON.parse(lees(ONDERWEG_KEY) || 'null') || {}; }catch{ return {}; } };
 const openStops = r => (r?.stops || []).filter(x => x.status==='open' && bedrijf(x.id));
 const mapsPlek = b => `${b.geo.lat},${b.geo.lng}`;
-/* Steeds de dichtstbijzijnde volgende stop. */
+/* Steeds de dichtstbijzijnde volgende stop, daarna 2-opt: kruisende stukken rechtzetten. */
 function ordenStops(start, lijst){
   const rest = [...lijst], uit = []; let p = start || rest[0]?.geo;
   while(rest.length){ rest.sort((a,b) => afstandKm(p, a.geo) - afstandKm(p, b.geo)); const n = rest.shift(); uit.push(n); p = n.geo; }
+  if(uit.length < 4) return uit;
+  const pt = i => i < 0 ? (start || uit[0].geo) : uit[i].geo;
+  for(let beter = true, ronde = 0; beter && ronde < 20; ronde++){
+    beter = false;
+    for(let i = 0; i < uit.length - 2; i++) for(let k = i + 1; k < uit.length - 1; k++){
+      const voor = afstandKm(pt(i-1), pt(i)) + afstandKm(pt(k), pt(k+1)), na = afstandKm(pt(i-1), pt(k)) + afstandKm(pt(i), pt(k+1));
+      if(na + 1e-9 < voor){ uit.splice(i, k - i + 1, ...uit.slice(i, k + 1).reverse()); beter = true; }
+    }
+  }
   return uit;
 }
 /* Zonder vertrekpunt start Google Maps vanaf je huidige locatie. */
@@ -2833,7 +2879,7 @@ function routeUrl(lijst){
   return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(doel)}${p.length ? '&waypoints='+encodeURIComponent(p.join('|')) : ''}`;
 }
 function naarMaps(lijst, huidig){
-  const r = route(); if(r){ r.weg = Date.now(); r.huidig = huidig || lijst[0]?.id; zetRoute(r); }
+  if(route()) bewaar(ONDERWEG_KEY, JSON.stringify({weg:Date.now(), huidig:huidig || lijst[0]?.id, datum:today()}));
   window.open(routeUrl(lijst), '_blank', 'noopener');
 }
 function routeKaart(){
@@ -2841,9 +2887,10 @@ function routeKaart(){
   const open = openStops(r), klaar = r.stops.filter(x => x.status!=='open').length;
   const naam = {klaar:'Bezocht', overgeslagen:'Overgeslagen'};
   return `<section class="section"><div class="section-title"><h2>Dagroute</h2><span class="count num">${klaar}/${r.stops.length}</span></div>
+    ${r.door && r.door !== S.gebruiker?.naam ? `<p class="hint">Klaargezet door ${esc(r.door)}.</p>` : ''}
     <div class="rows">${r.stops.map((x,i) => { const b = bedrijf(x.id); if(!b) return ''; const volgende = open[0]?.id===x.id; return `<div class="row static ${x.status!=='open'?'gedaan':''}" style="grid-template-columns:auto 1fr auto">
       <span class="stopnr ${volgende?'nu':''}">${x.status==='klaar' ? ic('check','sm') : i+1}</span>
-      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${x.status!=='open' ? `<span class="chip">${naam[x.status]}</span>` : ''}</span><span class="meta">${esc([b.adres, b.plaats].filter(Boolean).join(', '))}</span></span>
+      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${x.status!=='open' ? `<span class="chip">${naam[x.status]}</span>` : ''}</span><span class="meta">${esc([b.adres, b.plaats].filter(Boolean).join(', '))}${x.notitie ? ' · '+esc(x.notitie) : ''}</span></span>
       <span class="btns" style="flex-wrap:nowrap">${x.status==='open' ? `<button class="btn small" data-act="routeNaar" data-id="${b.id}" aria-label="Navigeer naar ${esc(b.naam)}">${ic('route','sm')}<span class="lbl">Navigeer</span></button><button class="btn small ${volgende?'primary':''}" data-act="naBezoek" data-id="${b.id}">${ic('check','sm')}<span class="lbl">Klaar</span></button>`
         : `<button class="btn small" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button>`}</span></div>`; }).join('')}</div>
     <div class="btns">${open.length ? `<button class="btn primary" data-act="routeHeel">${ic('route','sm')}Route openen${open.length>1 ? ` (${open.length} stops)` : ''}</button>` : `<p class="sub">Alle stops gedaan. Goed bezig!</p>`}<button class="btn ghost" data-act="routeStop2">Route wissen</button></div></section>`;
@@ -2852,10 +2899,177 @@ function routeMaak(){
   const v = V.buurt || {}, lijst = (v.sel || []).map(bedrijf).filter(b => b?.geo?.lat);
   if(!lijst.length) return;
   const volgorde = ordenStops(v.hier, lijst);
-  zetRoute({datum:today(), stops:volgorde.map(b => ({id:b.id, status:'open'}))});
+  veilig(() => zetRoute({datum:today(), voor:S.gebruiker?.naam, stops:volgorde.map(b => ({id:b.id, status:'open'}))}));
   V.buurt = {...v, kiezen:false, sel:[]}; render();
-  naarMaps(volgorde);
+  bewaar(ONDERWEG_KEY, JSON.stringify({weg:Date.now(), huidig:volgorde[0].id, datum:today()}));
+  window.open(routeUrl(volgorde), '_blank', 'noopener');
 }
+
+/* ---------- plannen ----------
+   Op kantoor (of onderweg) een dag voor iemand inplannen: kaart, slimme voorstellen,
+   afstand en reistijd, volgorde optimaliseren. */
+const BEZOEK_MIN = 20, KM_FACTOR = 1.3, KMU = 55;     // ± minuten per bezoek, omweg t.o.v. hemelsbreed, gemiddelde snelheid
+const werkdagenVanaf = (d, n) => { const uit = []; let x = REEKS.volgendeWerkdag(d); while(uit.length < n){ uit.push(x); x = addWerkdagen(x, 1); } return uit; };
+function planStaat(){
+  const v = V.plan = V.plan || {};
+  const namen = (S.gebruikers || []).map(g => g.naam).filter(Boolean);
+  if(!v.voor) v.voor = (S.gebruiker?.admin && (S.gebruikers || []).find(g => !g.admin)?.naam) || S.gebruiker?.naam || namen[0] || '';
+  if(!v.datum || v.datum < today()) v.datum = REEKS.isWerkdag(today()) && new Date().getHours() < 12 ? today() : addWerkdagen(today(), 1);
+  v.filter = v.filter || 'slim';
+  return v;
+}
+const vertrekpunt = () => S.inst.vertrekpunt?.lat ? S.inst.vertrekpunt : null;
+function planRoute(v){ const r = routeVan(v.datum, v.voor); return r ? {...r, stops:r.stops.filter(x => bedrijf(x.id))} : {datum:v.datum, voor:v.voor, stops:[]}; }
+/* Afstand en tijd: van vertrekpunt langs alle stops en terug. */
+function routeMaat(r){
+  const pts = r.stops.map(x => bedrijf(x.id)?.geo).filter(g => g?.lat), v = vertrekpunt();
+  const keten = v ? [v, ...pts, v] : pts; let km = 0;
+  for(let i = 1; i < keten.length; i++) km += afstandKm(keten[i-1], keten[i]);
+  km *= KM_FACTOR;
+  return {km:Math.round(km), min:Math.round(km / KMU * 60 + r.stops.length * BEZOEK_MIN)};
+}
+const urenMin = m => `${Math.floor(m / 60)} u ${String(m % 60).padStart(2, '0')}`;
+/* Waarom zou je hier langs moeten? Hoe hoger, hoe belangrijker. */
+function planReden(b, datum){
+  const o = b.opvolging, uit = [];
+  let p = 0;
+  if(o?.actief && !o.gepauzeerd && o.datum && o.datum <= addDays(datum, 3)){ const langs = o.stap==='actie' && /langs/i.test(o.actie||''); p += langs ? 70 : 45; uit.push(langs ? 'Langsgaan gepland' : o.datum < datum ? 'Opvolging te laat' : 'Opvolging nodig'); }
+  if(isStil(b)){ p += 30; uit.push(b.laatsteContact ? `${diffDays(b.laatsteContact, today())} dagen stil` : 'Nog nooit contact'); }
+  if(b.kopje==='prospect' && (b.status||'nieuw')==='nieuw' && !b.laatsteContact){ p += 20; if(!uit.includes('Nog nooit contact')) uit.push('Nieuwe prospect'); }
+  if(b.kopje==='klant') p += 5;
+  if(b.status==='verloren') p -= 100;
+  return {p, reden:uit[0] || KOPJES[b.kopje]?.enk || ''};
+}
+function planKandidaten(v, r){
+  const inRoute = new Set(r.stops.map(x => x.id));
+  const elders = new Map(); S.routes.filter(x => x.datum >= today() && !(x.datum===v.datum && x.voor===v.voor)).forEach(x => x.stops.forEach(st => elders.set(st.id, x)));
+  const ref = r.stops.map(x => bedrijf(x.id)?.geo).filter(g => g?.lat);
+  const basis = ref.length ? ref : (vertrekpunt() ? [vertrekpunt()] : []);
+  const zoek = (v.zoek || '').toLowerCase();
+  return S.bedrijven.filter(b => b.geo?.lat && !inRoute.has(b.id) && b.status!=='verloren')
+    .filter(b => !zoek || [b.naam, b.plaats, ...(b.tags||[])].join(' ').toLowerCase().includes(zoek))
+    .map(b => { const {p, reden} = planReden(b, v.datum); const km = basis.length ? Math.min(...basis.map(g => afstandKm(g, b.geo))) : null; return {b, p, reden, km, elders:elders.get(b.id)}; })
+    .filter(x => v.filter==='alle' || zoek ? true : v.filter==='opvolging' ? /Opvolging|Langsgaan/.test(x.reden) : v.filter==='stil' ? /stil|nooit/.test(x.reden) : v.filter==='nieuw' ? x.reden==='Nieuwe prospect' : x.p > 0)
+    .sort((a, c) => (a.elders ? 1 : 0) - (c.elders ? 1 : 0) || (c.p - (c.km ?? 0) * 1.5) - (a.p - (a.km ?? 0) * 1.5));
+}
+/* Slim vullen: begin bij de belangrijkste, voeg steeds de beste dichtbij toe, zet in volgorde. */
+function slimVullen(v, r, doel = 6){
+  const stops = r.stops.map(x => bedrijf(x.id)).filter(Boolean);
+  let pool = planKandidaten({...v, filter:'slim', zoek:''}, r).filter(x => !x.elders && x.p > 0);
+  const vp = vertrekpunt();
+  if(!stops.length && pool.length){
+    const binnen = vp ? pool.filter(x => afstandKm(vp, x.b.geo) <= 45) : pool;
+    const anker = (binnen.length ? binnen : pool).sort((a, c) => c.p - a.p)[0];
+    stops.push(anker.b); pool = pool.filter(x => x !== anker);
+  }
+  while(stops.length < doel && pool.length){
+    const km = x => Math.min(...stops.map(b => afstandKm(b.geo, x.b.geo)));
+    const kies = pool.filter(x => km(x) <= 25).sort((a, c) => (c.p - km(c) * 2) - (a.p - km(a) * 2))[0];
+    if(!kies) break;
+    stops.push(kies.b); pool = pool.filter(x => x !== kies);
+  }
+  const oud = new Map(r.stops.map(x => [x.id, x]));
+  return ordenStops(vp, stops).map(b => oud.get(b.id) || {id:b.id, status:'open'});
+}
+function plannenView(){
+  const v = planStaat(), r = planRoute(v), maat = routeMaat(r), vp = vertrekpunt();
+  const dagen = werkdagenVanaf(today(), 10);
+  const namen = [...new Set([...(S.gebruikers || []).map(g => g.naam), S.gebruiker?.naam].filter(Boolean))];
+  const kand = planKandidaten(v, r).slice(0, 40);
+  const fk = (k, l) => `<button class="keuze ${v.filter===k?'on':''}" data-act="planFilter" data-f="${k}">${l}</button>`;
+  const dd = parse(v.datum), dagNaam = `${['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][dd.getDay()]} ${dd.getDate()} ${MAANDEN[dd.getMonth()]}`;
+  return `<div class="wrap plannen">
+    <header class="page-head"><p class="eyebrow">Planning</p><h1>Plannen</h1><p class="sub">Zet een route klaar; ${esc(v.voor || 'de accountmanager')} ziet hem die dag op Vandaag en krijgt 's ochtends een melding.</p></header>
+    <div class="plan-kop">
+      ${namen.length > 1 ? `<label class="f" style="margin:0"><span>Voor</span><select id="plan-voor" data-plan-voor>${namen.map(n => `<option ${n===v.voor?'selected':''}>${esc(n)}</option>`).join('')}</select></label>` : ''}
+      <div class="dagstrip" role="tablist" aria-label="Dag">${dagen.map(d => { const x = parse(d), n = routeVan(d, v.voor)?.stops.length || 0;
+        return `<button role="tab" class="${d===v.datum?'on':''}" data-act="planDag" data-d="${d}" aria-selected="${d===v.datum}"><small>${DAGEN[x.getDay()]}</small><b>${x.getDate()}</b>${n ? `<i>${n}</i>` : ''}</button>`; }).join('')}</div>
+    </div>
+    <div class="plan-grid">
+      <section class="card plan-route">
+        <div class="section-title"><h2>Route ${esc(dagNaam)}</h2><span class="count num">${r.stops.length}</span></div>
+        <p class="plan-maat">${r.stops.length ? `${ic('route','sm')}± ${maat.km} km · ± ${urenMin(maat.min)} <small>(${r.stops.length} × ${BEZOEK_MIN} min bezoek)</small>` : 'Nog geen stops. Kies ze bij Voorstellen, tik op de kaart, of laat de app een route maken met Slim vullen.'}</p>
+        <p class="hint">${ic('pin','sm')} Vertrek: ${vp ? esc(vp.adres) : 'huidige locatie'} · <a href="#" data-act="planVertrek">wijzigen</a></p>
+        ${r.stops.length ? `<ol class="stoplijst">${r.stops.map((x, i) => { const b = bedrijf(x.id), w = planReden(b, v.datum);
+          return `<li class="${x.status!=='open'?'gedaan':''}"><span class="stopnr">${x.status==='klaar' ? ic('check','sm') : i+1}</span><span class="t"><b>${esc(b.naam)}</b><span class="meta">${esc(b.plaats || '')}${w.reden ? ' · '+esc(w.reden) : ''}</span></span>
+            <span class="stop-knoppen"><button class="icon-btn" data-act="planSchuif" data-i="${i}" data-n="-1" ${i?'':'disabled'} aria-label="Eerder">↑</button><button class="icon-btn" data-act="planSchuif" data-i="${i}" data-n="1" ${i<r.stops.length-1?'':'disabled'} aria-label="Later">↓</button><button class="icon-btn" data-act="planWeg" data-id="${b.id}" aria-label="${esc(b.naam)} uit de route">${ic('x','sm')}</button></span></li>`; }).join('')}</ol>` : ''}
+        <div class="btns">
+          <button class="btn primary" data-act="planSlim">${ic('bolt','sm')}Slim vullen</button>
+          ${r.stops.length > 2 ? `<button class="btn" data-act="planOptimaliseer">${ic('refresh','sm')}Beste volgorde</button>` : ''}
+          ${r.stops.length ? `<a class="btn" href="${esc(vp ? routeUrl(r.stops.map(x => bedrijf(x.id))).replace('?api=1', '?api=1&origin=' + encodeURIComponent(vp.lat + ',' + vp.lng)) : routeUrl(r.stops.map(x => bedrijf(x.id))))}" target="_blank" rel="noopener">${ic('route','sm')}Google Maps</a><button class="btn ghost" data-act="planWis">Wissen</button>` : ''}
+        </div>
+      </section>
+      <div class="plan-kaart-plek" id="plan-kaart-plek"><p class="hint" id="plan-kaart-melding">Kaart laden…</p></div>
+      <section class="card plan-voorstel">
+        <div class="section-title"><h2>Voorstellen</h2><span class="count num">${kand.length}</span></div>
+        <div class="keuzes">${fk('slim','Aanbevolen')}${fk('opvolging','Opvolging nodig')}${fk('stil','Lang stil')}${fk('nieuw','Nieuwe prospects')}${fk('alle','Alles')}</div>
+        <div class="toolbar"><label class="search">${ic('search')}<input id="plan-zoek" type="search" placeholder="Zoek op naam, plaats of tag" value="${esc(v.zoek||'')}" autocomplete="off" aria-label="Zoek een bedrijf"></label></div>
+        <div class="rows">${kand.length ? kand.map(x => `<div class="row static" style="grid-template-columns:1fr auto">
+          <span class="t"><span class="row-top"><b>${esc(x.b.naam)}</b>${chipKopje(x.b.kopje)}</span><span class="meta">${esc(x.b.plaats || '')}${x.km != null ? ` · ${x.km < 10 ? x.km.toFixed(1).replace('.', ',') : Math.round(x.km)} km` : ''}${x.reden ? ' · '+esc(x.reden) : ''}${x.elders ? ` · al gepland ${esc(fmtDag(x.elders.datum))}` : ''}</span></span>
+          <button class="btn small ${x.elders?'':'primary'}" data-act="planErbij" data-id="${x.b.id}" ${r.stops.length >= ROUTE_MAX ? 'disabled' : ''} aria-label="${esc(x.b.naam)} toevoegen">${ic('plus','sm')}<span class="lbl">Toevoegen</span></button></div>`).join('')
+          : `<p class="sub" style="padding:10px 4px">Geen voorstellen. Kies "Alles" of zoek op naam.</p>`}</div>
+        ${S.bedrijven.some(b => b.plaats && !b.geo) ? `<p class="hint">Sommige adressen worden nog opgezocht…</p>` : ''}
+      </section>
+    </div>
+  </div>`;
+}
+async function planStops(stops){ const v = planStaat(); await veilig(() => zetRoute({...planRoute(v), id:routeId(v.datum, v.voor), datum:v.datum, voor:v.voor, stops})); }
+/* ---- kaart (Leaflet + PDOK-achtergrondkaart van het Kadaster) ---- */
+let planKaart = null, planLaag = null, kaartEl = null, kaartLaden = null;
+function laadLeaflet(){
+  if(window.L) return Promise.resolve();
+  if(!kaartLaden){
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+    kaartLaden = laadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js').catch(e => { kaartLaden = null; throw e; });
+  }
+  return kaartLaden;
+}
+function plaatsPlanKaart(){
+  if(!geoBezig && S.bedrijven.some(b => b.plaats && adresVan(b) && (!b.geo || b.geo.q !== adresVan(b)))) setTimeout(geocodeOntbrekend, 0);
+  const plek = $('#plan-kaart-plek'); if(!plek) return;
+  laadLeaflet().then(() => {
+    const plek = $('#plan-kaart-plek'); if(!plek) return;
+    if(!kaartEl){
+      kaartEl = document.createElement('div'); kaartEl.className = 'plan-kaart'; kaartEl.setAttribute('aria-label', 'Kaart met route en voorstellen');
+      planKaart = L.map(kaartEl, {zoomControl:true, attributionControl:true}).setView([52.37, 4.9], 9);
+      L.tileLayer('https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/standaard/EPSG:3857/{z}/{x}/{y}.png', {maxZoom:19, minZoom:6, attribution:'Kaart: <a href="https://www.pdok.nl" target="_blank" rel="noopener">PDOK</a> / Kadaster'}).addTo(planKaart);
+      planLaag = L.layerGroup().addTo(planKaart);
+    }
+    plek.innerHTML = ''; plek.appendChild(kaartEl); planKaart.invalidateSize();
+    tekenPlanKaart();
+  }).catch(() => { const m = $('#plan-kaart-melding'); if(m) m.textContent = 'De kaart kon niet laden. Plannen kan gewoon via de lijsten.'; });
+}
+function tekenPlanKaart(){
+  if(!planKaart) return;
+  const v = planStaat(), r = planRoute(v), vp = vertrekpunt();
+  planLaag.clearLayers();
+  const punten = [];
+  planKandidaten({...v, filter:v.filter}, r).slice(0, 150).forEach(x => {
+    L.circleMarker([x.b.geo.lat, x.b.geo.lng], {radius:x.p >= 40 ? 8 : 6, color:'#fff', weight:2, fillColor:x.elders ? '#B9B4AA' : x.p >= 40 ? '#C0392B' : '#6B6B6B', fillOpacity:.9})
+      .bindTooltip(`${esc(x.b.naam)}${x.reden ? ' · '+esc(x.reden) : ''}`).on('click', () => ACT.planErbij({id:x.b.id})).addTo(planLaag);
+  });
+  const lijn = vp ? [[vp.lat, vp.lng]] : [];
+  r.stops.forEach((x, i) => { const b = bedrijf(x.id); if(!b?.geo?.lat) return; const ll = [b.geo.lat, b.geo.lng]; lijn.push(ll); punten.push(ll);
+    L.marker(ll, {icon:L.divIcon({className:'kaartnr', html:`<span>${i+1}</span>`, iconSize:[30, 30], iconAnchor:[15, 15]})}).bindTooltip(esc(b.naam)).addTo(planLaag); });
+  if(vp){ lijn.push([vp.lat, vp.lng]); L.marker([vp.lat, vp.lng], {icon:L.divIcon({className:'kaartnr thuis', html:'<span>⌂</span>', iconSize:[30, 30], iconAnchor:[15, 15]})}).bindTooltip('Vertrek: ' + esc(vp.adres)).addTo(planLaag); punten.push([vp.lat, vp.lng]); }
+  if(lijn.length > 1) L.polyline(lijn, {color:'#1F7A3C', weight:4, opacity:.8, dashArray:'2 8', lineCap:'round'}).addTo(planLaag);
+  const sleutel = v.datum + v.voor + r.stops.length;
+  if(punten.length && planKaart._desko !== sleutel){ planKaart._desko = sleutel; planKaart.fitBounds(punten, {padding:[40, 40], maxZoom:13}); }
+}
+function planVertrekSheet(){
+  const vp = vertrekpunt();
+  openSheet('Vertrekpunt', `<form id="pv" class="section"><label class="f"><span>Adres (bijv. kantoor)</span><input id="pv-adres" name="adres" value="${esc(vp?.adres || '')}" placeholder="Straat 1, Plaats" autocomplete="off"></label>
+    <p class="hint">Wordt gebruikt voor afstand, reistijd en de beste volgorde. Leeg = vanaf de huidige locatie.</p>
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div></form>`, s => {
+    s.querySelector('#pv').onsubmit = async e => {
+      e.preventDefault(); const adres = formData(e.target).adres.trim();
+      let punt = null;
+      if(adres){ try{ const g = await geocode(adres); if(!g){ toast('Dat adres kan ik niet vinden.'); return; } punt = {...g, adres}; }catch{ toast('Adres opzoeken lukte niet.'); return; } }
+      if(await veilig(() => db.doc('instellingen/algemeen').update({vertrekpunt:punt}), 'Vertrekpunt opgeslagen')) closeSheet();
+    };
+  });
+}
+
 const UITKOMSTEN = [['gesproken','Goed gesprek'], ['afspraak','Afspraak gemaakt'], ['niet','Niemand gesproken'], ['geen','Geen interesse']];
 function naBezoek(b){
   const r = route(), volgende = openStops(r).find(x => x.id!==b.id);
@@ -2905,7 +3119,11 @@ function naBezoek(b){
     };
   });
 }
-function zetStop(id, status){ const r = route(); const x = r?.stops.find(x => x.id===id); if(x){ x.status = status; if(r.huidig===id) r.huidig = null; zetRoute(r); } }
+function zetStop(id, status){
+  const r = route(); if(!r?.stops.some(x => x.id===id)) return;
+  veilig(() => zetRoute({...r, stops:r.stops.map(x => x.id===id ? {...x, status, op:new Date().toISOString()} : x)}));
+  const o = onderweg(); if(o.huidig===id) bewaar(ONDERWEG_KEY, JSON.stringify({...o, huidig:null}));
+}
 /* Na het opslaan: afspraak in de agenda en/of door naar de volgende stop. */
 function volgendeStop(afspraakBij){
   const v = openStops(route())[0], b = v && bedrijf(v.id);
@@ -2922,10 +3140,10 @@ function volgendeStop(afspraakBij){
 /* Terug uit Google Maps: vraag hoe het bezoek ging. */
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState!=='visible' || !S.gebruiker) return;
-  const r = route(); if(!r?.weg) return;
-  const weg = Date.now() - r.weg; r.weg = null; zetRoute(r);
+  const r = route(), o = onderweg(); if(!r || !o.weg || o.datum !== today()) return;
+  const weg = Date.now() - o.weg; bewaar(ONDERWEG_KEY, JSON.stringify({...o, weg:null}));
   if(weg < TERUG_NA_MS || !$('#sheet').hidden) return;
-  const id = openStops(r).find(x => x.id===r.huidig)?.id || openStops(r)[0]?.id, b = id && bedrijf(id);
+  const id = openStops(r).find(x => x.id===o.huidig)?.id || openStops(r)[0]?.id, b = id && bedrijf(id);
   if(b) naBezoek(b);
 });
 
@@ -3074,7 +3292,7 @@ const ACT = {
   agendaIcs,
   meldingAan, meldingUit, meldingTest,
   meldingBannerWeg: () => { bewaar('desko-crm-melding-banner', '1'); render(); },
-  agendaOpen: d => { const x = V._ag?.[Number(d.i)]; if(!x) return; if(x.soort==='mail') geplandeMailSheet(x.m); else if(x.soort==='opvolg') planActie(x.b, {titel:'Opvolging verzetten'}); else openDetail(x.b.id); },
+  agendaOpen: d => { const x = V._ag?.[Number(d.i)]; if(!x) return; if(x.soort==='route'){ const v = planStaat(); v.datum = x.r.datum; v.voor = x.r.voor; ACT.tab({tab:'plannen'}); return; } if(x.soort==='mail') geplandeMailSheet(x.m); else if(x.soort==='opvolg') planActie(x.b, {titel:'Opvolging verzetten'}); else openDetail(x.b.id); },
   routeKiezen: () => { const k = !V.buurt?.kiezen; V.buurt = {...V.buurt, kiezen:k, sel:[]}; render(); },
   routeStop: d => { const sel = [...(V.buurt.sel||[])], i = sel.indexOf(d.id);
     if(i>=0) sel.splice(i,1); else if(sel.length >= ROUTE_MAX){ toast(`Maximaal ${ROUTE_MAX} stops.`); return; } else sel.push(d.id);
@@ -3083,7 +3301,21 @@ const ACT = {
   routeHeel: () => naarMaps(openStops(route()).map(x => bedrijf(x.id))),
   routeNaar: d => naarMaps([bedrijf(d.id)], d.id),
   naBezoek: d => naBezoek(bedrijf(d.id)),
-  routeStop2: () => bevestig('Route wissen', 'De dagroute verdwijnt van dit toestel. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => { zetRoute(null); render(); }),
+  routeStop2: () => bevestig('Route wissen', 'De dagroute van vandaag verdwijnt. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => veilig(() => zetRoute({...route(), stops:[]}))),
+  planDag: d => { planStaat().datum = d.d; render(); },
+  planFilter: d => { planStaat().filter = d.f; render(); },
+  planVertrek: () => planVertrekSheet(),
+  planErbij: d => { const v = planStaat(), r = planRoute(v); if(r.stops.some(x => x.id===d.id)) return; if(r.stops.length >= ROUTE_MAX){ toast(`Maximaal ${ROUTE_MAX} stops.`); return; }
+    const b = bedrijf(d.id), stops = [...r.stops];
+    // op de plek waar de omweg het kleinst is
+    let best = stops.length, extra = Infinity; const vp = vertrekpunt(), g = i => i < 0 ? vp?.lat ? vp : null : i >= stops.length ? (vp?.lat ? vp : null) : bedrijf(stops[i].id)?.geo;
+    for(let i = 0; i <= stops.length; i++){ const a = g(i-1), c = g(i); const kost = (a ? afstandKm(a, b.geo) : 0) + (c ? afstandKm(b.geo, c) : 0) - (a && c ? afstandKm(a, c) : 0); if(kost < extra){ extra = kost; best = i; } }
+    stops.splice(best, 0, {id:d.id, status:'open'}); planStops(stops); },
+  planWeg: d => planStops(planRoute(planStaat()).stops.filter(x => x.id!==d.id)),
+  planSchuif: d => { const st = [...planRoute(planStaat()).stops], i = Number(d.i), j = i + Number(d.n); if(j < 0 || j >= st.length) return; [st[i], st[j]] = [st[j], st[i]]; planStops(st); },
+  planSlim: () => { const v = planStaat(), r = planRoute(v), st = slimVullen(v, r); if(st.length === r.stops.length) toast('Geen geschikte voorstellen meer dichtbij.'); planStops(st); },
+  planOptimaliseer: () => { const r = planRoute(planStaat()), oud = new Map(r.stops.map(x => [x.id, x])); planStops(ordenStops(vertrekpunt(), r.stops.map(x => bedrijf(x.id)).filter(b => b?.geo?.lat)).map(b => oud.get(b.id))); toast('Volgorde met de kortste route'); },
+  planWis: () => bevestig('Route wissen', 'Alle stops van deze dag worden verwijderd.', 'Wissen', () => planStops([])),
   buurtHier: () => { V.buurt = {...V.buurt, status:null, zoek:''}; buurtStart(); },
   toonStil: () => { V.filters.alle = {contact:'stil'}; V.zoek.alle = ''; V.tab = 'alle'; V.detail = null; navTo({tab:'alle'}); render(); window.scrollTo(0,0); },
   selecteer: d => { V.selectie = V.selectie?.kopje===d.kopje ? null : {kopje:d.kopje, ids:new Set()}; render(); },
@@ -3146,11 +3378,13 @@ document.addEventListener('submit', e => {
 }, true);
 document.addEventListener('input', e => { const f = e.target.closest?.('form'); if(f) delete f.dataset.bezig; }, true);   // iets aangepast: opnieuw versturen mag
 document.addEventListener('input', e => {
+  if(e.target.id === 'plan-zoek'){ planStaat().zoek = e.target.value; clearTimeout(V._pz); V._pz = setTimeout(() => { const pos = e.target.selectionStart; render(); const el = $('#plan-zoek'); if(el){ el.focus(); try{ el.setSelectionRange(pos, pos); }catch{} } }, 200); return; }
   const z = e.target.dataset?.zoek; if(z==null) return;
   V.zoek[z] = e.target.value; render();
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if(t.dataset?.planVoor !== undefined && t.id==='plan-voor'){ planStaat().voor = t.value; render(); return; }
   if(t.dataset?.dash){ V.filters.dash = {...(V.filters.dash||{}), [t.dataset.dash]: t.value}; render(); return; }
   if(t.dataset?.filter){ const k = t.dataset.kopje; V.filters[k] = {...(V.filters[k]||{}), [t.dataset.filter]: t.value}; render(); }
   if(t.dataset?.actChange==='status'){
@@ -3188,6 +3422,7 @@ function start(sessie){
   db.collection('deals').onSnapshot(s => { S.deals = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('weergaven').onSnapshot(s => { S.weergaven = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, fout);
   db.collection('mails').onSnapshot(s => { S.mails = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
+  db.collection('routes').onSnapshot(s => { S.routes = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.collection('exportlog').orderBy('datum','desc').limit(50).onSnapshot(s => { S.exportlog = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.doc('instellingen/algemeen').onSnapshot(s => { S.inst = REEKS.instellingen(s.exists ? s.data() : {}); render(); }, () => {});
   db.doc('robot/status').onSnapshot(s => { S.robot = s.exists ? s.data() : null; render(); }, () => {});

@@ -3,6 +3,7 @@
    - Opvolgingen van vandaag: een melding per bedrijf ("Neem vandaag contact op met ..."),
      om de gekozen tijd of anders aan het begin van de werkdag. Tikken opent het profiel.
    - Te late opvolgingen: één samenvatting per dag.
+   - Een route (Plannen) voor vandaag: één melding aan het begin van de werkdag.
    - Elke herinnering gaat één keer; wat al verstuurd is staat in data/herinneringen.json.
    Meldingen zijn versleuteld van deze robot tot de telefoon; de pushdienst (Google, Apple,
    Mozilla) kan de inhoud niet lezen. Dit logboek is openbaar: schrijf hier nooit namen weg. */
@@ -15,7 +16,7 @@ const MAX_LOS = 6;              // meer dan dit per keer: één samenvatting
 const BEWAAR_DAGEN = 14;
 
 /* Welke meldingen zijn er nu aan de beurt? Puur, zodat het te testen is. */
-export function teVersturen({bedrijven, mails, inst, robotActief, log, datum, tijd}){
+export function teVersturen({bedrijven, mails, inst, robotActief, log, datum, tijd, routes = {}}){
   const begin = (inst.kantoortijden && inst.kantoortijden.van) || '08:30';
   const los = [], laat = [];
   for(const [id, b] of Object.entries(bedrijven)){
@@ -38,7 +39,16 @@ export function teVersturen({bedrijven, mails, inst, robotActief, log, datum, ti
     else if(o.stap === 'eerste') tekst = `${b.naam} · eerste opvolging na je bezoek${om}`;
     los.push({sleutel, titel, tekst, url:`#/b/${id}`, tag:`opvolging-${id}`});
   }
-  const uit = los.slice(0, MAX_LOS), rest = los.slice(MAX_LOS);
+  // Route van vandaag: één melding aan het begin van de werkdag
+  const routeMeldingen = [];
+  for(const [id, r] of Object.entries(routes)){
+    const stops = (r.stops || []).filter(x => bedrijven[x.id]);
+    if(r.datum !== datum || !stops.length || begin > tijd || log[`route|${id}`]) continue;
+    const namen = stops.map(x => bedrijven[x.id].naam);
+    routeMeldingen.push({sleutel:`route|${id}`, titel:`Route vandaag${r.voor ? ` voor ${r.voor}` : ''}: ${stops.length} bezoek${stops.length > 1 ? 'en' : ''}`,
+      tekst:`${namen.slice(0, 3).join(', ')}${namen.length > 3 ? ' en meer' : ''}`, url:'#/vandaag', tag:`route-${id}`});
+  }
+  const uit = [...routeMeldingen, ...los.slice(0, MAX_LOS)], rest = los.slice(MAX_LOS);
   if(rest.length) uit.push({sleutel:null, sleutels:rest.map(x => x.sleutel), titel:`Nog ${rest.length} opvolging${rest.length > 1 ? 'en' : ''} vandaag`, tekst:'Bekijk ze in de app.', url:'#/vandaag', tag:'vandaag'});
   const laatSleutel = `te-laat|${datum}`;
   if(laat.length && begin <= tijd && !log[laatSleutel])
@@ -90,11 +100,11 @@ export async function main(env = process.env, nu = new Date(), {stuur} = {}){
     stuur = (sub, payload) => wp.sendNotification(sub, payload, {TTL:4 * 3600, urgency:'high'});
   }
 
-  const [bedrijven, mails, inst0, robot, log] = await Promise.all(['data/bedrijven.json', 'data/mails.json', 'data/instellingen.json', 'data/robot.json', 'data/herinneringen.json'].map(p => lees(p).then(x => x.docs)));
+  const [bedrijven, mails, inst0, robot, log, routes] = await Promise.all(['data/bedrijven.json', 'data/mails.json', 'data/instellingen.json', 'data/robot.json', 'data/herinneringen.json', 'data/routes.json'].map(p => lees(p).then(x => x.docs)));
   const inst = R.instellingen(inst0.algemeen);
   const rs = robot.status || {};
   const robotActief = !!(rs.gekoppeld && rs.laatsteRun && nu - new Date(rs.laatsteRun) < 2 * 3600 * 1000);
-  const meldingen = teVersturen({bedrijven, mails, inst, robotActief, log, datum, tijd});
+  const meldingen = teVersturen({bedrijven, mails, inst, robotActief, log, datum, tijd, routes});
   if(!meldingen.length){ console.log('Geen nieuwe herinneringen.'); return {verstuurd:0}; }
 
   let verstuurd = 0, fouten = 0; const verlopen = [];
