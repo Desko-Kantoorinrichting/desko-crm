@@ -311,10 +311,25 @@ a{color:var(--accent)}
 .plan-grid{display:grid;gap:16px;align-items:start}
 .plan-grid > .card{display:flex;flex-direction:column;gap:10px}
 @media (min-width:1100px){.plan-grid{grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);grid-template-rows:auto 1fr;grid-template-areas:"route kaart" "voorstel kaart"}.plan-route{grid-area:route}.plan-kaart-plek{grid-area:kaart}.plan-voorstel{grid-area:voorstel}.wrap.plannen{max-width:1400px}}
-.plan-kaart-plek{min-height:320px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--sunk);position:relative}
+.plan-kaart-plek{min-height:320px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--sunk);position:relative;z-index:0;isolation:isolate}
 .plan-kaart-plek .hint{padding:16px}
 .plan-kaart{height:420px;width:100%}
 @media (min-width:1100px){.plan-kaart-plek{position:sticky;top:20px;align-self:start}.plan-kaart{height:calc(100vh - 60px);min-height:520px}}
+.week{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.wk-dag{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font:inherit;color:var(--ink);cursor:pointer;width:100%}
+.wk-dag:first-child{border-top:0}
+.wk-dag:hover{background:var(--sunk)}
+.wk-dag.leeg{color:var(--muted)}.wk-dag.leeg .cal{opacity:.6}
+.wk-dag .t{display:flex;flex-direction:column;gap:4px;min-width:0}
+.wk-rit{display:flex;align-items:flex-start;gap:6px;background:var(--accent-soft);border-radius:8px;padding:5px 8px;font-size:.9rem;line-height:1.3}.wk-rit .ic{margin-top:2px}
+.wk-rit small{color:var(--muted);font-size:.82rem}
+.wk-dag.nu{background:color-mix(in srgb,var(--accent-soft) 45%,transparent)}.wk-dag.nu .cal{border-color:var(--accent)}
+.wk-regels{display:flex;flex-direction:column;gap:2px;font-size:.88rem;color:var(--muted)}
+.wk-regels span{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wk-regels b{color:var(--ink)}
+.wk-dag .ic{flex:none}
+.tijd-in{height:32px;border:1px solid var(--line);border-radius:8px;padding:0 6px;font:inherit;background:var(--surface)}
+.stoplijst .meta b.aankomst{display:inline;color:var(--ink)}
 .plan-maat{font-weight:650;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.plan-maat small{color:var(--muted);font-weight:500}
 .stoplijst{list-style:none;margin:6px 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
 .stoplijst li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 10px;background:var(--surface)}
@@ -908,20 +923,19 @@ function vandaagView(){
       <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
       <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers</button></div>
       </div></div>
-    ${meldingBanner()}
+    ${weekOverzicht()}
     ${routeKaart()}
     <section class="section">
       <div class="section-title"><h2>Vandaag opvolgen</h2><span class="count num">${nu.length}</span></div>
       ${nu.length ? `<div class="tasks">${nu.map(kaart).join('')}</div>` : `<div class="empty">${ic('check')}<p>Niets openstaand. Leg een bezoek vast om een opvolging te starten.</p><button class="btn primary" data-act="nieuw">${ic('plus','sm')}Nieuw bedrijf</button></div>`}
     </section>
-    ${straks.length ? `<section class="section"><div class="section-title"><h2>Komende 7 dagen</h2><span class="count num">${straks.length}</span></div>
-      <div class="soon">${straks.map(t => { const dd = parse(t.datum); return `<button data-act="open" data-id="${t.b.id}"><span class="cal"><span>${DAGEN[dd.getDay()]}</span><b>${dd.getDate()}</b></span><span class="t"><b>${esc(t.b.naam)}</b><span>${esc(t.s.label)}</span></span>${ic('right')}</button>`; }).join('')}</div></section>` : ''}
     ${stil.length ? `<section class="section"><div class="section-title"><h2>Al lang niets van gehoord</h2><span class="count num">${stil.length}</span></div>
       <p class="hint">Geen opvolging gepland en ${STIL_DAGEN} dagen of langer geen contact.</p>
       <div class="rows">${stil.slice(0,5).map(b => `<div class="row static" style="grid-template-columns:auto 1fr auto">${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
         <span class="meta">${b.laatsteContact ? 'Laatste contact '+esc(fmtDag(b.laatsteContact))+' ('+diffDays(b.laatsteContact, today())+' dagen)' : 'Nog nooit contact gehad'}</span></span>
         <span class="btns" style="flex-wrap:nowrap"><button class="btn small" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button><button class="btn small primary" data-act="planActie" data-id="${b.id}">${ic('calendar','sm')}<span class="lbl">Inplannen</span></button></span></div>`).join('')}</div>
       ${stil.length > 5 ? `<button class="btn small ghost" data-act="toonStil">Alle ${stil.length} bekijken</button>` : ''}</section>` : ''}
+    ${meldingBanner()}
   </div>`;
 }
 
@@ -2888,6 +2902,38 @@ function agendaIcs(){
   bewaarBestand(`desko-planning-${today()}.ics`, ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Desko//CRM//NL','CALSCALE:GREGORIAN','METHOD:PUBLISH', ...ev, 'END:VCALENDAR'].join('\r\n'), 'text/calendar;charset=utf-8');
 }
 
+/* ---------- jouw week (Vandaag) ----------
+   Per werkdag in één regel: de rit, wie je moet bellen of mailen, en afspraken. */
+function weekOverzicht(){
+  const ik = S.gebruiker?.naam, dagen = [today(), ...werkdagenVanaf(addDays(today(), 1), 5)];
+  if(!alleActs && !actsLaden) setTimeout(() => laadAlleActiviteiten(), 0);
+  const items = agendaItems();
+  const wat = x => /bel/i.test(x.titel) || ['Eerste opvolging','Wacht op reactie','Niet opgenomen'].includes(x.titel) ? 'bellen' : /mail/i.test(x.titel) ? 'mailen' : /langs/i.test(x.titel) ? 'langsgaan' : 'opvolgen';
+  const rij = d => {
+    const dd = parse(d), r = S.routes.find(x => x.datum===d && x.voor===ik && x.stops?.length);
+    const vandaag = d === today();
+    const op = items.filter(x => (vandaag ? x.datum <= d : x.datum===d) && x.soort==='opvolg'), ml = items.filter(x => x.datum===d && x.soort==='mail'), af = items.filter(x => x.datum===d && x.soort==='afspraak');
+    const tel = {}; op.forEach(x => { const k = wat(x); (tel[k] = tel[k] || []).push(x); });
+    const namen = l => l.map(x => x.b.naam).slice(0, 2).join(', ') + (l.length > 2 ? ` +${l.length - 2}` : '');
+    const delen = [
+      ...Object.entries(tel).map(([k, l]) => `<span>${ic(k==='mailen'?'mail':k==='langsgaan'?'door':'phone','sm')}<b>${l.length}</b> ${k}: ${esc(namen(l))}</span>`),
+      ml.length && `<span>${ic('mail','sm')}<b>${ml.length}</b> mail${ml.length > 1 ? 's' : ''} klaar: ${esc(namen(ml))}</span>`,
+      ...af.map(x => `<span>${ic('calendar','sm')}<b>${esc(x.tijd || '')}</b> afspraak ${esc(x.b.naam)}</span>`)
+    ].filter(Boolean);
+    let rit = '';
+    if(r){ const m = routeMaat(r), pl = [...new Set(r.stops.map(x => bedrijf(x.id)?.plaats).filter(Boolean))];
+      rit = `<span class="wk-rit">${ic('route','sm')}<span><b>Rit: ${r.stops.length} bezoek${r.stops.length > 1 ? 'en' : ''}</b> <small>${m.weg ? '' : '± '}${urenMin(m.rijMin)} rijden${pl.length ? ' · ' + esc(pl.slice(0, 3).join(', ')) : ''}</small></span></span>`; }
+    const leeg = !rit && !delen.length;
+    return `<button class="wk-dag ${leeg ? 'leeg' : ''} ${vandaag ? 'nu' : ''}" data-act="weekDag" data-d="${d}" ${r ? 'data-rit="1"' : ''}>
+      <span class="cal"><span>${vandaag ? 'nu' : DAGEN[dd.getDay()]}</span><b>${dd.getDate()}</b></span>
+      <span class="t">${rit}${delen.length ? `<span class="wk-regels">${delen.join('')}</span>` : ''}${leeg ? '<span class="sub">Nog niets gepland</span>' : ''}</span>${ic('right','sm')}</button>`;
+  };
+  const totaal = dagen.reduce((n, d) => n + items.filter(x => x.datum===d && ['opvolg','mail','afspraak'].includes(x.soort)).length + (S.routes.find(x => x.datum===d && x.voor===ik)?.stops?.length || 0), 0);
+  return `<section class="section"><div class="section-title"><h2>Jouw week</h2><span class="count num">${totaal}</span></div>
+    <div class="week">${dagen.map(rij).join('')}</div>
+    <div class="btns"><button class="btn small" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Hele agenda</button>${S.gebruiker?.admin ? `<button class="btn small" data-act="tab" data-tab="plannen">${ic('route','sm')}Ritten plannen</button>` : ''}</div></section>`;
+}
+
 /* ---------- dagroute ----------
    Routes staan in de gedeelde gegevens (routes), per dag en per persoon: wat op kantoor bij
    Plannen wordt klaargezet, ziet Ferry op Vandaag. Google Maps krijgt alleen coördinaten.
@@ -2932,13 +2978,13 @@ function naarMaps(lijst, huidig){
 }
 function routeKaart(){
   const r = route(); if(!r) return '';
-  const open = openStops(r), klaar = r.stops.filter(x => x.status!=='open').length;
+  const open = openStops(r), klaar = r.stops.filter(x => x.status!=='open').length, sch = routeSchema(r), m = sch.maat;
   const naam = {klaar:'Bezocht', overgeslagen:'Overgeslagen'};
   return `<section class="section"><div class="section-title"><h2>Dagroute</h2><span class="count num">${klaar}/${r.stops.length}</span></div>
-    ${r.door && r.door !== S.gebruiker?.naam ? `<p class="hint">Klaargezet door ${esc(r.door)}.</p>` : ''}
+    <p class="hint">${ic('route','sm')} ${m.weg ? '' : '± '}${m.km} km · ${urenMin(m.rijMin)} rijden · vertrek ${esc(sch.start)}, ${vertrekpunt() ? 'terug' : 'klaar'} ± ${sch.terug}${r.door && r.door !== S.gebruiker?.naam ? ` · klaargezet door ${esc(r.door)}` : ''}</p>
     <div class="rows">${r.stops.map((x,i) => { const b = bedrijf(x.id); if(!b) return ''; const volgende = open[0]?.id===x.id; return `<div class="row static ${x.status!=='open'?'gedaan':''}" style="grid-template-columns:auto 1fr auto">
       <span class="stopnr ${volgende?'nu':''}">${x.status==='klaar' ? ic('check','sm') : i+1}</span>
-      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${x.status!=='open' ? `<span class="chip">${naam[x.status]}</span>` : ''}</span><span class="meta">${esc([b.adres, b.plaats].filter(Boolean).join(', '))}${x.notitie ? ' · '+esc(x.notitie) : ''}</span></span>
+      <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${x.status!=='open' ? `<span class="chip">${naam[x.status]}</span>` : ''}</span><span class="meta">${sch.aankomst[b.id] && x.status==='open' ? `<b>± ${sch.aankomst[b.id].tijd}</b> · ` : ''}${esc([b.adres, b.plaats].filter(Boolean).join(', '))}${x.notitie ? ' · '+esc(x.notitie) : ''}</span></span>
       <span class="btns" style="flex-wrap:nowrap">${x.status==='open' ? `<button class="btn small" data-act="routeNaar" data-id="${b.id}" aria-label="Navigeer naar ${esc(b.naam)}">${ic('route','sm')}<span class="lbl">Navigeer</span></button><button class="btn small ${volgende?'primary':''}" data-act="naBezoek" data-id="${b.id}">${ic('check','sm')}<span class="lbl">Klaar</span></button>`
         : `<button class="btn small" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button>`}</span></div>`; }).join('')}</div>
     <div class="btns">${open.length ? `<button class="btn primary" data-act="routeHeel">${ic('route','sm')}Route openen${open.length>1 ? ` (${open.length} stops)` : ''}</button>` : `<p class="sub">Alle stops gedaan. Goed bezig!</p>`}<button class="btn ghost" data-act="routeStop2">Route wissen</button></div></section>`;
@@ -3029,12 +3075,64 @@ function planStaat(){
 const vertrekpunt = () => S.inst.vertrekpunt?.lat ? S.inst.vertrekpunt : null;
 function planRoute(v){ const r = routeVan(v.datum, v.voor); return r ? {...r, stops:r.stops.filter(x => bedrijf(x.id))} : {datum:v.datum, voor:v.voor, stops:[]}; }
 /* Afstand en tijd: van vertrekpunt langs alle stops en terug. */
+/* ---- route over de weg (OSRM, routeplanner op OpenStreetMap; alleen coördinaten) ----
+   Snelste route over de weg, dus via snelwegen waar dat kan. Lukt dat niet, dan een schatting. */
+const OSRM = 'https://router.project-osrm.org';
+const reisCache = new Map(), reisBezig = new Set();
+function routePunten(r){
+  const v = vertrekpunt(), stops = r.stops.map(x => bedrijf(x.id)).filter(b => b?.geo?.lat);
+  return {stops, pts:[...(v ? [v] : []), ...stops.map(b => b.geo), ...(v && stops.length ? [v] : [])], metVertrek:!!v};
+}
+const reisSleutel = pts => pts.map(p => `${(+p.lng).toFixed(5)},${(+p.lat).toFixed(5)}`).join(';');
+/* Bekende reisgegevens (uit het geheugen of opgeslagen bij de route), anders null. */
+function reisVoor(r){
+  const {pts} = routePunten(r); if(pts.length < 2) return null;
+  const k = reisSleutel(pts);
+  return reisCache.get(k) || (r.reis?.sleutel === k ? r.reis : null);
+}
+async function haalReis(r){
+  const {pts} = routePunten(r); if(pts.length < 2) return null;
+  const k = reisSleutel(pts);
+  if(reisCache.has(k) || reisBezig.has(k)) return reisCache.get(k) || null;
+  reisBezig.add(k);
+  try{
+    const res = await fetch(`${OSRM}/route/v1/driving/${k}?overview=full&geometries=geojson&steps=false`);
+    const j = await res.json(); const rt = j.routes?.[0];
+    if(j.code !== 'Ok' || !rt) throw new Error('geen route');
+    const reis = {sleutel:k, km:Math.round(rt.distance / 1000), rijMin:Math.round(rt.duration / 60), legs:rt.legs.map(l => ({km:Math.round(l.distance / 100) / 10, min:Math.round(l.duration / 60)})),
+      lijn:(rt.geometry?.coordinates || []).map(([lng, lat]) => [lat, lng])};
+    reisCache.set(k, reis);
+    // Delen met de route, zodat de telefoon van de accountmanager hem niet opnieuw hoeft op te vragen
+    if(r.id && S.routes.some(x => x.id === r.id) && r.reis?.sleutel !== k){ const {lijn, ...kort} = reis; db.collection('routes').doc(r.id).update({reis:kort}).catch(() => {}); }
+    render();
+    return reis;
+  }catch{ reisCache.set(k, null); return null; }
+  finally{ reisBezig.delete(k); }
+}
 function routeMaat(r){
-  const pts = r.stops.map(x => bedrijf(x.id)?.geo).filter(g => g?.lat), v = vertrekpunt();
-  const keten = v ? [v, ...pts, v] : pts; let km = 0;
-  for(let i = 1; i < keten.length; i++) km += afstandKm(keten[i-1], keten[i]);
+  const reis = reisVoor(r);
+  if(reis) return {km:reis.km, rijMin:reis.rijMin, min:reis.rijMin + r.stops.length * BEZOEK_MIN, weg:true, legs:reis.legs};
+  if(r.stops.length && routePunten(r).pts.length >= 2) haalReis(r);
+  const {pts} = routePunten(r); let km = 0;
+  for(let i = 1; i < pts.length; i++) km += afstandKm(pts[i-1], pts[i]);
   km *= KM_FACTOR;
-  return {km:Math.round(km), min:Math.round(km / KMU * 60 + r.stops.length * BEZOEK_MIN)};
+  const rijMin = Math.round(km / KMU * 60);
+  return {km:Math.round(km), rijMin, min:rijMin + r.stops.length * BEZOEK_MIN, weg:false};
+}
+/* Tijdschema: vertrektijd + rijden + bezoek per stop. */
+function routeSchema(r){
+  const m = routeMaat(r), {stops, metVertrek} = routePunten(r);
+  const start = r.start || S.inst.kantoortijden?.van || '08:30';
+  let t = Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5));
+  const hm = x => `${String(Math.floor(x / 60) % 24).padStart(2, '0')}:${String(Math.round(x) % 60).padStart(2, '0')}`;
+  const aankomst = {};
+  stops.forEach((b, i) => {
+    const leg = m.legs ? m.legs[metVertrek ? i : i - 1] : null;
+    if(i > 0 || metVertrek) t += leg ? leg.min : (afstandKm(i ? stops[i-1].geo : vertrekpunt(), b.geo) * KM_FACTOR / KMU * 60);
+    aankomst[b.id] = {tijd:hm(t), rij:leg ? leg.min : null}; t += BEZOEK_MIN;
+  });
+  if(metVertrek && stops.length) t += m.legs ? m.legs[m.legs.length - 1].min : afstandKm(stops[stops.length-1].geo, vertrekpunt()) * KM_FACTOR / KMU * 60;
+  return {start, aankomst, terug:hm(t), maat:m};
 }
 const urenMin = m => `${Math.floor(m / 60)} u ${String(m % 60).padStart(2, '0')}`;
 /* Waarom zou je hier langs moeten? Hoe hoger, hoe belangrijker. */
@@ -3080,7 +3178,7 @@ function slimVullen(v, r, doel = 6){
   return ordenStops(vp, stops).map(b => oud.get(b.id) || {id:b.id, status:'open'});
 }
 function plannenView(){
-  const v = planStaat(), r = planRoute(v), maat = routeMaat(r), vp = vertrekpunt();
+  const v = planStaat(), r = planRoute(v), sch = routeSchema(r), maat = sch.maat, vp = vertrekpunt();
   const dagen = werkdagenVanaf(today(), 10);
   const namen = [...new Set([...(S.gebruikers || []).map(g => g.naam), S.gebruiker?.naam].filter(Boolean))];
   const kand = planKandidaten(v, r).slice(0, 40);
@@ -3096,14 +3194,17 @@ function plannenView(){
     <div class="plan-grid">
       <section class="card plan-route">
         <div class="section-title"><h2>Route ${esc(dagNaam)}</h2><span class="count num">${r.stops.length}</span></div>
-        <p class="plan-maat">${r.stops.length ? `${ic('route','sm')}± ${maat.km} km · ± ${urenMin(maat.min)} <small>(${r.stops.length} × ${BEZOEK_MIN} min bezoek)</small>` : 'Nog geen stops. Kies ze bij Voorstellen, tik op de kaart, of laat de app een route maken met Slim vullen.'}</p>
+        ${r.stops.length ? `<p class="plan-maat">${ic('route','sm')}${maat.weg ? '' : '± '}${maat.km} km · ${urenMin(maat.rijMin)} rijden · ${urenMin(maat.min)} totaal <small>${maat.weg ? 'route over de weg' : 'schatting, route wordt berekend…'}</small></p>
+          <p class="hint">Vertrek <input type="time" id="plan-start" value="${esc(sch.start)}" aria-label="Vertrektijd" class="tijd-in"> · ${r.stops.length} × ${BEZOEK_MIN} min bezoek · ${vp ? `terug om ${sch.terug}` : `klaar om ${sch.terug}`}</p>`
+          : '<p class="plan-maat">Nog geen stops. Kies ze bij Voorstellen, tik op de kaart, of laat de app een route maken met Slim vullen.</p>'}
         <p class="hint">${ic('pin','sm')} Vertrek: ${vp ? esc(vp.adres) : 'huidige locatie'} · <a href="#" data-act="planVertrek">wijzigen</a></p>
         ${r.stops.length ? `<ol class="stoplijst">${r.stops.map((x, i) => { const b = bedrijf(x.id), w = planReden(b, v.datum);
-          return `<li class="${x.status!=='open'?'gedaan':''}"><span class="stopnr">${x.status==='klaar' ? ic('check','sm') : i+1}</span><span class="t"><b>${esc(b.naam)}</b><span class="meta">${esc(b.plaats || '')}${w.reden ? ' · '+esc(w.reden) : ''}</span></span>
+          const a = sch.aankomst[b.id];
+          return `<li class="${x.status!=='open'?'gedaan':''}"><span class="stopnr">${x.status==='klaar' ? ic('check','sm') : i+1}</span><span class="t"><b>${esc(b.naam)}</b><span class="meta">${a ? `<b class="aankomst">${a.tijd}</b>${a.rij != null ? ` (${a.rij} min rijden)` : ''} · ` : ''}${esc(b.plaats || '')}${w.reden ? ' · '+esc(w.reden) : ''}</span></span>
             <span class="stop-knoppen"><button class="icon-btn" data-act="planSchuif" data-i="${i}" data-n="-1" ${i?'':'disabled'} aria-label="Eerder">↑</button><button class="icon-btn" data-act="planSchuif" data-i="${i}" data-n="1" ${i<r.stops.length-1?'':'disabled'} aria-label="Later">↓</button><button class="icon-btn" data-act="planWeg" data-id="${b.id}" aria-label="${esc(b.naam)} uit de route">${ic('x','sm')}</button></span></li>`; }).join('')}</ol>` : ''}
         <div class="btns">
           <button class="btn primary" data-act="planSlim">${ic('bolt','sm')}Slim vullen</button>
-          ${r.stops.length > 2 ? `<button class="btn" data-act="planOptimaliseer">${ic('refresh','sm')}Beste volgorde</button>` : ''}
+          ${r.stops.length > 1 ? `<button class="btn" data-act="planOptimaliseer">${ic('refresh','sm')}Beste volgorde</button>` : ''}
           ${r.stops.length ? `<a class="btn" href="${esc(vp ? routeUrl(r.stops.map(x => bedrijf(x.id))).replace('?api=1', '?api=1&origin=' + encodeURIComponent(vp.lat + ',' + vp.lng)) : routeUrl(r.stops.map(x => bedrijf(x.id))))}" target="_blank" rel="noopener">${ic('route','sm')}Google Maps</a><button class="btn ghost" data-act="planWis">Wissen</button>` : ''}
         </div>
       </section>
@@ -3160,7 +3261,9 @@ function tekenPlanKaart(){
   r.stops.forEach((x, i) => { const b = bedrijf(x.id); if(!b?.geo?.lat) return; const ll = [b.geo.lat, b.geo.lng]; lijn.push(ll); punten.push(ll);
     L.marker(ll, {icon:L.divIcon({className:'kaartnr', html:`<span>${i+1}</span>`, iconSize:[30, 30], iconAnchor:[15, 15]})}).bindTooltip(esc(b.naam)).addTo(planLaag); });
   if(vp){ lijn.push([vp.lat, vp.lng]); L.marker([vp.lat, vp.lng], {icon:L.divIcon({className:'kaartnr thuis', html:'<span>⌂</span>', iconSize:[30, 30], iconAnchor:[15, 15]})}).bindTooltip('Vertrek: ' + esc(vp.adres)).addTo(planLaag); punten.push([vp.lat, vp.lng]); }
-  if(lijn.length > 1) L.polyline(lijn, {color:'#1F7A3C', weight:4, opacity:.8, dashArray:'2 8', lineCap:'round'}).addTo(planLaag);
+  const weg = reisCache.get(reisSleutel(routePunten(r).pts));
+  if(weg?.lijn?.length) L.polyline(weg.lijn, {color:'#1F7A3C', weight:5, opacity:.85, lineJoin:'round'}).addTo(planLaag);
+  else if(lijn.length > 1) L.polyline(lijn, {color:'#1F7A3C', weight:4, opacity:.8, dashArray:'2 8', lineCap:'round'}).addTo(planLaag);
   const sleutel = v.datum + v.voor + r.stops.length;
   if(punten.length && planKaart._desko !== sleutel){ planKaart._desko = sleutel; planKaart.fitBounds(punten, {padding:[40, 40], maxZoom:13}); }
 }
@@ -3411,6 +3514,8 @@ const ACT = {
   naBezoek: d => naBezoek(bedrijf(d.id)),
   routeStop2: () => bevestig('Route wissen', 'De dagroute van vandaag verdwijnt. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => veilig(() => zetRoute({...route(), stops:[]}))),
   planDag: d => { planStaat().datum = d.d; render(); },
+  weekDag: d => { if(d.rit){ const v = planStaat(); v.datum = d.d; v.voor = S.gebruiker?.naam || v.voor; ACT.tab({tab:'plannen'}); return; }
+    V.agenda = {modus:'week', filter:'alle', ...(V.agenda || {}), datum:d.d}; ACT.tab({tab:'agenda'}); },
   pijpFase: d => { V.pijp.fase = d.f; render(); },
   pijpSchuif: d => { const b = bedrijf(d.id), i = FASEN.findIndex(([f]) => f===(b.status||'nieuw')) + Number(d.n); if(FASEN[i]) zetFase(b, FASEN[i][0]); },
   pijpRit: d => { const v = planStaat(), r = planRoute(v);
@@ -3428,7 +3533,17 @@ const ACT = {
   planWeg: d => planStops(planRoute(planStaat()).stops.filter(x => x.id!==d.id)),
   planSchuif: d => { const st = [...planRoute(planStaat()).stops], i = Number(d.i), j = i + Number(d.n); if(j < 0 || j >= st.length) return; [st[i], st[j]] = [st[j], st[i]]; planStops(st); },
   planSlim: () => { const v = planStaat(), r = planRoute(v), st = slimVullen(v, r); if(st.length === r.stops.length) toast('Geen geschikte voorstellen meer dichtbij.'); planStops(st); },
-  planOptimaliseer: () => { const r = planRoute(planStaat()), oud = new Map(r.stops.map(x => [x.id, x])); planStops(ordenStops(vertrekpunt(), r.stops.map(x => bedrijf(x.id)).filter(b => b?.geo?.lat)).map(b => oud.get(b.id))); toast('Volgorde met de kortste route'); },
+  planOptimaliseer: async () => {
+    const r = planRoute(planStaat()), oud = new Map(r.stops.map(x => [x.id, x])), bs = r.stops.map(x => bedrijf(x.id)).filter(b => b?.geo?.lat), vp = vertrekpunt();
+    let volgorde = null;
+    if(vp && bs.length >= 2){   // snelste volgorde over de weg (OSRM trip), terug naar het vertrekpunt
+      try{
+        const pts = [vp, ...bs.map(b => b.geo)], j = await (await fetch(`${OSRM}/trip/v1/driving/${reisSleutel(pts)}?source=first&roundtrip=true&overview=false`)).json();
+        if(j.code === 'Ok') volgorde = bs.map((b, i) => [b, j.waypoints[i + 1].waypoint_index]).sort((a, c) => a[1] - c[1]).map(x => x[0]);
+      }catch{}
+    }
+    planStops((volgorde || ordenStops(vp, bs)).map(b => oud.get(b.id)));
+    toast(volgorde ? 'Snelste volgorde over de weg' : 'Volgorde met de kortste afstand'); },
   planWis: () => bevestig('Route wissen', 'Alle stops van deze dag worden verwijderd.', 'Wissen', () => planStops([])),
   buurtHier: () => { V.buurt = {...V.buurt, status:null, zoek:''}; buurtStart(); },
   toonStil: () => { V.filters.alle = {contact:'stil'}; V.zoek.alle = ''; V.tab = 'alle'; V.detail = null; navTo({tab:'alle'}); render(); window.scrollTo(0,0); },
@@ -3499,6 +3614,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if(t.id==='plan-start'){ const v = planStaat(), r = planRoute(v); if(r.stops.length) veilig(() => zetRoute({...r, id:routeId(v.datum, v.voor), start:t.value || null})); return; }
   if(t.id==='pijp-regio'){ V.pijp.regio = t.value; render(); return; }
   if(t.id==='pijp-netwerk'){ V.pijp.metNetwerk = t.checked; render(); return; }
   if(t.id==='pijp-dag'){ planStaat().datum = t.value; render(); return; }
