@@ -360,7 +360,8 @@ a{color:var(--accent)}
 .plan-rij .rechts{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .plan-rij .rechts .chip.tag{font-size:.76rem;padding:2px 9px;background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:650;white-space:nowrap}
 .geen-tag{font-size:.75rem;color:var(--faint);font-style:italic}
-.plan-tagkeuze{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 8px;font:inherit;max-width:44%}
+.plan-voorstel .toolbar{flex-wrap:wrap}.plan-voorstel .toolbar .search{flex:1 1 100%}
+.plan-tagkeuze{height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 8px;font:inherit;flex:1 1 0;min-width:0}
 .stop-knoppen{display:flex;gap:2px}.stop-knoppen .icon-btn{width:34px;height:34px;font-size:1rem}
 .kaartnr span{width:30px;height:30px;border-radius:50%;background:linear-gradient(90deg,#51C26F,#F2E901);color:#000;font:700 .9rem/30px var(--font-body, sans-serif);text-align:center;display:block;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #000}
 .kaartnr.thuis span{background:#000;color:#fff}
@@ -582,7 +583,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-21.4';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-21.5';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -3187,6 +3188,7 @@ function planKandidaten(v, r){
   const zoek = (v.zoek || '').toLowerCase();
   return S.bedrijven.filter(b => b.geo?.lat && !inRoute.has(b.id) && b.status!=='verloren')
     .filter(b => !zoek || [b.naam, b.plaats, ...(b.tags||[])].join(' ').toLowerCase().includes(zoek))
+    .filter(b => !v.prov || (provincieVan(b) || 'Onbekend')===v.prov)
     .filter(b => !v.tag || (v.tag==='(geen tag)' ? !(b.tags||[]).length : (b.tags||[]).some(t => t.toLowerCase()===v.tag.toLowerCase())))
     .map(b => { const {p, reden} = planReden(b, v.datum); const km = basis.length ? Math.min(...basis.map(g => afstandKm(g, b.geo))) : null; return {b, p, reden, km, elders:elders.get(b.id)}; })
     .filter(x => v.filter==='alle' || zoek ? true : v.filter==='opvolging' ? /Opvolging|Langsgaan/.test(x.reden) : v.filter==='stil' ? /stil|nooit/.test(x.reden) : v.filter==='nieuw' ? x.reden==='Nieuwe prospect' : x.p > 0)
@@ -3247,6 +3249,8 @@ function plannenView(){
         <div class="section-title"><h2>Voorstellen</h2><span class="count num">${kand.length}</span></div>
         <div class="keuzes">${fk('slim','Aanbevolen')}${fk('opvolging','Opvolging nodig')}${fk('stil','Lang stil')}${fk('nieuw','Nieuwe prospects')}${fk('alle','Alles')}</div>
         <div class="toolbar"><label class="search">${ic('search')}<input id="plan-zoek" type="search" placeholder="Zoek op naam, plaats of tag" value="${esc(v.zoek||'')}" autocomplete="off" aria-label="Zoek een bedrijf"></label>
+          <select id="plan-prov" class="plan-tagkeuze" aria-label="Provincie"><option value="">Alle provincies</option>${(() => { const ps = [...new Set(S.bedrijven.filter(b => b.geo?.lat).map(b => provincieVan(b) || 'Onbekend'))].sort((a, c) => (a==='Onbekend') - (c==='Onbekend') || a.localeCompare(c));
+            return ps.map(x => `<option value="${esc(x)}" ${v.prov===x?'selected':''}>${esc(x==='Onbekend' ? 'Provincie onbekend' : x)}</option>`).join(''); })()}</select>
           <select id="plan-tag" class="plan-tagkeuze" aria-label="Tag"><option value="">Alle tags</option>${[...new Set(S.bedrijven.flatMap(b => b.tags||[]).map(t => t.toLowerCase()))].sort().map(t => `<option value="${esc(t)}" ${v.tag===t?'selected':''}>#${esc(t)}</option>`).join('')}<option value="(geen tag)" ${v.tag==='(geen tag)'?'selected':''}>Zonder tag</option></select></div>
         <div class="rows">${kand.length ? kand.map(x => `<div class="row static" style="grid-template-columns:1fr auto">
           <span class="t plan-rij"><span class="links"><b>${esc(x.b.naam)}</b><span class="meta">${esc(x.b.plaats || '')}${x.km != null ? ` · ${x.km < 10 ? x.km.toFixed(1).replace('.', ',') : Math.round(x.km)} km` : ''}${x.reden ? ' · '+esc(x.reden) : ''}${x.elders ? ` · al gepland ${esc(fmtDag(x.elders.datum))}` : ''}</span></span>
@@ -3651,6 +3655,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if(t.id==='plan-prov'){ planStaat().prov = t.value; render(); return; }
   if(t.id==='plan-tag'){ planStaat().tag = t.value; render(); return; }
   if(t.id==='plan-start'){ const v = planStaat(), r = planRoute(v); if(r.stops.length) veilig(() => zetRoute({...r, id:routeId(v.datum, v.voor), start:t.value || null})); return; }
   if(t.dataset?.sorteer){ V.sorteer = {...(V.sorteer||{}), [t.dataset.sorteer]:t.value}; render(); return; }
