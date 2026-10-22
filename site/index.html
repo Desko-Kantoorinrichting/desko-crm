@@ -592,7 +592,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-22.2';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-22.3';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -2957,7 +2957,7 @@ function leadKaart(l){
 }
 function leadradarView(){
   const v = V.radar = V.radar || {toon:'nieuw'};
-  const alle = [...(S.leads || [])].sort((a, b) => (b.week || '').localeCompare(a.week || '') || (a.bedrijf || '').localeCompare(b.bedrijf || ''));
+  const alle = [...(S.leads || [])].sort((a, b) => (b.week || '').localeCompare(a.week || '') || (a.rang || 99) - (b.rang || 99) || (a.bedrijf || '').localeCompare(b.bedrijf || ''));
   const nieuw = alle.filter(l => l.status === 'nieuw'), klaar = alle.filter(l => l.status !== 'nieuw');
   const toegevoegd = alle.filter(l => l.status === 'toegevoegd').length;
   const lr = {aantal:10, regio:'', focus:'', extra:'', ...(S.inst.leadradar || {})};
