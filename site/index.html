@@ -333,7 +333,10 @@ a{color:var(--accent)}
 @media (max-width:520px){.tr-rij{grid-template-columns:96px 1fr auto}}
 .leads{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 .lead{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
-.lead.afgewezen{opacity:.65}.lead.toegevoegd{border-color:#51C26F}
+.lead.afgewezen{opacity:.65}.lead.toegevoegd{border-color:#51C26F}.lead.kijkje{border-color:#E1E21B}
+.chip.kijkje{background:#FBFBD0;color:#000;border-color:#E1E21B}
+.lead-notitie{display:flex;gap:6px;align-items:flex-start;margin:0;background:var(--accent-soft);border-radius:10px;padding:6px 10px}.lead-notitie .ic{flex:none;margin-top:3px}
+button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .lead-kop{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.lead h3{margin:0;font-size:1.05rem}.lead .meta{color:var(--muted);font-size:.84rem;margin:2px 0 0}
 .lead-signaal{display:flex;gap:6px;align-items:flex-start;background:var(--accent-soft);border-radius:10px;padding:6px 10px;margin:0}.lead-signaal .ic{flex:none;margin-top:3px;color:var(--accent)}
 .lead p{margin:0;line-height:1.45;font-size:.92rem}.lead-links a{color:var(--accent);font-weight:650}
@@ -507,6 +510,7 @@ nav.tabs .badge{position:absolute;top:4px;left:calc(50% + 8px);min-width:17px;he
   nav.tabs button[aria-current="page"]{background:rgba(255,255,255,.1);color:#fff}
   nav.tabs button[aria-current="page"] .ic{color:var(--evergreen)}
   nav.tabs .badge{position:static;margin-left:auto;border:0}
+nav.tabs .badge.licht{background:#E1E21B;color:#000}
   .fab{bottom:28px;right:32px}
   .detail-cols{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start}
   .sheet{left:var(--side)!important;border-radius:18px 18px 0 0}
@@ -619,7 +623,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-22.6';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-22.7';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1122,7 +1126,7 @@ function meerView(){
   }));
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Instellingen en overzicht</p><h1>Meer</h1></header>
-    <div class="btns"><button class="btn primary" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
+    <div class="btns"><button class="btn primary" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
     <section class="section"><div class="section-title"><h2>Conversie per tag</h2></div>
       ${perTag.size ? `<div class="card scroll-x"><table class="mini"><thead><tr><th>Tag</th><th class="r">Prospects</th><th class="r">Klant geworden</th><th class="r">Conversie</th></tr></thead><tbody>
       ${[...perTag.entries()].sort((a,b)=>b[1].tot-a[1].tot).map(([tag,r])=>`<tr><td>${esc(tag)}</td><td class="r">${r.tot}</td><td class="r">${r.klant}</td><td class="r">${Math.round(r.klant/r.tot*100)}%</td></tr>`).join('')}
@@ -1171,13 +1175,14 @@ function render(){
   else if(V.tab==='pijplijn') html = pijplijnView();
   else if(V.tab==='resultaten') html = resultatenView();
   else if(V.tab==='leadradar') html = leadradarView();
+  else if(V.tab==='kijkje') html = kijkjeView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length;
-  const tabs = [['vandaag','sun','Vandaag'],['plannen','route','Plannen'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['leadradar','radar','Leadradar'],['mail','mail','Mail'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['meer','menu','Meer']];
-  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&['resultaten','leadradar'].includes(V.tab)&&matchMedia('(max-width:959px)').matches) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
-  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${['plannen','pijplijn','resultaten','leadradar'].includes(k)?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}</button>`).join('');
+  const tabs = [['vandaag','sun','Vandaag'],['plannen','route','Plannen'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['leadradar','radar','Leadradar'],['kijkje','star','Kijkje waard'],['mail','mail','Mail'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['meer','menu','Meer']];
+  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&['resultaten','leadradar','kijkje'].includes(V.tab)&&matchMedia('(max-width:959px)').matches) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
+  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${['plannen','pijplijn','resultaten','leadradar','kijkje'].includes(k)?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}${k==='kijkje'&&kijkjeLeads().length?`<span class="badge num licht">${kijkjeLeads().length}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
   const ini = esc(initialen(S.gebruiker?.naam||''));
   $('#side-brand').innerHTML = `${LOGO}`;
@@ -3003,34 +3008,37 @@ function routeMaak(){
    Hier worden ze beoordeeld: toevoegen als prospect, of niet relevant met een reden. Die reden
    gaat de volgende keer mee, zodat de zoektocht beter wordt. */
 const nieuweLeads = () => (S.leads || []).filter(l => l.status === 'nieuw');
+const kijkjeLeads = () => (S.leads || []).filter(l => l.status === 'kijkje');
 const AFWIJS_REDENEN = ['Te klein', 'Verkeerde regio', 'Geen kantoor of geen behoefte', 'Al klant of al bekend', 'Signaal klopt niet', 'Nieuws is te oud'];
 const weekLabel = w => { const [j, n] = String(w || '').split('-W'); return n ? `Week ${Number(n)}${j !== String(new Date().getFullYear()) ? ' ' + j : ''}` : 'Eerder'; };
 function leadKaart(l){
   const bron = l.bron_url ? (() => { try{ return new URL(l.bron_url).hostname.replace(/^www\./, ''); }catch{ return ''; } })() : '';
   return `<article class="lead ${l.status}">
     <div class="lead-kop"><div><h3>${esc(l.bedrijf)}</h3><p class="meta">${esc([l.plaats, l.branche, l.werkplekken && (/\d/.test(l.werkplekken) ? '± ' + l.werkplekken.replace(/^(ca\.?|±|circa)\s*/i, '') + ' werkplekken' : l.werkplekken)].filter(Boolean).join(' · '))}</p></div>
-      ${l.status === 'toegevoegd' ? `<span class="chip k-klant">${ic('check','sm')}Toegevoegd</span>` : l.status === 'afgewezen' ? `<span class="chip">Niet relevant</span>` : ''}</div>
+      ${l.status === 'toegevoegd' ? `<span class="chip k-klant">${ic('check','sm')}Toegevoegd</span>` : l.status === 'afgewezen' ? `<span class="chip">Niet relevant</span>` : l.status === 'kijkje' ? `<span class="chip kijkje">${ic('star','sm')}Kijkje waard</span>` : ''}</div>
     <p class="lead-signaal">${ic('radar','sm')}<b>${esc(l.signaal)}</b></p>
     <p class="lead-verhuis${l.verhuisdatum && !/onbekend/i.test(l.verhuisdatum) ? '' : ' onbekend'}">${ic('calendar','sm')}<span>Verhuizing: <b>${esc(l.verhuisdatum || 'nog onbekend')}</b></span></p>
     ${l.toelichting ? `<p>${esc(l.toelichting)}</p>` : ''}
     <p class="lead-links">${l.bron_url ? `<a href="${esc(l.bron_url)}" target="_blank" rel="noopener noreferrer">${esc(l.bron_titel || 'Bron')}</a> <span class="sub">${esc(bron)}${l.datum_signaal ? ' · ' + esc(fmtDatum(l.datum_signaal)) : ''}</span>` : ''}${l.website ? ` · <a href="${esc(/^https?:/.test(l.website) ? l.website : 'https://' + l.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ''}</p>
-    ${l.aanpak && l.status === 'nieuw' ? `<p class="lead-tip"><b>Tip:</b> ${esc(l.aanpak)}</p>` : ''}
+    ${l.notitie ? `<p class="lead-notitie">${ic('note','sm')}<span>${esc(l.notitie)}</span></p>` : ''}
+    ${l.aanpak && ['nieuw','kijkje'].includes(l.status) ? `<p class="lead-tip"><b>Tip:</b> ${esc(l.aanpak)}</p>` : ''}
     ${l.status === 'afgewezen' && l.reden ? `<p class="sub">Reden: ${esc(l.reden)}</p>` : ''}
-    ${l.status === 'nieuw' ? `<div class="btns"><button class="btn primary small" data-act="leadErbij" data-id="${l.id}">${ic('plus','sm')}Toevoegen als prospect</button><button class="btn small" data-act="leadWeg" data-id="${l.id}">Niet relevant</button></div>`
+    ${l.status === 'nieuw' ? `<div class="btns"><button class="btn primary small" data-act="leadErbij" data-id="${l.id}">${ic('plus','sm')}Toevoegen als prospect</button><button class="btn small" data-act="leadKijkje" data-id="${l.id}">${ic('star','sm')}Kijkje waard</button><button class="btn small" data-act="leadWeg" data-id="${l.id}">Niet relevant</button></div>`
+      : l.status === 'kijkje' ? `<div class="btns"><button class="btn primary small" data-act="leadErbij" data-id="${l.id}">${ic('plus','sm')}Toevoegen als prospect</button><button class="btn small" data-act="leadNotitie" data-id="${l.id}">${ic('note','sm')}Notitie</button><button class="btn small ghost" data-act="leadTerug" data-id="${l.id}">Terug naar leadradar</button><button class="btn small ghost" data-act="leadWeg" data-id="${l.id}">Niet relevant</button></div>`
       : l.status === 'toegevoegd' && l.bedrijfId && bedrijf(l.bedrijfId) ? `<div class="btns"><button class="btn small ghost" data-act="open" data-id="${l.bedrijfId}">${ic('right','sm')}Naar het profiel</button></div>` : ''}
   </article>`;
 }
 function leadradarView(){
   const v = V.radar = V.radar || {toon:'nieuw'};
   const alle = [...(S.leads || [])].sort((a, b) => (b.week || '').localeCompare(a.week || '') || (a.rang || 99) - (b.rang || 99) || (a.bedrijf || '').localeCompare(b.bedrijf || ''));
-  const nieuw = alle.filter(l => l.status === 'nieuw'), klaar = alle.filter(l => l.status !== 'nieuw');
-  const toegevoegd = alle.filter(l => l.status === 'toegevoegd').length;
+  const nieuw = alle.filter(l => l.status === 'nieuw'), klaar = alle.filter(l => ['toegevoegd','afgewezen'].includes(l.status));
+  const toegevoegd = alle.filter(l => l.status === 'toegevoegd').length, kijkje = alle.filter(l => l.status === 'kijkje').length;
   const lr = {aantal:10, regio:'', focus:'', extra:'', ...(S.inst.leadradar || {})};
   const perWeek = l => { const m = new Map(); l.forEach(x => { if(!m.has(x.week)) m.set(x.week, []); m.get(x.week).push(x); }); return [...m.entries()]; };
   return `<div class="wrap leadradar">
     <header class="page-head"><p class="eyebrow">Nieuwe kansen</p><h1>Leadradar</h1>
       <p class="sub">Elke maandagochtend zoekt AI op het web naar ${esc(String(lr.aantal))} bedrijven die kantoorinrichting nodig kunnen hebben: verhuizingen, nieuwe kantoren, uitbreiding en groei. Beoordeel ze hier; wat je afwijst (met reden) neemt de radar mee voor de volgende keer.</p></header>
-    ${alle.length ? `<div class="tegels"><div class="tegel succes"><b>${nieuw.length}</b><span>Te beoordelen</span></div><div class="tegel"><b>${toegevoegd}</b><span>Toegevoegd als prospect</span></div><div class="tegel"><b>${alle.length - toegevoegd - nieuw.length}</b><span>Niet relevant</span></div></div>` : ''}
+    ${alle.length ? `<div class="tegels"><div class="tegel succes"><b>${nieuw.length}</b><span>Te beoordelen</span></div><button class="tegel" data-act="tab" data-tab="kijkje"><b>${kijkje}</b><span>${ic('star','sm')}Kijkje waard</span></button><div class="tegel"><b>${toegevoegd}</b><span>Toegevoegd als prospect</span></div><div class="tegel"><b>${klaar.length - toegevoegd}</b><span>Niet relevant</span></div></div>` : ''}
     ${nieuw.length ? perWeek(nieuw).map(([w, l]) => `<section class="section"><div class="section-title"><h2>${esc(weekLabel(w))}</h2><span class="count num">${l.length}</span></div><div class="leads">${l.map(leadKaart).join('')}</div></section>`).join('')
       : `<div class="empty">${ic('radar')}<p>${alle.length ? 'Alles beoordeeld. Maandag komen er nieuwe leads.' : 'Nog geen leads. De eerste zoektocht is maandagochtend, zodra de leadradar is ingesteld (zie hieronder).'}</p></div>`}
     ${klaar.length ? `<details class="section"><summary class="sub" style="cursor:pointer">Eerder beoordeeld (${klaar.length})</summary><div class="leads" style="margin-top:10px">${klaar.slice(0, 60).map(leadKaart).join('')}</div></details>` : ''}
@@ -3044,6 +3052,25 @@ function leadradarView(){
         <p class="hint">De radar zoekt alleen openbare informatie over bedrijven (nieuws, berichten van bedrijfsmakelaars, persberichten) en noemt geen personen. Elke lead heeft een link naar de bron, zodat je het zelf kunt controleren. Instellen: zet in GitHub bij desko-crm de secrets <code>DATA_TOKEN</code> en <code>ANTHROPIC_API_KEY</code> (zie de README).</p>
       </form></details>
   </div>`;
+}
+/* Kijkje waard: leads uit de radar met echte potentie, om eerst rustig uit te zoeken. */
+function kijkjeView(){
+  const lijst = kijkjeLeads().sort((a, b) => (a.rang || 99) - (b.rang || 99) || (a.bedrijf || '').localeCompare(b.bedrijf || ''));
+  return `<div class="wrap leadradar">
+    <header class="page-head"><p class="eyebrow">Leadradar</p><h1>Kijkje waard</h1>
+      <p class="sub">Leads met echte potentie. Zoek ze uit, zet er een notitie bij, en voeg ze toe als prospect zodra je contact wilt leggen.</p></header>
+    ${lijst.length ? `<div class="leads">${lijst.map(leadKaart).join('')}</div>`
+      : `<div class="empty">${ic('star')}<p>Nog niets bewaard. Tik in de Leadradar op <b>Kijkje waard</b> bij een lead met potentie.</p><button class="btn primary" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Naar de Leadradar</button></div>`}
+  </div>`;
+}
+function leadNotitie(l){
+  if(!l) return;
+  openSheet('Notitie bij lead', `<form id="ln" class="section"><p class="sub">${esc(l.bedrijf)}</p>
+    <label class="f"><span>Waarom kijkje waard, wat wil je uitzoeken?</span><textarea name="notitie" rows="4">${esc(l.notitie || '')}</textarea></label>
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div></form>`, s => {
+    s.querySelector('#ln').onsubmit = async e => { e.preventDefault(); const n = formData(e.target).notitie.trim();
+      if(await veilig(() => db.collection('leads').doc(l.id).update({notitie:n}), 'Notitie opgeslagen')) closeSheet(); };
+  });
 }
 function leadErbij(l){
   if(!l) return;
@@ -3813,6 +3840,9 @@ const ACT = {
   planDag: d => { planStaat().datum = d.d; render(); },
   leadErbij: d => leadErbij(S.leads.find(l => l.id === d.id)),
   leadWeg: d => leadWeg(S.leads.find(l => l.id === d.id)),
+  leadKijkje: d => veilig(() => db.collection('leads').doc(d.id).update({status:'kijkje', kijkjeOp:new Date().toISOString(), door:S.gebruiker?.naam || ''}), 'Bewaard bij Kijkje waard'),
+  leadTerug: d => veilig(() => db.collection('leads').doc(d.id).update({status:'nieuw'}), 'Terug in de Leadradar'),
+  leadNotitie: d => leadNotitie(S.leads.find(l => l.id === d.id)),
   resPeriode: d => { V.resultaten.periode = d.p; render(); },
   weekDag: d => { if(d.rit){ const v = planStaat(); v.datum = d.d; v.voor = S.gebruiker?.naam || v.voor; ACT.tab({tab:'plannen'}); return; }
     V.agenda = {modus:'week', filter:'alle', ...(V.agenda || {}), datum:d.d}; ACT.tab({tab:'agenda'}); },

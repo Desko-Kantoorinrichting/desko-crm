@@ -32,7 +32,7 @@ export const domein = u => { try{ return new URL(/^https?:/.test(u) ? u : 'https
 
 export function opdracht({inst, bekend, eerder, datum}){
   const afgewezen = eerder.filter(l => l.status === 'afgewezen' && l.reden).slice(-25);
-  const goed = eerder.filter(l => l.status === 'toegevoegd').slice(-15);
+  const goed = eerder.filter(l => ['toegevoegd', 'kijkje'].includes(l.status)).slice(-15);
   return `Je zoekt nieuwe zakelijke leads voor Desko, een Nederlands bedrijf in kantoorinrichting (bureaus, stoelen, zit-sta, akoestiek, complete kantoorinrichting en werkplekadvies). Vandaag is het ${datum}.
 
 Zoek op het web naar ${inst.aantal} bedrijven die nu of binnenkort kantoorinrichting nodig hebben.
