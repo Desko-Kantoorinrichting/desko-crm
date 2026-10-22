@@ -337,6 +337,17 @@ a{color:var(--accent)}
 .chip.kijkje{background:#FBFBD0;color:#000;border-color:#E1E21B}
 .lead-notitie{display:flex;gap:6px;align-items:flex-start;margin:0;background:var(--accent-soft);border-radius:10px;padding:6px 10px}.lead-notitie .ic{flex:none;margin-top:3px}
 button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
+.seg.blad{display:inline-flex;gap:4px;margin:-4px 0 16px}.seg.blad button{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}.seg.blad button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.rapport-kies{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}.rapport-kies .f{margin:0;min-width:180px}
+.rapport .tegels{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.rp-lijst{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.rp-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
+.rp-item p{margin:0}.rp-kop{display:flex;gap:12px;align-items:flex-start}.rp-kop h3{margin:0;font-size:1.05rem}.rp-kop h3 button{all:unset;cursor:pointer}.rp-kop h3 button:hover{text-decoration:underline}
+.rp-dag{display:flex;flex-direction:column;align-items:center;min-width:54px;padding:6px 4px;border-radius:10px;background:var(--accent-soft);font-weight:700;font-size:.85rem}.rp-dag small{font-weight:500;color:var(--muted)}
+.rp-tekst{white-space:pre-wrap;color:var(--ink)}
+.rp-vervolg{display:flex;gap:6px;align-items:flex-start;background:#FBFBD0;border-radius:10px;padding:6px 10px}.rp-vervolg .ic{flex:none;margin-top:3px}
+.rp-twee{align-items:start}
+@media (max-width:520px){.rp-lijst{grid-template-columns:1fr}}
 .lead-kop{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.lead h3{margin:0;font-size:1.05rem}.lead .meta{color:var(--muted);font-size:.84rem;margin:2px 0 0}
 .lead-signaal{display:flex;gap:6px;align-items:flex-start;background:var(--accent-soft);border-radius:10px;padding:6px 10px;margin:0}.lead-signaal .ic{flex:none;margin-top:3px;color:var(--accent)}
 .lead p{margin:0;line-height:1.45;font-size:.92rem}.lead-links a{color:var(--accent);font-weight:650}
@@ -603,6 +614,8 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
   .pr-vak span{display:inline-block;width:13px;height:13px;border:1.5px solid #000;vertical-align:-2px;margin-left:4px}
   .pr-lijn{grid-column:3/5;border-bottom:1px dotted #777;height:16px}
   .pr-voet{margin-top:10px;font-size:9pt;color:#444}
+  .pr-h2{font-size:13pt;margin:14px 0 4px;border-bottom:1px solid #000;padding-bottom:2px}
+  .pr-rap{grid-template-columns:26px 78px 1fr}
 }
 </style>
 </head>
@@ -623,7 +636,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-22.7';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-22.8';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -971,7 +984,7 @@ function vandaagView(){
         <button class="stat" data-act="tab" data-tab="prospect"><b class="num">${n('prospect')}</b><span>${ic('target')}Prospects</span></button>
       </div>
       <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
-      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button><button class="btn heroknop" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar${nieuweLeads().length ? ` (${nieuweLeads().length})` : ''}</button></div>
+      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button>${new Date().getDay()===5 ? `<button class="btn heroknop" data-act="tab" data-tab="rapport">${ic('note','sm')}Weekrapport</button>` : ''}<button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button><button class="btn heroknop" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar${nieuweLeads().length ? ` (${nieuweLeads().length})` : ''}</button></div>
       </div></div>
     ${weekOverzicht()}
     ${routeKaart()}
@@ -1126,7 +1139,7 @@ function meerView(){
   }));
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Instellingen en overzicht</p><h1>Meer</h1></header>
-    <div class="btns"><button class="btn primary" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
+    <div class="btns"><button class="btn primary" data-act="tab" data-tab="rapport">${ic('note','sm')}Resultaten: weekrapport</button><button class="btn" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
     <section class="section"><div class="section-title"><h2>Conversie per tag</h2></div>
       ${perTag.size ? `<div class="card scroll-x"><table class="mini"><thead><tr><th>Tag</th><th class="r">Prospects</th><th class="r">Klant geworden</th><th class="r">Conversie</th></tr></thead><tbody>
       ${[...perTag.entries()].sort((a,b)=>b[1].tot-a[1].tot).map(([tag,r])=>`<tr><td>${esc(tag)}</td><td class="r">${r.tot}</td><td class="r">${r.klant}</td><td class="r">${Math.round(r.klant/r.tot*100)}%</td></tr>`).join('')}
@@ -1176,13 +1189,14 @@ function render(){
   else if(V.tab==='resultaten') html = resultatenView();
   else if(V.tab==='leadradar') html = leadradarView();
   else if(V.tab==='kijkje') html = kijkjeView();
+  else if(V.tab==='rapport') html = rapportView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length;
   const tabs = [['vandaag','sun','Vandaag'],['plannen','route','Plannen'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['leadradar','radar','Leadradar'],['kijkje','star','Kijkje waard'],['mail','mail','Mail'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['meer','menu','Meer']];
-  const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&['resultaten','leadradar','kijkje'].includes(V.tab)&&matchMedia('(max-width:959px)').matches) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
-  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${['plannen','pijplijn','resultaten','leadradar','kijkje'].includes(k)?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}${k==='kijkje'&&kijkjeLeads().length?`<span class="badge num licht">${kijkjeLeads().length}</span>`:''}</button>`).join('');
+  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&['resultaten','leadradar','kijkje','rapport'].includes(V.tab)&&matchMedia('(max-width:959px)').matches) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
+  $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${['plannen','pijplijn','resultaten','leadradar','kijkje','rapport'].includes(k)?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}${k==='kijkje'&&kijkjeLeads().length?`<span class="badge num licht">${kijkjeLeads().length}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
   const ini = esc(initialen(S.gebruiker?.naam||''));
   $('#side-brand').innerHTML = `${LOGO}`;
@@ -1317,7 +1331,7 @@ function bedrijfForm(b, kopje, voor){
           if(kopje==='klant' && !tags.some(t => t.toLowerCase()==='klant')) tags = [...tags, 'klant'];
           // nieuwe prospect zonder contact (niet uit het netwerk of van een visitekaartje): koud
           if(kopje==='prospect' && (data.status||'nieuw')==='nieuw' && !voor?.bron && !tags.some(t => ['netwerk','koud'].includes(t.toLowerCase()))) tags = [...tags, 'koud'];
-          await ref.set({...data, tags, kopje, status:kopje==='prospect'?(data.status||'nieuw'):'', contacten, aangemaakt:nu, bijgewerkt:nu, laatsteContact:'', opvolging:{actief:false}});
+          await ref.set({...data, tags, kopje, status:kopje==='prospect'?(data.status||'nieuw'):'', contacten, door:S.gebruiker?.naam || '', aangemaakt:nu, bijgewerkt:nu, laatsteContact:'', opvolging:{actief:false}});
           await db.collection('activiteiten').add({bedrijfId:newId, datum:nu, type:'systeem', tekst:`Aangemaakt als ${KOPJES[kopje].enk.toLowerCase()}${voor?.bron?' ('+voor.bron+')':''}.`});
           if(voor?.notitie) await db.collection('activiteiten').add({bedrijfId:newId, datum:nu, type:'notitie', door:S.gebruiker?.naam||'', tekst:voor.notitie});
         } else {
@@ -3078,7 +3092,7 @@ function leadErbij(l){
   const doe = async () => { if(await veilig(async () => {
     const ref = db.collection('bedrijven').doc(), nu = new Date().toISOString();
     await ref.set({naam:l.bedrijf, kopje:'prospect', status:'nieuw', adres:'', postcode:'', plaats:l.plaats || '', grootte:'', branche:l.branche || '', regio:'', tags:['leadradar', 'koud'], contacten:[],
-      website:l.website || '', aangemaakt:nu, bijgewerkt:nu, laatsteContact:'', opvolging:{actief:false}});
+      website:l.website || '', door:S.gebruiker?.naam || '', aangemaakt:nu, bijgewerkt:nu, laatsteContact:'', opvolging:{actief:false}});
     await db.collection('activiteiten').add({bedrijfId:ref.id, datum:nu, type:'systeem', tekst:'Aangemaakt als prospect (leadradar).'});
     await db.collection('activiteiten').add({bedrijfId:ref.id, datum:nu, type:'notitie', door:S.gebruiker?.naam || '',
       tekst:[`Leadradar: ${l.signaal}`, l.verhuisdatum && `Verhuizing: ${l.verhuisdatum}`, l.toelichting, l.bron_url && `Bron: ${l.bron_url}`, l.website && `Website: ${l.website}`, l.aanpak && `Tip: ${l.aanpak}`].filter(Boolean).join('\n')});
@@ -3098,6 +3112,115 @@ function leadWeg(l){
     s.querySelector('#lw').onsubmit = async e => { e.preventDefault(); const t = formData(e.target).tekst.trim(), r = [reden, t].filter(Boolean).join(': ') || 'Niet relevant';
       if(await veilig(() => db.collection('leads').doc(l.id).update({status:'afgewezen', reden:r, beoordeeld:new Date().toISOString(), door:S.gebruiker?.naam || ''}), 'Gemarkeerd als niet relevant')) closeSheet(); };
   });
+}
+
+/* ---------- weekrapport ----------
+   Voor de vrijdag: wie is er bezocht, wat kwam eruit en wat is afgesproken; hoeveel prospects
+   en klanten erbij kwamen. Standaard deze week (ma t/m zo), maar elke week of periode kan. */
+const maandagVan = d => { const x = parse(d), dag = (x.getDay() + 6) % 7; return addDays(d, -dag); };
+const isoWeek = d => { const x = parse(d); x.setDate(x.getDate() + 3 - (x.getDay() + 6) % 7); const j = new Date(x.getFullYear(), 0, 4); return 1 + Math.round(((x - j) / 864e5 - 3 + (j.getDay() + 6) % 7) / 7); };
+const UITKOMST_NAAM = {gesproken:'Goed gesprek', afspraak:'Afspraak gemaakt', offerte:'Offerte gevraagd', niet:'Niemand gesproken', geen:'Geen interesse'};
+function rapportStaat(){
+  const namen = (S.gebruikers || []).map(g => g.naam);
+  return V.rapport = V.rapport || {van:maandagVan(today()), tot:addDays(maandagVan(today()), 6), wie:namen.includes('Ferry') ? 'Ferry' : ''};
+}
+function rapportData(v){
+  const inP = iso => iso && iso.slice(0, 10) >= v.van && iso.slice(0, 10) <= v.tot;
+  const vanWie = a => !v.wie || !a.door || a.door === v.wie;
+  const acts = (alleActs || []).filter(a => bedrijf(a.bedrijfId));
+  const per = new Map(); acts.forEach(a => { if(!per.has(a.bedrijfId)) per.set(a.bedrijfId, []); per.get(a.bedrijfId).push(a); });
+  per.forEach(l => l.sort((a, b) => (a.datum || '').localeCompare(b.datum || '')));
+  const bezoeken = acts.filter(a => a.type==='bezoek' && inP(a.datum) && vanWie(a)).sort((a, b) => a.datum.localeCompare(b.datum)).map(a => {
+    const b = bedrijf(a.bedrijfId), lijst = per.get(a.bedrijfId) || [];
+    let vervolg = a.vervolg || '';
+    if(!vervolg){   // oudere bezoeken: de eerstvolgende planning of afspraak binnen 3 dagen
+      const grens = new Date(new Date(a.datum).getTime() + 3*864e5).toISOString();
+      const x = lijst.find(y => y !== a && y.datum >= a.datum && y.datum <= grens && ((y.type==='systeem' && /^Opvolging gepland|Mailreeks|Opvolging gestart/.test(y.tekst || '')) || (y.type==='afspraak' && y.afspraakOp)));
+      if(x) vervolg = x.type==='afspraak' ? `Afspraak op ${fmtTijd(x.afspraakOp)}` : x.tekst.replace(/\.$/, '');
+    }
+    return {a, b, vervolg};
+  });
+  const tel = f => acts.filter(a => inP(a.datum) && vanWie(a) && f(a)).length;
+  const afspraken = acts.filter(a => a.type==='afspraak' && a.afspraakOp && inP(a.afspraakOp) && vanWie(a)).sort((a, b) => a.afspraakOp.localeCompare(b.afspraakOp));
+  const gemaakt = acts.filter(a => a.type==='afspraak' && inP(a.datum) && vanWie(a));
+  const nieuwP = S.bedrijven.filter(b => inP(b.aangemaakt) && (b.kopje==='prospect' || b.wasProspect) && (!v.wie || !b.door || b.door===v.wie)).sort((a, b) => a.aangemaakt.localeCompare(b.aangemaakt));
+  const nieuwK = S.bedrijven.filter(b => b.kopje==='klant' && ((b.wasProspect && inP(b.klantSinds || '')) || (!b.wasProspect && b.door && inP(b.aangemaakt))));   // ingevoerde oude klanten (zonder 'door') tellen niet als nieuw
+  const bestellingen = acts.filter(a => a.type==='bestelling' && inP(a.datum));
+  return {bezoeken, afspraken, gemaakt, nieuwP, nieuwK, bestellingen,
+    gesprekken:tel(a => a.type==='bel' && a.uitkomst==='gesproken'), belpogingen:tel(a => a.type==='bel'), mails:tel(a => a.type==='mail_uit')};
+}
+function rapportView(){
+  if(!alleActs && !actsLaden) setTimeout(() => laadAlleActiviteiten(), 0);
+  const v = rapportStaat(), r = rapportData(v);
+  const deze = maandagVan(today());
+  const weken = Array.from({length:12}, (_, i) => addDays(deze, -7 * i));
+  const gekozen = (!V.rapportEigen && weken.find(w => w===v.van && addDays(w, 6)===v.tot)) || 'eigen';
+  const wkNaam = w => `${w===deze ? 'Deze week' : w===addDays(deze, -7) ? 'Vorige week' : 'Week ' + isoWeek(w)} · ${fmtDag(w)} – ${fmtDag(addDays(w, 6))}`;
+  const namen = (S.gebruikers || []).map(g => g.naam);
+  const klantProspect = b => b.kopje==='klant' ? '<span class="chip k-klant">Klant</span>' : '<span class="chip">Prospect</span>';
+  const bezKlant = r.bezoeken.filter(x => x.b.kopje==='klant').length;
+  return `<div class="wrap rapport">
+    <header class="page-head"><p class="eyebrow">Resultaten</p><h1>Weekrapport</h1>
+      <p class="sub">Wie er bezocht is, wat eruit kwam en wat er is afgesproken.</p></header>
+    <div class="seg blad" role="tablist" aria-label="Resultaten"><button role="tab" data-act="tab" data-tab="rapport" aria-selected="${V.tab==='rapport'}" class="${V.tab==='rapport'?'on':''}">${ic('note','sm')}Weekrapport</button><button role="tab" data-act="tab" data-tab="resultaten" aria-selected="${V.tab==='resultaten'}" class="${V.tab==='resultaten'?'on':''}">${ic('star','sm')}Wat werkt</button></div>
+    <div class="rapport-kies">
+      <label class="f"><span>Periode</span><select id="rp-week">${weken.map(w => `<option value="${w}" ${gekozen===w?'selected':''}>${esc(wkNaam(w))}</option>`).join('')}<option value="eigen" ${gekozen==='eigen'?'selected':''}>Eigen periode…</option></select></label>
+      ${gekozen==='eigen' ? `<label class="f"><span>Van</span><input type="date" id="rp-van" value="${v.van}"></label><label class="f"><span>Tot en met</span><input type="date" id="rp-tot" value="${v.tot}"></label>` : ''}
+      ${namen.length > 1 ? `<label class="f"><span>Wie</span><select id="rp-wie"><option value="">Iedereen</option>${namen.map(n => `<option ${n===v.wie?'selected':''}>${esc(n)}</option>`).join('')}</select></label>` : ''}
+      <button class="btn" data-act="rapportPrint">${ic('print','sm')}Printen of PDF</button>
+    </div>
+    ${!alleActs ? `<p class="hint">${ic('refresh','sm')} Activiteiten laden${V.actsVoortgang ? ` (${V.actsVoortgang}/${S.bedrijven.length})` : ''}…</p>` : ''}
+    <div class="tegels">
+      <div class="tegel succes"><b>${r.bezoeken.length}</b><span>Bezoeken${r.bezoeken.length ? ` (${bezKlant} klant, ${r.bezoeken.length - bezKlant} prospect)` : ''}</span></div>
+      <div class="tegel"><b>${r.nieuwP.length}</b><span>Prospects toegevoegd</span></div>
+      <div class="tegel"><b>${r.nieuwK.length}</b><span>Nieuwe klanten</span></div>
+      <div class="tegel"><b>${r.gemaakt.length}</b><span>Afspraken gemaakt</span></div>
+      <div class="tegel"><b>${r.gesprekken}</b><span>Gesprekken (${r.belpogingen} keer gebeld)</span></div>
+      <div class="tegel"><b>${r.mails}</b><span>Mails verstuurd</span></div>
+    </div>
+    <section class="section"><div class="section-title"><h2>Bezocht</h2><span class="count num">${r.bezoeken.length}</span></div>
+      ${r.bezoeken.length ? `<div class="rp-lijst">${r.bezoeken.map(({a, b, vervolg}) => `<article class="rp-item">
+        <div class="rp-kop"><span class="rp-dag">${esc(fmtDag(a.datum.slice(0, 10)))}<small>${esc(hhmm(a.datum))}</small></span>
+          <div><h3><button data-act="open" data-id="${b.id}">${esc(b.naam)}</button></h3><p class="meta">${klantProspect(b)} ${esc([b.plaats, a.contactNaam && 'met ' + a.contactNaam, a.door && v.wie !== a.door ? 'door ' + a.door : ''].filter(Boolean).join(' · '))}</p></div></div>
+        <p><b>Uitkomst:</b> ${esc(UITKOMST_NAAM[a.uitkomst] || 'Bezoek')}</p>
+        ${a.tekst ? `<p class="rp-tekst">${esc(a.tekst.replace(/^(Goed gesprek|Afspraak gemaakt|Offerte gevraagd|Niemand gesproken|Geen interesse):\s*/, ''))}</p>` : ''}
+        <p class="rp-vervolg">${ic('calendar','sm')}<span><b>Afgesproken:</b> ${esc(vervolg || 'niets vastgelegd')}</span></p>
+      </article>`).join('')}</div>` : `<p class="sub">Geen bezoeken vastgelegd in deze periode.</p>`}
+    </section>
+    <section class="section"><div class="section-title"><h2>Afspraken in deze periode</h2><span class="count num">${r.afspraken.length}</span></div>
+      ${r.afspraken.length ? `<div class="rows">${r.afspraken.map(a => { const b = bedrijf(a.bedrijfId), gedaan = r.bezoeken.some(x => x.a.bedrijfId===a.bedrijfId && (x.a.naAfspraak===a.id || x.a.datum >= a.afspraakOp.slice(0, 10)));
+        return `<button class="row" data-act="open" data-id="${b.id}">${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${klantProspect(b)}${gedaan ? '<span class="chip k-klant">Verslag</span>' : a.afspraakOp < new Date().toISOString() ? '<span class="chip warn">Nog geen verslag</span>' : ''}</span><span class="meta">${esc(fmtTijd(a.afspraakOp))}${a.contactNaam ? ' · ' + esc(a.contactNaam) : ''}${a.tekst ? ' · ' + esc(a.tekst) : ''}</span></span>${ic('right')}</button>`; }).join('')}</div>` : `<p class="sub">Geen afspraken in deze periode.</p>`}
+    </section>
+    <div class="grid2 rp-twee">
+      <section class="section"><div class="section-title"><h2>Prospects toegevoegd</h2><span class="count num">${r.nieuwP.length}</span></div>
+        ${r.nieuwP.length ? `<div class="rows">${r.nieuwP.slice(0, V.rapportAlleP ? 9999 : 15).map(b => `<button class="row" data-act="open" data-id="${b.id}">${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${b.kopje==='klant' ? '<span class="chip k-klant">Nu klant</span>' : ''}</span><span class="meta">${esc([fmtDag(b.aangemaakt.slice(0, 10)), b.plaats, (b.tags||[]).includes('leadradar') ? 'uit de leadradar' : '', ...(b.tags||[]).filter(t => !['leadradar','koud'].includes(t)).map(t => '#' + t)].filter(Boolean).join(' · '))}</span></span>${ic('right')}</button>`).join('')}</div>${r.nieuwP.length > 15 && !V.rapportAlleP ? `<button class="btn small ghost" data-act="rapportAlleP">Alle ${r.nieuwP.length} tonen</button>` : ''}` : `<p class="sub">Geen nieuwe prospects.</p>`}
+      </section>
+      <section class="section"><div class="section-title"><h2>Nieuwe klanten</h2><span class="count num">${r.nieuwK.length}</span></div>
+        ${r.nieuwK.length ? `<div class="rows">${r.nieuwK.map(b => `<button class="row" data-act="open" data-id="${b.id}">${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${b.wasProspect ? '<span class="chip k-klant">Was prospect</span>' : ''}</span><span class="meta">${esc([fmtDag((b.klantSinds || b.aangemaakt || '').slice(0, 10)), b.plaats].filter(Boolean).join(' · '))}</span></span>${ic('right')}</button>`).join('')}</div>` : `<p class="sub">Geen nieuwe klanten.</p>`}
+        ${r.bestellingen.length ? `<p class="hint">${r.bestellingen.length} bestelling${r.bestellingen.length > 1 ? 'en' : ''} vastgelegd in deze periode.</p>` : ''}
+      </section>
+    </div>
+  </div>`;
+}
+function printRapport(){
+  const v = rapportStaat(), r = rapportData(v);
+  const kp = b => b.kopje==='klant' ? 'Klant' : 'Prospect';
+  $('#print').innerHTML = `<div class="pr-kop"><div><h1>Weekrapport ${esc(fmtDag(v.van))} – ${esc(fmtDag(v.tot))} ${parse(v.tot).getFullYear()}</h1>
+      <p>${esc(v.wie || 'Iedereen')} · ${r.bezoeken.length} bezoeken · ${r.nieuwP.length} prospects toegevoegd · ${r.nieuwK.length} nieuwe klanten · ${r.gemaakt.length} afspraken gemaakt · ${r.gesprekken} gesprekken · ${r.mails} mails</p></div>
+      <img src="logo-zwart.png" alt="Desko"></div>
+    <h2 class="pr-h2">Bezocht</h2>
+    ${r.bezoeken.length ? r.bezoeken.map(({a, b, vervolg}, i) => `<div class="pr-stop pr-rap"><div class="pr-nr">${i + 1}</div><div class="pr-tijd">${esc(fmtDag(a.datum.slice(0, 10)))}<small>${esc(hhmm(a.datum))}</small></div>
+      <div><div class="pr-naam">${esc(b.naam)}</div><p class="pr-r pr-sub">${esc([kp(b), b.plaats, a.contactNaam && 'met ' + a.contactNaam].filter(Boolean).join(' · '))}</p>
+        <p class="pr-r"><b>Uitkomst:</b> ${esc(UITKOMST_NAAM[a.uitkomst] || 'Bezoek')}</p>
+        ${a.tekst ? `<p class="pr-r" style="white-space:pre-wrap">${esc(a.tekst.replace(/^(Goed gesprek|Afspraak gemaakt|Offerte gevraagd|Niemand gesproken|Geen interesse):\s*/, ''))}</p>` : ''}
+        <p class="pr-r"><b>Afgesproken:</b> ${esc(vervolg || 'niets vastgelegd')}</p></div></div>`).join('') : '<p>Geen bezoeken vastgelegd.</p>'}
+    <h2 class="pr-h2">Prospects toegevoegd (${r.nieuwP.length})</h2>
+    <p>${r.nieuwP.length ? r.nieuwP.map(b => esc(b.naam) + (b.plaats ? ' (' + esc(b.plaats) + ')' : '')).join(', ') : 'Geen.'}</p>
+    <h2 class="pr-h2">Nieuwe klanten (${r.nieuwK.length})</h2>
+    <p>${r.nieuwK.length ? r.nieuwK.map(b => esc(b.naam)).join(', ') : 'Geen.'}</p>
+    <p class="pr-voet">Desko CRM · geprint ${esc(fmtTijd(new Date().toISOString()))}</p>`;
+  const img = $('#print img'), go = () => window.print();
+  if(img && !img.complete){ img.onload = img.onerror = go; setTimeout(go, 1500); } else go();
 }
 
 /* ---------- resultaten: wat werkt ----------
@@ -3179,6 +3302,7 @@ function resultatenView(){
   const pk = (k, l) => `<button class="keuze ${String(r.periode)===k?'on':''}" data-act="resPeriode" data-p="${k}">${l}</button>`;
   return `<div class="wrap resultaten">
     <header class="page-head"><p class="eyebrow">Wat werkt</p><h1>Resultaten</h1><p class="sub">Een prospect die klant wordt, is een succes. Hier zie je hoe die trajecten liepen en welke aanpak het vaakst werkt.</p></header>
+    <div class="seg blad" role="tablist" aria-label="Resultaten"><button role="tab" data-act="tab" data-tab="rapport" aria-selected="${V.tab==='rapport'}" class="${V.tab==='rapport'?'on':''}">${ic('note','sm')}Weekrapport</button><button role="tab" data-act="tab" data-tab="resultaten" aria-selected="${V.tab==='resultaten'}" class="${V.tab==='resultaten'?'on':''}">${ic('star','sm')}Wat werkt</button></div>
     <div class="keuzes">${pk('','Altijd')}${pk('365','12 maanden')}${pk('182','6 maanden')}${pk('91','3 maanden')}</div>
     ${actsLaden ? `<p class="hint">${ic('refresh','sm')} Tijdlijnen laden… ${V.actsVoortgang||0} van ${S.bedrijven.length}</p>` : ''}
     <div class="tegels">
@@ -3576,8 +3700,10 @@ function naBezoek(b, {afspraak = null} = {}){
       const op = d.datum ? new Date(d.datum) : new Date();
       const regels = [[uit, d.tekst.trim()].filter(Boolean).join(': '), interesse.length && 'Interesse: ' + interesse.join(', '), werkplekken && 'Werkplekken: ' + werkplekken, nodig && 'Nodig: ' + nodig].filter(Boolean);
       let nieuweAfspraak = null;
+      const plan0 = metReeks ? null : leesPlan(d);
+      const vervolg = [d.uitkomst==='afspraak' && d.afspraakOp && `Afspraak op ${fmtTijd(new Date(d.afspraakOp).toISOString())}`, plan0 && `${plan0.actie} op ${fmtDag(plan0.datum)}${plan0.tijd ? ' om ' + plan0.tijd : ''}`, metReeks && 'Mailreeks gestart'].filter(Boolean).join('; ');
       const ok = await veilig(async () => {
-        await verwerkActiviteit(b, {type:'bezoek', datum:op.toISOString(), uitkomst:d.uitkomst, tekst:regels.join('\n'), contactNaam:c?.naam||'', verslag:true,
+        await verwerkActiviteit(b, {type:'bezoek', datum:op.toISOString(), uitkomst:d.uitkomst, tekst:regels.join('\n'), contactNaam:c?.naam||'', verslag:true, ...(vervolg ? {vervolg} : {}),
           ...(interesse.length ? {interesse} : {}), ...(werkplekken ? {werkplekken} : {}), ...(nodig ? {nodig} : {}), ...(afspraak?.id ? {naAfspraak:afspraak.id} : {})}, {startReeks:metReeks, contact:idx});
         const patch = {};
         if(interesse.length || werkplekken || nodig) patch.behoefte = {interesse, werkplekken, wanneer:nodig, bijgewerkt:today()};
@@ -3875,6 +4001,8 @@ const ACT = {
     planStops((volgorde || ordenStops(vp, bs)).map(b => oud.get(b.id)));
     toast(volgorde ? 'Snelste volgorde over de weg' : 'Volgorde met de kortste afstand'); },
   planPrint: () => printRoute(planRoute(planStaat())),
+  rapportPrint: () => printRapport(),
+  rapportAlleP: () => { V.rapportAlleP = true; render(); },
   routePrint: () => printRoute(route()),
   planWis: () => bevestig('Route wissen', 'Alle stops van deze dag worden verwijderd.', 'Wissen', () => planStops([])),
   buurtHier: () => { V.buurt = {...V.buurt, status:null, zoek:''}; buurtStart(); },
@@ -3947,6 +4075,9 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if(t.id==='plan-prov'){ planStaat().prov = t.value; render(); return; }
+  if(t.id==='rp-week'){ const v = rapportStaat(); V.rapportEigen = t.value==='eigen'; if(t.value!=='eigen'){ v.van = t.value; v.tot = addDays(t.value, 6); } render(); return; }
+  if(t.id==='rp-van' || t.id==='rp-tot'){ const v = rapportStaat(); if(t.value){ v[t.id==='rp-van' ? 'van' : 'tot'] = t.value; if(v.van > v.tot) v.tot = v.van; } V.rapportEigen = true; render(); return; }
+  if(t.id==='rp-wie'){ rapportStaat().wie = t.value; render(); return; }
   if(t.id==='plan-tag'){ planStaat().tag = t.value; render(); return; }
   if(t.id==='plan-start'){ const v = planStaat(), r = planRoute(v); if(r.stops.length) veilig(() => zetRoute({...r, id:routeId(v.datum, v.voor), start:t.value || null})); return; }
   if(t.dataset?.sorteer){ V.sorteer = {...(V.sorteer||{}), [t.dataset.sorteer]:t.value}; render(); return; }
