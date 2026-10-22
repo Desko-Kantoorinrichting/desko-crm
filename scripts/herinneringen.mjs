@@ -16,7 +16,7 @@ const MAX_LOS = 6;              // meer dan dit per keer: één samenvatting
 const BEWAAR_DAGEN = 14;
 
 /* Welke meldingen zijn er nu aan de beurt? Puur, zodat het te testen is. */
-export function teVersturen({bedrijven, mails, inst, robotActief, log, datum, tijd, routes = {}}){
+export function teVersturen({bedrijven, mails, inst, robotActief, log, datum, tijd, routes = {}, leads = {}}){
   const begin = (inst.kantoortijden && inst.kantoortijden.van) || '08:30';
   const los = [], laat = [];
   for(const [id, b] of Object.entries(bedrijven)){
@@ -48,6 +48,10 @@ export function teVersturen({bedrijven, mails, inst, robotActief, log, datum, ti
     routeMeldingen.push({sleutel:`route|${id}`, titel:`Route vandaag${r.voor ? ` voor ${r.voor}` : ''}: ${stops.length} bezoek${stops.length > 1 ? 'en' : ''}`,
       tekst:`${namen.slice(0, 3).join(', ')}${namen.length > 3 ? ' en meer' : ''}`, url:'#/vandaag', tag:`route-${id}`});
   }
+  // Leadradar: nieuwe leads te beoordelen, één melding per week
+  const nieuw = Object.values(leads).filter(l => l.status === 'nieuw'), week = nieuw.map(l => l.week).sort().pop();
+  if(nieuw.length && begin <= tijd && !log[`leadradar|${week}`])
+    routeMeldingen.push({sleutel:`leadradar|${week}`, titel:`Leadradar: ${nieuw.length} nieuwe lead${nieuw.length > 1 ? 's' : ''}`, tekst:'Bekijk ze en voeg de goede toe als prospect.', url:'#/leadradar', tag:'leadradar'});
   const uit = [...routeMeldingen, ...los.slice(0, MAX_LOS)], rest = los.slice(MAX_LOS);
   if(rest.length) uit.push({sleutel:null, sleutels:rest.map(x => x.sleutel), titel:`Nog ${rest.length} opvolging${rest.length > 1 ? 'en' : ''} vandaag`, tekst:'Bekijk ze in de app.', url:'#/vandaag', tag:'vandaag'});
   const laatSleutel = `te-laat|${datum}`;
@@ -100,11 +104,11 @@ export async function main(env = process.env, nu = new Date(), {stuur} = {}){
     stuur = (sub, payload) => wp.sendNotification(sub, payload, {TTL:4 * 3600, urgency:'high'});
   }
 
-  const [bedrijven, mails, inst0, robot, log, routes] = await Promise.all(['data/bedrijven.json', 'data/mails.json', 'data/instellingen.json', 'data/robot.json', 'data/herinneringen.json', 'data/routes.json'].map(p => lees(p).then(x => x.docs)));
+  const [bedrijven, mails, inst0, robot, log, routes, leads] = await Promise.all(['data/bedrijven.json', 'data/mails.json', 'data/instellingen.json', 'data/robot.json', 'data/herinneringen.json', 'data/routes.json', 'data/leads.json'].map(p => lees(p).then(x => x.docs)));
   const inst = R.instellingen(inst0.algemeen);
   const rs = robot.status || {};
   const robotActief = !!(rs.gekoppeld && rs.laatsteRun && nu - new Date(rs.laatsteRun) < 2 * 3600 * 1000);
-  const meldingen = teVersturen({bedrijven, mails, inst, robotActief, log, datum, tijd, routes});
+  const meldingen = teVersturen({bedrijven, mails, inst, robotActief, log, datum, tijd, routes, leads});
   if(!meldingen.length){ console.log('Geen nieuwe herinneringen.'); return {verstuurd:0}; }
 
   let verstuurd = 0, fouten = 0; const verlopen = [];

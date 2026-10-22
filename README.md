@@ -11,6 +11,7 @@ Eenvoudig CRM voor Desko Kantoormeubelen. Werkt op telefoon en computer en is al
 - **Plannen:** per dag een route voor iemand klaarzetten, met kaart (PDOK-achtergrondkaart van het Kadaster), slimme voorstellen (opvolging nodig, lang stil, nieuwe prospects), de route over de weg met rijtijd en aankomsttijd per bezoek (OSRM-routeplanner op OpenStreetMap; alleen coördinaten, bij storing een schatting) en de snelste volgorde. De route staat bij die persoon op Vandaag en geeft 's ochtends een melding.
 - **Jouw week (Vandaag):** per werkdag de rit, wie je moet bellen of mailen en afspraken.
 - **Resultaten:** wat werkt. Een prospect die klant wordt is een succes; per eerste aanpak, bron (tag), aantal bezoeken, mailreeks, regio, grootte, branche en persoon het aandeel dat klant werd, de trechter van prospect naar klant, doorlooptijd, inspanning per klant en wat er per maand is gedaan.
+- **Leadradar:** elke maandagochtend zoekt Claude (AI van Anthropic) met zoeken op het web naar nieuwe leads: bedrijven in de regio die verhuizen, een nieuw kantoor nemen, uitbreiden of hard groeien. In de app beoordelen: toevoegen als prospect of niet relevant met reden (gaat mee naar de volgende zoektocht). Alleen openbare bedrijfsinformatie, geen personen; elke lead met bronlink (zie stap 7).
 - **Pijplijn:** prospects (standaard zonder #netwerk) in vier fasen: nog te contacten, contact gehad, bezocht, afspraak. Doorschuiven met slepen of pijltjes, met één tik op de rit van een dag.
 - **Agenda:** per week of maand wie wanneer gebeld, gemaild of bezocht moet worden; ook als agenda-bestand voor Outlook.
 - **Meldingen op de telefoon:** herinneringen als "Neem vandaag contact op met ...", met een link naar het profiel (zie stap 6).
@@ -60,6 +61,13 @@ De robot verstuurt alleen op werkdagen binnen kantoortijd, controleert vlak voor
 
 Een opvolging van vandaag geeft een melding aan het begin van de werkdag, of om de gekozen tijd. Te late opvolgingen komen één keer per dag als samenvatting. De meldingen gaan versleuteld via de pushdienst van de telefoon (Google of Apple), die de inhoud niet kan lezen. De sleutel daarvoor staat in `data/push-sleutel.json` in de privé repository.
 
+### 7. Leadradar (AI-leads elke maandag)
+1. Maak een API-sleutel bij Anthropic: [platform.claude.com](https://platform.claude.com) → API keys (op een zakelijk Desko-account, met een maandlimiet ingesteld).
+2. Zet in deze repository bij **Settings → Secrets and variables → Actions → Secrets** het secret `ANTHROPIC_API_KEY` (en `DATA_TOKEN`, zie stap 6).
+3. **Actions → Leadradar → Run workflow** om meteen te testen. Daarna draait hij elke maandag rond 7:00.
+
+Kosten: één zoektocht per week met Claude Opus 5.5 en ongeveer 20-30 webzoekacties ($10 per 1.000 zoekacties), samen naar schatting $1-3 per week. Waar de radar op zoekt (regio, doelgroep, extra aanwijzingen, aantal) stel je in de app in onder Leadradar.
+
 ### Eigen adres (crm.desko.nl)
 1. Laat bij jullie domeinbeheer een DNS-record toevoegen: `CNAME crm → desko-kantoorinrichting.github.io`
 2. Vul in GitHub bij **Settings → Pages → Custom domain** `crm.desko.nl` in en zet **Enforce HTTPS** aan.
@@ -83,7 +91,9 @@ Een opvolging van vandaag geeft een melding aan het begin van de werkdag, of om 
 | `site/reeks.js` | Gedeelde logica: werkdagen, mailreeksen, inplannen (app en mailrobot) |
 | `scripts/mailrobot.mjs` | Mailrobot: verstuurt ingeplande mails, herkent antwoorden |
 | `scripts/herinneringen.mjs` | Meldingen op de telefoon voor opvolgingen |
+| `scripts/leadradar.mjs` | Leadradar: wekelijks nieuwe leads zoeken met Claude |
 | `tests/` | Tests voor de mailrobot en herinneringen: `node --test tests/*.mjs` |
 | `.github/workflows/pages.yml` | Automatisch publiceren |
 | `.github/workflows/mailrobot.yml` | Mailrobot elk kwartier op werkdagen |
 | `.github/workflows/herinneringen.yml` | Herinneringen elk kwartier op werkdagen |
+| `.github/workflows/leadradar.yml` | Leadradar elke maandagochtend |

@@ -1,0 +1,32 @@
+name: Leadradar
+
+# Elke maandagochtend: AI zoekt op het web naar nieuwe leads (scripts/leadradar.mjs).
+on:
+  schedule:
+    - cron: '43 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: leadradar
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Bibliotheken installeren
+        run: npm install --no-save --no-audit --no-fund @anthropic-ai/sdk@0.132.1 zod@4.6.4
+      - name: Leads zoeken
+        run: node scripts/leadradar.mjs
+        env:
+          DATA_REPO: Desko-Kantoorinrichting/desko-crm-data
+          DATA_TOKEN: ${{ secrets.DATA_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

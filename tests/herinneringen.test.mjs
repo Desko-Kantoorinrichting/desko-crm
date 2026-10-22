@@ -102,3 +102,11 @@ test('route van vandaag: één melding aan het begin van de werkdag', () => {
   assert.equal(m.titel, 'Route vandaag voor Ferry: 2 bezoeken'); assert.equal(m.tekst, 'Hoek Advocaten, Van Dijk Architecten'); assert.equal(m.url, '#/vandaag');
   assert.equal(teVersturen({...args, log:{[m.sleutel]:'x'}, tijd:'09:00'}).length, 0);
 });
+
+test('leadradar: één melding per week zolang er leads te beoordelen zijn', () => {
+  const args = {bedrijven:{}, mails:{}, inst:{kantoortijden:{van:'08:30'}}, robotActief:false, datum:'2026-10-26', tijd:'09:00',
+    leads:{a:{status:'nieuw', week:'2026-W44'}, b:{status:'nieuw', week:'2026-W44'}, c:{status:'afgewezen', week:'2026-W43'}}};
+  const [m] = teVersturen({...args, log:{}});
+  assert.equal(m.titel, 'Leadradar: 2 nieuwe leads'); assert.equal(m.url, '#/leadradar');
+  assert.equal(teVersturen({...args, log:{[m.sleutel]:'x'}}).length, 0);
+});
