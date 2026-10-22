@@ -577,6 +577,29 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
 @media (prefers-reduced-motion:no-preference){
   .sheet{animation:up .2s cubic-bezier(.2,.8,.2,1)}@keyframes up{from{transform:translateY(30px);opacity:.5}}
 }
+/* Route printen: alleen de lijst, zwart op wit */
+#print{display:none}
+@media print{
+  @page{size:A4;margin:14mm 12mm}
+  html,body{background:#fff !important}
+  body > *:not(#print){display:none !important}
+  #print{display:block;color:#000;font:11pt/1.35 'League Spartan',Arial,sans-serif}
+  .pr-kop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px}
+  .pr-kop img{height:22px}
+  .pr-kop h1{font-size:18pt;margin:0 0 2px;line-height:1.1}
+  .pr-kop p{margin:0}
+  .pr-stop{display:grid;grid-template-columns:30px 52px 1fr 110px;gap:8px;padding:9px 0;border-bottom:1px solid #999;break-inside:avoid}
+  .pr-nr{font-size:16pt;font-weight:700}
+  .pr-tijd{font-weight:700;font-size:12pt}
+  .pr-tijd small{display:block;font-weight:400;font-size:8.5pt}
+  .pr-naam{font-size:12.5pt;font-weight:700}
+  .pr-r{margin:1px 0 0}
+  .pr-sub{font-size:9.5pt;color:#333}
+  .pr-vak{font-size:9.5pt;text-align:right}
+  .pr-vak span{display:inline-block;width:13px;height:13px;border:1.5px solid #000;vertical-align:-2px;margin-left:4px}
+  .pr-lijn{grid-column:3/5;border-bottom:1px dotted #777;height:16px}
+  .pr-voet{margin-top:10px;font-size:9pt;color:#444}
+}
 </style>
 </head>
 <body>
@@ -585,6 +608,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
 <button class="fab" id="fab" data-act="snel" hidden></button>
 <nav class="tabs" aria-label="Hoofdmenu" hidden><div class="side-brand" id="side-brand"></div><div class="in" id="tabs"></div><div class="side-foot" id="side-foot"></div></nav>
 <div id="sheet" hidden></div>
+<div id="print" aria-hidden="true"></div>
 <div id="toast" class="toast" hidden></div>
 <div id="opslag" class="opslag" role="status" hidden></div>
 
@@ -595,7 +619,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-22.4';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-22.5';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -864,6 +888,7 @@ const ICONS = {
   search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   filter:'<path d="M3 5h18M6 12h12M10 19h4"/>',
   download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  print:'<path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/>',
   kolom:'<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>',
   pakket:'<path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
   radar:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/><circle cx="12" cy="12" r="1"/>',
@@ -2921,6 +2946,35 @@ function naarMaps(lijst, huidig){
   if(route()) bewaar(ONDERWEG_KEY, JSON.stringify({weg:Date.now(), huidig:huidig || lijst[0]?.id, datum:today()}));
   window.open(routeUrl(lijst), '_blank', 'noopener');
 }
+/* Printbare lijst van een dagroute: tijd, adres, contact en waarom langs. */
+function printRoute(r){
+  if(!r?.stops?.length){ toast('Er staat nog geen route.'); return; }
+  const sch = routeSchema(r), m = sch.maat, vp = vertrekpunt(), d = parse(r.datum);
+  const dag = `${['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][d.getDay()]} ${d.getDate()} ${MAANDEN[d.getMonth()]} ${d.getFullYear()}`;
+  const stops = r.stops.map(x => bedrijf(x.id)).filter(Boolean);
+  $('#print').innerHTML = `<div class="pr-kop"><div><h1>Route ${esc(dag)}</h1>
+      <p>${esc(r.voor || '')} · ${stops.length} bezoek${stops.length === 1 ? '' : 'en'} · ${m.weg ? '' : '± '}${m.km} km · ${urenMin(m.rijMin)} rijden</p>
+      <p class="pr-sub">Vertrek ${esc(sch.start)} vanaf ${esc(vp ? vp.adres : 'huidige locatie')} · ${vp ? 'terug' : 'klaar'} om ± ${esc(sch.terug)}</p></div>
+      <img src="logo-zwart.png" alt="Desko"></div>
+    ${stops.map((b, i) => {
+      const a = sch.aankomst[b.id], o = b.opvolging, c = contactVan(b, o?.contact ?? 0), w = planReden(b, r.datum);
+      const adres = [b.adres, [b.postcode, b.plaats].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+      const wat = [b.kopje === 'klant' ? 'Klant' : 'Prospect' + (b.status && b.status !== 'nieuw' ? ` (${b.status})` : ''), w.reden, o?.actief && o.stap === 'actie' && o.actie ? 'Gepland: ' + o.actie : '', b.laatsteBestelling ? 'Laatste bestelling ' + fmtDatum(b.laatsteBestelling) : ''].filter(Boolean);
+      return `<div class="pr-stop"><div class="pr-nr">${i + 1}</div>
+        <div class="pr-tijd">${a ? esc(a.tijd) : ''}${a?.rij != null ? `<small>${a.rij} min rijden</small>` : ''}</div>
+        <div><div class="pr-naam">${esc(b.naam)}</div>
+          <p class="pr-r">${esc(adres || 'Geen adres bekend')}</p>
+          ${c ? `<p class="pr-r">${esc([c.naam, c.functie].filter(Boolean).join(', '))}${c.telefoon ? ' · ' + esc(c.telefoon) : ''}</p>` : ''}
+          <p class="pr-r pr-sub">${esc(wat.join(' · '))}${(b.tags||[]).length ? ' · #' + b.tags.map(esc).join(' #') : ''}</p>
+          ${b.behoefte ? `<p class="pr-r pr-sub">Behoefte: ${esc([b.behoefte.werkplekken && b.behoefte.werkplekken + ' werkplekken', (b.behoefte.interesse||[]).join(', '), b.behoefte.wanneer].filter(Boolean).join(' · '))}</p>` : ''}</div>
+        <div class="pr-vak">Bezocht<span></span><br>Niemand<span></span></div>
+        <div class="pr-lijn"></div></div>`;
+    }).join('')}
+    <p class="pr-voet">Desko CRM · geprint ${esc(fmtTijd(new Date().toISOString()))}</p>`;
+  const img = $('#print img'), go = () => { window.print(); };
+  if(img && !img.complete){ img.onload = img.onerror = go; setTimeout(go, 1500); } else go();
+}
+window.addEventListener('afterprint', () => { const p = $('#print'); if(p) p.innerHTML = ''; });
 function routeKaart(){
   const r = route(); if(!r) return '';
   const open = openStops(r), klaar = r.stops.filter(x => x.status!=='open').length, sch = routeSchema(r), m = sch.maat;
@@ -2932,7 +2986,7 @@ function routeKaart(){
       <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${x.status!=='open' ? `<span class="chip">${naam[x.status]}</span>` : ''}${(b.tags||[]).map(t => `<span class="chip tag">${esc(t)}</span>`).join('')}</span><span class="meta">${sch.aankomst[b.id] && x.status==='open' ? `<b>± ${sch.aankomst[b.id].tijd}</b> · ` : ''}${esc([b.adres, b.plaats].filter(Boolean).join(', '))}${x.notitie ? ' · '+esc(x.notitie) : ''}</span></span>
       <span class="btns" style="flex-wrap:nowrap">${x.status==='open' ? `<button class="btn small" data-act="routeNaar" data-id="${b.id}" aria-label="Navigeer naar ${esc(b.naam)}">${ic('route','sm')}<span class="lbl">Navigeer</span></button><button class="btn small ${volgende?'primary':''}" data-act="naBezoek" data-id="${b.id}">${ic('check','sm')}<span class="lbl">Klaar</span></button>`
         : `<button class="btn small" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button>`}</span></div>`; }).join('')}</div>
-    <div class="btns">${open.length ? `<button class="btn primary" data-act="routeHeel">${ic('route','sm')}Route openen${open.length>1 ? ` (${open.length} stops)` : ''}</button>` : `<p class="sub">Alle stops gedaan. Goed bezig!</p>`}<button class="btn ghost" data-act="routeStop2">Route wissen</button></div></section>`;
+    <div class="btns">${open.length ? `<button class="btn primary" data-act="routeHeel">${ic('route','sm')}Route openen${open.length>1 ? ` (${open.length} stops)` : ''}</button>` : `<p class="sub">Alle stops gedaan. Goed bezig!</p>`}<button class="btn" data-act="routePrint">${ic('print','sm')}Printen</button><button class="btn ghost" data-act="routeStop2">Route wissen</button></div></section>`;
 }
 function routeMaak(){
   const v = V.buurt || {}, lijst = (v.sel || []).map(bedrijf).filter(b => b?.geo?.lat);
@@ -3340,7 +3394,7 @@ function plannenView(){
         <div class="btns">
           <button class="btn primary" data-act="planSlim">${ic('bolt','sm')}Slim vullen</button>
           ${r.stops.length > 1 ? `<button class="btn" data-act="planOptimaliseer">${ic('refresh','sm')}Beste volgorde</button>` : ''}
-          ${r.stops.length ? `<a class="btn" href="${esc(vp ? routeUrl(r.stops.map(x => bedrijf(x.id))).replace('?api=1', '?api=1&origin=' + encodeURIComponent(vp.lat + ',' + vp.lng)) : routeUrl(r.stops.map(x => bedrijf(x.id))))}" target="_blank" rel="noopener">${ic('route','sm')}Google Maps</a><button class="btn ghost" data-act="planWis">Wissen</button>` : ''}
+          ${r.stops.length ? `<a class="btn" href="${esc(vp ? routeUrl(r.stops.map(x => bedrijf(x.id))).replace('?api=1', '?api=1&origin=' + encodeURIComponent(vp.lat + ',' + vp.lng)) : routeUrl(r.stops.map(x => bedrijf(x.id))))}" target="_blank" rel="noopener">${ic('route','sm')}Google Maps</a><button class="btn" data-act="planPrint">${ic('print','sm')}Printen</button><button class="btn ghost" data-act="planWis">Wissen</button>` : ''}
         </div>
       </section>
       <div class="plan-kaart-plek" id="plan-kaart-plek"><p class="hint" id="plan-kaart-melding">Kaart laden…</p></div>
@@ -3790,6 +3844,8 @@ const ACT = {
     }
     planStops((volgorde || ordenStops(vp, bs)).map(b => oud.get(b.id)));
     toast(volgorde ? 'Snelste volgorde over de weg' : 'Volgorde met de kortste afstand'); },
+  planPrint: () => printRoute(planRoute(planStaat())),
+  routePrint: () => printRoute(route()),
   planWis: () => bevestig('Route wissen', 'Alle stops van deze dag worden verwijderd.', 'Wissen', () => planStops([])),
   buurtHier: () => { V.buurt = {...V.buurt, status:null, zoek:''}; buurtStart(); },
   toonStil: () => { V.filters.alle = {contact:'stil'}; V.zoek.alle = ''; V.tab = 'alle'; V.detail = null; navTo({tab:'alle'}); render(); window.scrollTo(0,0); },
