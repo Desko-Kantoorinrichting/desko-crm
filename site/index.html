@@ -619,7 +619,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-22.5';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-22.6';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1175,7 +1175,7 @@ function render(){
   $('#app').innerHTML = html;
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length;
-  const tabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['plannen','route','Plannen'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['leadradar','radar','Leadradar'],['klant','building','Klanten'],['prospect','target','Prospects'],['mail','mail','Mail'],['meer','menu','Meer']];
+  const tabs = [['vandaag','sun','Vandaag'],['plannen','route','Plannen'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['leadradar','radar','Leadradar'],['mail','mail','Mail'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['meer','menu','Meer']];
   const actief = k => !V.detail ? (V.tab===k || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&['resultaten','leadradar'].includes(V.tab)&&matchMedia('(max-width:959px)').matches) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&matchMedia('(max-width:959px)').matches) || (k==='prospect'&&V.tab==='pijplijn'&&matchMedia('(max-width:959px)').matches)) : (k===V.terugNaar);
   $('#tabs').innerHTML = tabs.map(([k,i,l]) => `<button data-act="tab" data-tab="${k}" ${['plannen','pijplijn','resultaten','leadradar'].includes(k)?'class="alleen-groot"':''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}</button>`).join('');
   const ingelogd = !S.geenDb && !!S.gebruiker;
