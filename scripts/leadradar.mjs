@@ -50,7 +50,7 @@ Werkwijze: zoek met verschillende zoekvragen (nieuws, vastgoedberichten van make
 Regels:
 - Alleen bedrijven en organisaties, geen particulieren. Noem geen namen van personen.
 - Sla bedrijven over die al bekend zijn (lijst hieronder), ook in een andere schrijfwijze.
-- Geef per lead de pagina waar je het signaal vond (exacte URL uit je zoekresultaten), het bedrijf, de plaats, de website als je die vond, wat het signaal is en waarom dit kansrijk is voor Desko, en een korte suggestie voor het eerste contact.
+- Geef per lead de pagina waar je het signaal vond (exacte URL uit je zoekresultaten), het bedrijf, de plaats, de website als je die vond, wat het signaal is, wanneer ze verhuizen of het nieuwe kantoor in gebruik nemen (zoek dit actief op; zet erbij als het onbekend is) en waarom dit kansrijk is voor Desko, en een korte suggestie voor het eerste contact.
 - Liever minder leads dan zwakke of onzekere leads.
 
 Al bekend (niet opnieuw voorstellen):
@@ -99,6 +99,7 @@ export async function structureer(client, verslag, aantal){
     signaal:z.string().describe('Korte kop: wat er gebeurt, bijv. "Verhuist naar nieuw kantoor aan de Zuidas"'),
     toelichting:z.string().describe('1-3 zinnen: waarom dit kansrijk is voor Desko'),
     bron_url:z.string(), bron_titel:z.string(), datum_signaal:z.string().describe('Datum van het bericht als JJJJ-MM-DD, of leeg'),
+    verhuisdatum:z.string().describe('Wanneer het bedrijf verhuist of het nieuwe kantoor in gebruik neemt, zoals in de bron staat (bijv. "1 maart 2027", "Q1 2027", "al verhuisd in oktober 2026"), of leeg'),
     branche:z.string(), werkplekken:z.string().describe('Schatting aantal werkplekken of medewerkers, of leeg'),
     aanpak:z.string().describe('Suggestie voor het eerste contact')
   });

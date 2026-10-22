@@ -337,6 +337,7 @@ a{color:var(--accent)}
 .lead-signaal{display:flex;gap:6px;align-items:flex-start;background:var(--accent-soft);border-radius:10px;padding:6px 10px;margin:0}.lead-signaal .ic{flex:none;margin-top:3px;color:var(--accent)}
 .lead p{margin:0;line-height:1.45;font-size:.92rem}.lead-links a{color:var(--accent);font-weight:650}
 .lead-tip{color:var(--muted)}
+.lead-verhuis{display:flex;gap:6px;align-items:center;margin:0}.lead-verhuis .ic{flex:none;color:var(--accent)}.lead-verhuis.onbekend{color:var(--muted)}.lead-verhuis.onbekend .ic{color:var(--muted)}
 @media (max-width:520px){.leads{grid-template-columns:1fr}}
 .week{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .wk-dag{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font:inherit;color:var(--ink);cursor:pointer;width:100%}
@@ -591,7 +592,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-22.1';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-22.2';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -2942,9 +2943,10 @@ const weekLabel = w => { const [j, n] = String(w || '').split('-W'); return n ? 
 function leadKaart(l){
   const bron = l.bron_url ? (() => { try{ return new URL(l.bron_url).hostname.replace(/^www\./, ''); }catch{ return ''; } })() : '';
   return `<article class="lead ${l.status}">
-    <div class="lead-kop"><div><h3>${esc(l.bedrijf)}</h3><p class="meta">${esc([l.plaats, l.branche, l.werkplekken && (/\d/.test(l.werkplekken) ? '± ' + l.werkplekken + ' werkplekken' : l.werkplekken)].filter(Boolean).join(' · '))}</p></div>
+    <div class="lead-kop"><div><h3>${esc(l.bedrijf)}</h3><p class="meta">${esc([l.plaats, l.branche, l.werkplekken && (/\d/.test(l.werkplekken) ? '± ' + l.werkplekken.replace(/^(ca\.?|±|circa)\s*/i, '') + ' werkplekken' : l.werkplekken)].filter(Boolean).join(' · '))}</p></div>
       ${l.status === 'toegevoegd' ? `<span class="chip k-klant">${ic('check','sm')}Toegevoegd</span>` : l.status === 'afgewezen' ? `<span class="chip">Niet relevant</span>` : ''}</div>
     <p class="lead-signaal">${ic('radar','sm')}<b>${esc(l.signaal)}</b></p>
+    <p class="lead-verhuis${l.verhuisdatum && !/onbekend/i.test(l.verhuisdatum) ? '' : ' onbekend'}">${ic('calendar','sm')}<span>Verhuizing: <b>${esc(l.verhuisdatum || 'nog onbekend')}</b></span></p>
     ${l.toelichting ? `<p>${esc(l.toelichting)}</p>` : ''}
     <p class="lead-links">${l.bron_url ? `<a href="${esc(l.bron_url)}" target="_blank" rel="noopener noreferrer">${esc(l.bron_titel || 'Bron')}</a> <span class="sub">${esc(bron)}${l.datum_signaal ? ' · ' + esc(fmtDatum(l.datum_signaal)) : ''}</span>` : ''}${l.website ? ` · <a href="${esc(/^https?:/.test(l.website) ? l.website : 'https://' + l.website)}" target="_blank" rel="noopener noreferrer">website</a>` : ''}</p>
     ${l.aanpak && l.status === 'nieuw' ? `<p class="lead-tip"><b>Tip:</b> ${esc(l.aanpak)}</p>` : ''}
@@ -2987,7 +2989,7 @@ function leadErbij(l){
       website:l.website || '', aangemaakt:nu, bijgewerkt:nu, laatsteContact:'', opvolging:{actief:false}});
     await db.collection('activiteiten').add({bedrijfId:ref.id, datum:nu, type:'systeem', tekst:'Aangemaakt als prospect (leadradar).'});
     await db.collection('activiteiten').add({bedrijfId:ref.id, datum:nu, type:'notitie', door:S.gebruiker?.naam || '',
-      tekst:[`Leadradar: ${l.signaal}`, l.toelichting, l.bron_url && `Bron: ${l.bron_url}`, l.website && `Website: ${l.website}`, l.aanpak && `Tip: ${l.aanpak}`].filter(Boolean).join('\n')});
+      tekst:[`Leadradar: ${l.signaal}`, l.verhuisdatum && `Verhuizing: ${l.verhuisdatum}`, l.toelichting, l.bron_url && `Bron: ${l.bron_url}`, l.website && `Website: ${l.website}`, l.aanpak && `Tip: ${l.aanpak}`].filter(Boolean).join('\n')});
     await db.collection('leads').doc(l.id).update({status:'toegevoegd', bedrijfId:ref.id, beoordeeld:nu, door:S.gebruiker?.naam || ''});
   }, `${l.bedrijf} toegevoegd als prospect`)) closeSheet(); };
   if(dubbel.length) bevestig('Lijkt al in het CRM te staan', `${dubbel.map(b => b.naam).join(', ')} lijkt op ${l.bedrijf}. Toch toevoegen?`, 'Toch toevoegen', doe);
