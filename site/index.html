@@ -642,7 +642,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-23.3';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-23.4';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1462,16 +1462,17 @@ function actForm(b, type, ci){
       <div class="grid2"><label class="f"><span>Naam</span><input id="af-cnaam" name="cnaam" autocomplete="off"></label><label class="f"><span>Functie</span><input id="af-cfunctie" name="cfunctie" placeholder="bijv. Facilitair manager" autocomplete="off"></label></div>
       <div class="grid2"><label class="f"><span>Telefoon</span><input id="af-ctel" name="ctel" type="tel" autocomplete="off"></label><label class="f"><span>E-mail</span><input id="af-cmail" name="cmail" type="email" autocomplete="off"></label></div>
       <p class="hint">Een nieuwe contactpersoon wordt meteen de persoon voor de opvolging.</p></div></details>` : ''}
-    ${type==='afspraak' ? `<label class="f"><span>Datum en tijd van de afspraak</span><input id="af-op" name="afspraakOp" type="datetime-local" value="${localDT(new Date(Date.now()+86400000))}"></label>` : ''}
+    ${type==='afspraak' ? afspraakKiezer('af-op') : ''}
     <label class="f"><span>${type==='bezoek'?'Uitkomst':'Opmerking'}</span><textarea id="af-tekst" name="tekst" placeholder="${esc(placeholders[type]||'')}"></textarea></label>
     ${type==='bestelling' ? `<label class="f"><span>Besteldatum</span><input id="af-wanneer" name="wanneer" type="datetime-local" value="${localDT()}" max="${localDT()}"></label>`
-      : `<details><summary class="sub" style="cursor:pointer">Was het eerder? Datum aanpassen</summary><label class="f" style="padding-top:8px"><span>Wanneer</span><input id="af-wanneer" name="wanneer" type="datetime-local" value="${localDT()}" max="${localDT()}"></label></details>`}
+      : type==='afspraak' ? '' : `<details><summary class="sub" style="cursor:pointer">Was het eerder? Datum aanpassen</summary><label class="f" style="padding-top:8px"><span>Wanneer</span><input id="af-wanneer" name="wanneer" type="datetime-local" value="${localDT()}" max="${localDT()}"></label></details>`}
     ${type==='bezoek' ? tagField(b.tags||[]) : ''}
     ${type==='bezoek' ? reeksKeuze(b, 'af') : planVelden({id:'af', metGeen:true, titel:'Volgende stap'})}
     ${reeksMogelijk ? `<label class="check"><input type="checkbox" id="af-reeks" name="reeks" checked><span>Opvolging starten</span></label>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
   </form>`, s => {
     if(type==='bezoek') mountTags(s); else mountPlan(s, 'af');
+    if(type==='afspraak') mountAfspraak(s, 'af-op');
     s.querySelector('#af').onsubmit = async e => {
       e.preventDefault(); const d = formData(e.target);
       let afspraak = null;
@@ -1909,6 +1910,24 @@ const planWanneer = () => [
   ['Over een maand', REEKS.volgendeWerkdag(addDays(today(),30))]
 ];
 /* Velden "wat" en "wanneer" met snelknoppen. metGeen: begint op "Niet plannen". */
+/* Afspraak kiezen: dagknoppen, een datum (vandaag of later) en een tijd. Het verborgen veld
+   afspraakOp krijgt "JJJJ-MM-DDTHH:MM", net als het oude datum-tijdveld. */
+function afspraakKiezer(id, dagen = 1, tijd = '10:00', label = 'Wanneer is de afspraak?'){
+  const d0 = addDays(today(), dagen);
+  const snel = [['Morgen', addDays(today(), 1)], ['Overmorgen', addDays(today(), 2)], ['Volgende week', addDays(today(), 7)], ['Over 2 weken', addDays(today(), 14)]];
+  return `<div class="f afspraak-kies" data-afspraak="${id}"><span>${esc(label)}</span>
+    <div class="keuzes">${snel.map(([l, d]) => `<button type="button" class="keuze ${d===d0?'on':''}" data-ad="${d}">${l}<small>${fmtDag(d)}</small></button>`).join('')}</div>
+    <div class="grid2"><label class="f" style="margin:0"><span>Datum</span><input type="date" id="${id}-datum" value="${d0}" min="${today()}"></label>
+      <label class="f" style="margin:0"><span>Tijd</span><input type="time" id="${id}-tijd" value="${tijd}"></label></div>
+    <input type="hidden" name="afspraakOp" id="${id}" value="${d0}T${tijd}"></div>`;
+}
+function mountAfspraak(s, id){
+  const box = s.querySelector(`[data-afspraak="${id}"]`); if(!box) return;
+  const dat = box.querySelector(`#${id}-datum`), tijd = box.querySelector(`#${id}-tijd`), uit = box.querySelector(`#${id}`);
+  const zet = () => { uit.value = dat.value ? `${dat.value}T${tijd.value || '10:00'}` : ''; box.querySelectorAll('[data-ad]').forEach(x => x.classList.toggle('on', x.dataset.ad === dat.value)); };
+  box.querySelectorAll('[data-ad]').forEach(k => k.onclick = () => { dat.value = k.dataset.ad; zet(); });
+  dat.onchange = dat.oninput = zet; tijd.onchange = tijd.oninput = zet;
+}
 function planVelden({id='pl', wat='Bellen', datum=null, metGeen=false, titel=''} = {}){
   const opties = planWanneer();
   const gekozen = metGeen ? '' : (datum || opties[2][1]);
@@ -3688,7 +3707,7 @@ function naBezoek(b, {afspraak = null} = {}){
     <p class="sub">${afspraak ? 'Afspraak' : 'Bezoek'} bij <b>${esc(b.naam)}</b>${afspraak?.afspraakOp ? ` · ${esc(fmtTijd(afspraak.afspraakOp))}` : ''}</p>
     <div class="f"><span>Uitkomst</span><div class="keuzes" id="nb-uit">${UITKOMSTEN.map(([k,l],i) => `<button type="button" class="keuze ${i?'':'on'}" data-uit="${k}">${l}</button>`).join('')}</div>
       <input type="hidden" name="uitkomst" id="nb-uitkomst" value="gesproken"></div>
-    <label class="f" id="nb-afspraak" hidden><span>Datum en tijd van de nieuwe afspraak</span><input name="afspraakOp" type="datetime-local" value="${localDT(new Date(Date.now()+7*86400000))}"></label>
+    <div id="nb-afspraak" hidden>${afspraakKiezer('nb-op', 7, '10:00', 'Wanneer is de nieuwe afspraak?')}</div>
     ${contactSelect(b, ci)}
     <div class="f"><span>Wat is er besproken?</span>
       <button type="button" class="spreekknop licht nb-mic" id="nb-mic">${ic('mic')}<span><b id="nb-mic-t">Inspreken</b><small id="nb-mic-s">Vertel wat er besproken is en wanneer je opvolgt</small></span></button>
@@ -3701,7 +3720,7 @@ function naBezoek(b, {afspraak = null} = {}){
     ${reeks ? `<label class="check" id="nb-reekslbl"><input type="checkbox" name="reeks" id="nb-reeks"><span>In plaats daarvan mailreeks "${esc(reeks.naam)}" starten</span></label>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">${inRoute ? 'Nog niet geweest' : 'Annuleren'}</button><button class="btn primary" type="submit">Opslaan${volgende ? ' en verder' : ''}</button></div>
   </form>`, s => {
-    mountPlan(s, 'nb');
+    mountPlan(s, 'nb'); mountAfspraak(s, 'nb-op');
     const box = s.querySelector('[data-plan="nb"]'), datum = s.querySelector('#nb-datum'), actie = s.querySelector('#nb-actie'), tekst = s.querySelector('#nb-tekst');
     const kies = (wat, dag) => { box.querySelector(`[data-wat="${wat}"]`)?.click(); box.querySelectorAll('[data-dag]')[dag]?.click(); };
     s.querySelectorAll('[data-uit]').forEach(k => k.onclick = () => {
