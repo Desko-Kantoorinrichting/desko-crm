@@ -338,6 +338,10 @@ article.lead{background:var(--surface);border:1px solid var(--line);border-radiu
 .lead-notitie{display:flex;gap:6px;align-items:flex-start;margin:0;background:var(--accent-soft);border-radius:10px;padding:6px 10px}.lead-notitie .ic{flex:none;margin-top:3px}
 button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .seg.blad{display:inline-flex;gap:4px;margin:-4px 0 16px}.seg.blad button{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}.seg.blad button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.snelrij{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px;-webkit-overflow-scrolling:touch}.snelrij::-webkit-scrollbar{display:none}.snelrij .btn{flex:none;white-space:nowrap}
+.meer-opties{margin-top:6px}.meer-opties summary{cursor:pointer;font-size:.86rem;font-weight:600;color:var(--muted);padding:4px 0}.meer-opties .btns{margin-top:6px}
+.ev.mini{padding-top:2px;padding-bottom:2px}.ev.mini .ico{width:18px;height:18px;margin-left:5px}.ev.mini p{margin:0;font-size:.8rem;color:var(--faint)}.ev.mini small{white-space:nowrap}
+.empty.klein{padding:14px;flex-direction:row;gap:8px;justify-content:center}
 .dd-knop{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
 .bezocht{display:flex;gap:5px;align-items:center;font-size:.82rem;color:var(--muted);margin-top:2px}.bezocht .ic{flex:none}.bezocht.nooit{color:var(--warn)}
 .rapport-kies{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}.rapport-kies .f{margin:0;min-width:180px}
@@ -638,7 +642,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-23.2';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-23.3';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -990,24 +994,20 @@ function vandaagView(){
       <div class="page-head"><p class="eyebrow">${['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][d.getDay()]} ${d.getDate()} ${['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'][d.getMonth()]}</p>
         <h1>${groet()}${voor?`, <span class="grad">${esc(voor)}</span>`:''}</h1>
         <p class="lead">${nu.length ? `Je hebt ${nu.length} ${nu.length===1?'actie':'acties'} om vandaag op te volgen.` : 'Alles is bijgewerkt. Mooi zo.'}</p></div>
-      <div class="stats">
-        <button class="stat" data-act="tab" data-tab="klant"><b class="num">${n('klant')}</b><span>${ic('building')}Klanten</span></button>
-        <button class="stat" data-act="tab" data-tab="prospect"><b class="num">${n('prospect')}</b><span>${ic('target')}Prospects</span></button>
-      </div>
       <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
-      <div class="btns"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button>${new Date().getDay()===5 ? `<button class="btn heroknop" data-act="tab" data-tab="rapport">${ic('note','sm')}Weekrapport</button>` : ''}<button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button><button class="btn heroknop" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar${nieuweLeads().length ? ` (${nieuweLeads().length})` : ''}</button></div>
+      <div class="snelrij" role="group" aria-label="Snel naar"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button>${new Date().getDay()===5 ? `<button class="btn heroknop" data-act="tab" data-tab="rapport">${ic('note','sm')}Weekrapport</button>` : ''}<button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button><button class="btn heroknop" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar${nieuweLeads().length ? ` (${nieuweLeads().length})` : ''}</button></div>
       </div></div>
-    ${weekOverzicht()}
     ${routeKaart()}
-    ${verslagKaart()}
     <section class="section">
       <div class="section-title"><h2>Vandaag opvolgen</h2><span class="count num">${nu.length}</span></div>
-      ${nu.length ? `<div class="tasks">${nu.map(kaart).join('')}</div>` : `<div class="empty">${ic('check')}<p>Niets openstaand. Leg een bezoek vast om een opvolging te starten.</p><button class="btn primary" data-act="nieuw">${ic('plus','sm')}Nieuw bedrijf</button></div>`}
+      ${nu.length ? `<div class="tasks">${nu.map(kaart).join('')}</div>` : `<div class="empty klein">${ic('check')}<p>Niets openstaand voor vandaag.</p></div>`}
     </section>
+    ${verslagKaart()}
+    ${weekOverzicht()}
     ${stil.length ? `<section class="section"><div class="section-title"><h2>Al lang niets van gehoord</h2><span class="count num">${stil.length}</span></div>
       <p class="hint">Geen opvolging gepland en ${STIL_DAGEN} dagen of langer geen contact.</p>
       <div class="rows">${stil.slice(0,5).map(b => `<div class="row static" style="grid-template-columns:auto 1fr auto">${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
-        <span class="meta">${b.laatsteContact ? 'Laatste contact '+esc(fmtDag(b.laatsteContact))+' ('+diffDays(b.laatsteContact, today())+' dagen)' : 'Nog nooit contact gehad'}</span></span>
+        <span class="meta">${b.laatsteContact ? 'Laatste contact '+esc(geledenTekst(b.laatsteContact)) : 'Nog nooit contact gehad'}</span></span>
         <span class="btns" style="flex-wrap:nowrap"><button class="btn small" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}</button><button class="btn small primary" data-act="planActie" data-id="${b.id}">${ic('calendar','sm')}<span class="lbl">Inplannen</span></button></span></div>`).join('')}</div>
       ${stil.length > 5 ? `<button class="btn small ghost" data-act="toonStil">Alle ${stil.length} bekijken</button>` : ''}</section>` : ''}
     ${meldingBanner()}
@@ -1076,7 +1076,8 @@ function detailView(b){
       <p class="big">${esc(s.label)}</p>
       ${stappen}
       <p class="sub">${s.gepauzeerd ? 'Er komen geen herinneringen tot je hervat.' : 'Volgende actie: '+(s.due ? dueTekst(s.datum) : fmtDag(s.datum))+(s.tijd ? ' om '+s.tijd : '')}</p>
-      <div class="btns">${taakKnoppen(b,s)}${b.opvolging.stap!=='actie' && !s.gepauzeerd ? `<button class="btn ghost" data-act="pauzeer" data-id="${b.id}">${ic('pause','sm')}Pauzeren</button>`:''}${b.opvolging.stap!=='actie' ? `<button class="btn ghost" data-act="planActie" data-id="${b.id}">${ic('calendar','sm')}Zelf inplannen</button>` : ''}<button class="btn ghost" data-act="stopReeks" data-id="${b.id}">${ic('x','sm')}Stoppen</button></div>
+      <div class="btns">${taakKnoppen(b,s)}</div>
+      <details class="meer-opties"><summary>Meer opties</summary><div class="btns">${b.opvolging.stap!=='actie' && !s.gepauzeerd ? `<button class="btn ghost small" data-act="pauzeer" data-id="${b.id}">${ic('pause','sm')}Pauzeren</button>`:''}${b.opvolging.stap!=='actie' ? `<button class="btn ghost small" data-act="planActie" data-id="${b.id}">${ic('calendar','sm')}Zelf inplannen</button>` : ''}<button class="btn ghost small" data-act="stopReeks" data-id="${b.id}">${ic('x','sm')}Stoppen</button></div></details>
     </section>`
     : `<section class="opvolg idle"><p class="label">${ic('clock')}Opvolging</p><p>Geen opvolging actief.</p>
       <div class="btns"><button class="btn primary" data-act="planActie" data-id="${b.id}">${ic('calendar','sm')}Opvolging inplannen</button>${(b.contacten||[]).length?`<button class="btn" data-act="reeksStart" data-id="${b.id}">${ic('bolt','sm')}Opvolgreeks starten</button>`:''}</div></section>`;
@@ -1120,7 +1121,8 @@ function detailView(b){
       ${acts.length ? `<div class="timeline">${acts.map(a => {
         const t = ACT_TYPES[a.type] || ACT_TYPES.notitie;
         const kop = a.type==='bel' ? `Telefoon · ${a.uitkomst||''}` : t.naam;
-        return `<div class="ev t-${esc(a.type)} ${a.type==='systeem'?'sys':''}"><span class="ico">${ic(ACT_ICON[a.type]||'note')}</span><div class="body">
+        if(a.type==='systeem') return `<div class="ev t-systeem sys mini"><span class="ico">${ic('dot')}</span><div class="body"><p>${esc(a.tekst||'')} <small>${esc(fmtTijd(a.datum))}</small></p></div></div>`;
+        return `<div class="ev t-${esc(a.type)}"><span class="ico">${ic(ACT_ICON[a.type]||'note')}</span><div class="body">
           <div class="head"><b>${esc(kop)}${a.contactNaam?' · '+esc(a.contactNaam):''}</b><span>${esc(fmtTijd(a.datum))}<button class="ev-edit" data-act="actBewerk" data-akt="${a.id}" aria-label="${esc(kop)} aanpassen">Aanpassen</button></span></div>
           ${a.tekst?`<p>${esc(a.tekst)}</p>`:''}${a.afspraakOp?`<p>Gepland: ${esc(fmtTijd(a.afspraakOp))}</p><span class="btns"><button class="btn small" data-act="ics" data-id="${b.id}" data-akt="${a.id}">${ic('calendar','sm')}Zet in agenda</button></span>`:''}
           ${a.bewerkt?`<small class="bewerkt">Aangepast${a.bewerktDoor?' door '+esc(a.bewerktDoor):''} op ${esc(fmtTijd(a.bewerkt))}</small>`:''}</div></div>`;
