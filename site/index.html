@@ -338,6 +338,8 @@ a{color:var(--accent)}
 .lead-notitie{display:flex;gap:6px;align-items:flex-start;margin:0;background:var(--accent-soft);border-radius:10px;padding:6px 10px}.lead-notitie .ic{flex:none;margin-top:3px}
 button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .seg.blad{display:inline-flex;gap:4px;margin:-4px 0 16px}.seg.blad button{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}.seg.blad button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.dd-knop{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
+.bezocht{display:flex;gap:5px;align-items:center;font-size:.82rem;color:var(--muted);margin-top:2px}.bezocht .ic{flex:none}.bezocht.nooit{color:var(--warn)}
 .rapport-kies{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}.rapport-kies .f{margin:0;min-width:180px}
 .rapport .tegels{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
 .rp-lijst{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
@@ -636,7 +638,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-22.8';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-23.1';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -805,6 +807,7 @@ async function verwerkActiviteit(b, a, opts={}){
   const opDag = a.datum ? ds(new Date(a.datum)) : today();
   if(CONTACT_TYPES.includes(a.type) && opDag > (b.laatsteContact || '')) patch.laatsteContact = opDag;
   if(a.type==='bestelling' && opDag > (b.laatsteBestelling || '')) patch.laatsteBestelling = opDag;
+  if(a.type==='bezoek' && opDag > (b.laatsteBezoek || '')) patch.laatsteBezoek = opDag;
   if(CONTACT_TYPES.includes(a.type) && heeftTag(b, 'koud')) patch.tags = zonderTag(b.tags, 'koud');   // niet meer koud na het eerste contact
   const st = b.status || 'nieuw';
   if(b.kopje==='prospect' && a.type==='bezoek' && ['nieuw','contact gehad'].includes(st)) patch.status = 'bezocht';
@@ -814,7 +817,7 @@ async function verwerkActiviteit(b, a, opts={}){
   const fresh = {...b, ...patch};
   const actief = b.opvolging?.actief && b.opvolging.stap!=='actie';
   if(a.type==='bezoek' && opts.startReeks){ await startReeks(fresh, opts.contact ?? 0); return; }
-  if(!actief) return;
+  if(!actief || opts.achteraf) return;
   if(a.type==='bel' && a.uitkomst==='gesproken') await stopReeks(fresh, `gesproken met ${a.contactNaam||'contactpersoon'}`);
   else if(a.type==='bel' && a.uitkomst==='niet opgenomen' && fresh.opvolging.stap==='mail'){
     // De ingeplande mail gaat gewoon door; de belpoging telt wel mee.
@@ -840,6 +843,7 @@ function filterDefs(kopje){
   defs.push({k:'tag', naam:'Tag', opts:uniq(bs.flatMap(b=>b.tags||[])).map(x=>[x,x])});
   if(kopje==='prospect' || kopje==='alle') defs.push({k:'status', naam:'Status', opts:STATUSSEN.map(x=>[x,x])});
   defs.push({k:'stap', naam:'Opvolging', opts:[['geen','Geen opvolging'],['eerste','Eerste opvolging'],['wacht','Wacht op reactie'],['terug','Niet opgenomen'],['actie','Geplande actie'],['gepauzeerd','Gepauzeerd'],['nu','Nu te doen']]});
+  defs.push({k:'bezoek', naam:'Laatste bezoek', opts:[['3','Afgelopen 3 maanden'],['3-12','3 tot 12 maanden geleden'],['12','Meer dan een jaar geleden'],['nooit','Nog geen bezoekdatum']]});
   if(kopje==='klant' || kopje==='alle') defs.push({k:'bestelling', naam:'Laatste bestelling', opts:[['6','Afgelopen 6 maanden'],['6-12','6 tot 12 maanden geleden'],['12-24','1 tot 2 jaar geleden'],['24','Meer dan 2 jaar geleden'],['nooit','Onbekend']]});
   defs.push({k:'contact', naam:'Laatste contact', opts:[['30','Minder dan 30 dagen'],['30-90','30 tot 90 dagen'],['90','Meer dan 90 dagen'],['nooit','Nog nooit'],['stil','Al lang niets van gehoord']]});
   return defs;
@@ -864,6 +868,13 @@ function matches(b, f, zoek){
     if(f.contact==='30-90' && !(lc && d>=30 && d<=90)) return false;
     if(f.contact==='90' && !(lc && d>90)) return false;
   }
+  if(f.bezoek){
+    const lz = b.laatsteBezoek, d = lz ? diffDays(lz, today()) : null;
+    if(f.bezoek==='nooit' ? lz : !lz) return false;
+    if(f.bezoek==='3' && !(d <= 91)) return false;
+    if(f.bezoek==='3-12' && !(d > 91 && d <= 365)) return false;
+    if(f.bezoek==='12' && !(d > 365)) return false;
+  }
   if(f.bestelling){
     const lb = b.laatsteBestelling, d = lb ? diffDays(lb, today()) : null;
     if(f.bestelling==='nooit' ? lb : !lb) return false;
@@ -882,7 +893,7 @@ function gefilterd(kopje){
   const f = V.filters[kopje] || {}, z = V.zoek[kopje] || '';
   const sorteer = V.sorteer?.[kopje] || 'naam', naam = (a, b) => (a.naam||'').localeCompare(b.naam||'');
   const opDatum = (veld, nieuwst) => (a, b) => (!a[veld]) - (!b[veld]) || (nieuwst ? (b[veld]||'').localeCompare(a[veld]||'') : (a[veld]||'').localeCompare(b[veld]||'')) || naam(a, b);
-  const sort = sorteer==='bestelling-nieuw' ? opDatum('laatsteBestelling', true) : sorteer==='bestelling-oud' ? opDatum('laatsteBestelling', false) : sorteer==='contact' ? opDatum('laatsteContact', true) : naam;
+  const sort = sorteer==='bezoek-oud' ? opDatum('laatsteBezoek', false) : sorteer==='bezoek-nieuw' ? opDatum('laatsteBezoek', true) : sorteer==='bestelling-nieuw' ? opDatum('laatsteBestelling', true) : sorteer==='bestelling-oud' ? opDatum('laatsteBestelling', false) : sorteer==='contact' ? opDatum('laatsteContact', true) : naam;
   return S.bedrijven.filter(b => (kopje==='alle' || b.kopje===kopje) && matches(b, f, z)).sort(sort);
 }
 
@@ -1019,6 +1030,7 @@ function lijstView(kopje){
       <span class="t">
         <span class="row-top"><b>${esc(b.naam)}</b>${extra}</span>
         <span class="meta">${esc([c?.naam, b.plaats, b.grootte && b.grootte+' mw', b.branche].filter(Boolean).join(' · ') || 'Nog geen gegevens')}${b.kopje==='klant' && b.laatsteBestelling ? ` · <b class="besteld">besteld ${esc(fmtDatum(b.laatsteBestelling))}</b>` : ''}</span>
+        ${b.kopje==='klant' ? `<span class="bezocht${b.laatsteBezoek ? '' : ' nooit'}">${ic('door','sm')}<span>${b.laatsteBezoek ? `Bezocht ${esc(fmtDatum(b.laatsteBezoek))} · ${esc(geledenTekst(b.laatsteBezoek))}` : 'Nog geen bezoekdatum'}</span></span>` : ''}
         ${s ? `<span class="next ${s.due?'late':''}">${ic(s.due?'bolt':'clock')}<span>${esc(s.due ? s.label : fmtDag(s.datum)+' · '+(STAP_NAAM[s.stap]||s.label))}</span></span>` : ''}
         ${(b.tags||[]).length ? `<span class="chips">${b.tags.map(t=>`<span class="chip tag">${esc(t)}</span>`).join('')}</span>` : ''}
       </span>${ic('right')}
@@ -1039,12 +1051,13 @@ function lijstView(kopje){
         ${views.length?`<button class="btn small ghost" data-act="beheerWeergaven" data-kopje="${kopje}">Weergaven beheren</button>`:''}
       </div></div>` : ''}
     <div class="listbar"><span class="sub num">${lijst.length} ${lijst.length===1?'bedrijf':'bedrijven'}${aantalF?' gefilterd':''}</span>
-      <label class="sorteer">Sorteer <select id="sort-${kopje}" data-sorteer="${kopje}">${[['naam','Naam'], ...(kopje==='klant'||kopje==='alle' ? [['bestelling-nieuw','Laatste bestelling, nieuwste eerst'],['bestelling-oud','Laatste bestelling, oudste eerst']] : []), ['contact','Laatste contact']].map(([v,l]) => `<option value="${v}" ${(V.sorteer?.[kopje]||'naam')===v?'selected':''}>${l}</option>`).join('')}</select></label><span class="btns"><button class="btn small ${kiezen?'on':'ghost'}" data-act="selecteer" data-kopje="${kopje}">${ic('check','sm')}${kiezen?'Klaar met selecteren':'Selecteren'}</button><button class="btn small ghost" data-act="export" data-kopje="${kopje}">${ic('download','sm')}Exporteren</button></span></div>
+      <label class="sorteer">Sorteer <select id="sort-${kopje}" data-sorteer="${kopje}">${[['naam','Naam'], ...(kopje==='klant'||kopje==='alle' ? [['bestelling-nieuw','Laatste bestelling, nieuwste eerst'],['bestelling-oud','Laatste bestelling, oudste eerst']] : []), ['bezoek-oud','Laatste bezoek, langst geleden eerst'],['bezoek-nieuw','Laatste bezoek, recentst eerst'],['contact','Laatste contact']].map(([v,l]) => `<option value="${v}" ${(V.sorteer?.[kopje]||'naam')===v?'selected':''}>${l}</option>`).join('')}</select></label><span class="btns"><button class="btn small ${kiezen?'on':'ghost'}" data-act="selecteer" data-kopje="${kopje}">${ic('check','sm')}${kiezen?'Klaar met selecteren':'Selecteren'}</button><button class="btn small ghost" data-act="export" data-kopje="${kopje}">${ic('download','sm')}Exporteren</button></span></div>
     ${kiezen ? `<div class="bulkbalk" role="toolbar" aria-label="Acties voor selectie">
       <span class="num"><b>${V.selectie.ids.size}</b> gekozen</span>
       <button class="btn small" data-act="kiesAlles" data-kopje="${kopje}">${V.selectie.ids.size===lijst.length && lijst.length?'Niets':'Alles'}</button>
       <button class="btn small primary" data-act="bulk" data-doe="plan" ${V.selectie.ids.size?'':'disabled'}>${ic('calendar','sm')}Opvolging</button>
       <button class="btn small" data-act="bulk" data-doe="tag" ${V.selectie.ids.size?'':'disabled'}>#&nbsp;Tag</button>
+      <button class="btn small" data-act="bulk" data-doe="bezoek" ${V.selectie.ids.size?'':'disabled'}>${ic('door','sm')}Bezocht op…</button>
       ${kopje==='prospect' && (S.inst.mailreeksen||[]).length ? `<button class="btn small" data-act="bulk" data-doe="reeks" ${V.selectie.ids.size?'':'disabled'}>${ic('mail','sm')}Mailreeks</button>` : ''}
       <button class="btn small" data-act="bulk" data-doe="verplaats" ${V.selectie.ids.size?'':'disabled'}>Verplaatsen</button>
     </div>` : ''}
@@ -1095,6 +1108,7 @@ function detailView(b){
         <dt>Branche</dt><dd>${esc(b.branche)||'—'}</dd>
         ${b.behoefte ? `<dt>Behoefte</dt><dd>${esc([b.behoefte.werkplekken && b.behoefte.werkplekken + ' werkplekken', (b.behoefte.interesse||[]).join(', '), b.behoefte.wanneer && 'nodig: ' + b.behoefte.wanneer].filter(Boolean).join(' · ') || '—')}<br><small class="sub">uit bezoekverslag van ${esc(fmtDatum(b.behoefte.bijgewerkt))}</small></dd>` : ''}
         ${b.kopje==='klant' ? `<dt>Laatste bestelling</dt><dd>${b.laatsteBestelling ? esc(fmtDatum(b.laatsteBestelling)) : '—'}</dd>` : ''}
+        <dt>Laatste bezoek</dt><dd class="dd-knop"><span>${b.laatsteBezoek ? `${esc(fmtDatum(b.laatsteBezoek))} <small class="sub">(${esc(geledenTekst(b.laatsteBezoek))})</small>` : '—'}</span><button class="btn small" data-act="bezoekDatum" data-id="${b.id}">${ic('calendar','sm')}${b.laatsteBezoek ? 'Nieuwe datum' : 'Datum invullen'}</button></dd>
         <dt>Laatste contact</dt><dd>${b.laatsteContact?esc(fmtDatum(b.laatsteContact)):'—'}</dd>
         <dt>Aangemaakt</dt><dd>${b.aangemaakt?esc(fmtTijd(b.aangemaakt)):'—'}</dd>
       </dl>
@@ -1251,6 +1265,36 @@ function mountTags(s){
   box.onclick = e => { const t = e.target.closest('[data-tag]'); if(!t) return;
     const delen = inp.value.split(',').map(x=>x.trim()); delen[delen.length-1] = t.dataset.tag; inp.value = delen.filter(Boolean).join(', ') + ', '; inp.focus(); upd(); };
   inp.oninput = upd; upd();
+}
+/* Laatste bezoekdatum snel vastleggen (ook achteraf, voor één of meer bedrijven).
+   Er komt een bezoek in de tijdlijn op die datum; een lopende opvolging blijft staan. */
+const geledenTekst = d => { const n = diffDays(d, today()); return n <= 0 ? 'vandaag' : n === 1 ? 'gisteren' : n < 31 ? `${n} dagen geleden` : n < 365 ? `${Math.round(n / 30.4)} maanden geleden` : `${(n / 365).toFixed(1).replace('.', ',').replace(',0', '')} jaar geleden`; };
+function bezoekDatumSheet(lijst, klaar){
+  const een = lijst.length === 1 ? lijst[0] : null;
+  const snel = [['Vandaag', today()], ['Gisteren', addDays(today(), -1)], ['Vorige week', addDays(today(), -7)], ['Vorige maand', addDays(today(), -30)]];
+  openSheet(een ? 'Bezoek vastleggen' : `Bezocht op… (${lijst.length} bedrijven)`, `<form id="bd" class="section">
+    <p class="sub">${een ? esc(een.naam) + (een.laatsteBezoek ? ` · laatste bezoek nu ${esc(fmtDatum(een.laatsteBezoek))}` : ' · nog geen bezoekdatum') : esc(lijst.slice(0, 4).map(b => b.naam).join(', ') + (lijst.length > 4 ? ` en ${lijst.length - 4} meer` : ''))}</p>
+    <div class="f"><span>Wanneer was het bezoek?</span><div class="keuzes">${snel.map(([l, d], i) => `<button type="button" class="keuze ${i ? '' : 'on'}" data-bd="${d}">${l}<small>${fmtDag(d)}</small></button>`).join('')}</div>
+      <input type="date" name="datum" id="bd-datum" value="${today()}" max="${today()}" required aria-label="Of kies een datum"></div>
+    ${een ? contactSelect(een, een.opvolging?.contact ?? 0, 'bd-ci') : ''}
+    <label class="f"><span>Notitie <small style="font-weight:500">(optioneel)</small></span><input name="tekst" id="bd-tekst" placeholder="Bijv. langs geweest, alles goed" autocomplete="off"></label>
+    <p class="hint">Komt als bezoek in de tijdlijn op die datum. Een geplande opvolging blijft gewoon staan.</p>
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">${ic('check','sm')}Opslaan</button></div>
+  </form>`, s => {
+    const datum = s.querySelector('#bd-datum');
+    s.querySelectorAll('[data-bd]').forEach(k => k.onclick = () => { datum.value = k.dataset.bd; s.querySelectorAll('[data-bd]').forEach(x => x.classList.toggle('on', x === k)); });
+    datum.onchange = () => s.querySelectorAll('[data-bd]').forEach(x => x.classList.toggle('on', x.dataset.bd === datum.value));
+    s.querySelector('#bd').onsubmit = async e => {
+      e.preventDefault(); const d = formData(e.target);
+      if(!d.datum || d.datum > today()){ toast('Kies een datum, niet in de toekomst.'); return; }
+      const iso = d.datum === today() ? new Date().toISOString() : new Date(d.datum + 'T12:00:00').toISOString();
+      const ok = await veilig(async () => {
+        for(const b0 of lijst){ const b = bedrijf(b0.id) || b0, idx = een ? Number(d.ci ?? 0) : (b.opvolging?.contact ?? 0), c = een ? contactVan(b, idx) : null;
+          await verwerkActiviteit(b, {type:'bezoek', datum:iso, tekst:d.tekst.trim() || 'Bezoek vastgelegd', contactNaam:c?.naam || '', achteraf:d.datum < today()}, {achteraf:d.datum < today(), contact:idx}); }
+      }, lijst.length === 1 ? `Bezoek op ${fmtDag(d.datum)} vastgelegd` : `Bezoek op ${fmtDag(d.datum)} vastgelegd voor ${lijst.length} bedrijven`);
+      if(ok){ closeSheet(); klaar && klaar(); }
+    };
+  });
 }
 function contactSelect(b, ci, id='ci'){
   const cs = b.contacten||[];
@@ -2066,6 +2110,7 @@ function bulkSheet(doe){
     s.querySelector('#bk').onsubmit = e => { e.preventDefault(); const plan = leesPlan(formData(e.target)); if(!plan){ toast('Kies een datum.'); return; }
       klaar(b => slaPlanOp(b, plan, b.opvolging?.contact ?? 0), `${n} opvolgingen ingepland voor ${fmtDag(plan.datum)}`); };
   });
+  if(doe==='bezoek') bezoekDatumSheet(lijst, () => { V.selectie = null; render(); });
   if(doe==='tag') openSheet(`Tag voor ${n} bedrijven`, `<form id="bk" class="section">${tagField([])}
       <div class="seg"><label><input type="radio" name="hoe" value="erbij" id="bk-erbij" checked><span>Toevoegen</span></label><label><input type="radio" name="hoe" value="eraf" id="bk-eraf"><span>Weghalen</span></label></div>
       <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div></form>`, s => {
@@ -3962,6 +4007,7 @@ const ACT = {
   geenVerslag: d => { const a = (alleActs||[]).find(x => x.id===d.akt); if(!a?.id) return; a.geenVerslag = true; render();
     veilig(() => db.collection('activiteiten').doc(a.id).update({geenVerslag:true}), 'Weggehaald'); },
   scanBij: d => scanKaartje(bedrijf(d.id)),
+  bezoekDatum: d => bezoekDatumSheet([bedrijf(d.id)]),
   routeStop2: () => bevestig('Route wissen', 'De dagroute van vandaag verdwijnt. Vastgelegde bezoeken blijven gewoon bewaard.', 'Wissen', () => veilig(() => zetRoute({...route(), stops:[]}))),
   planDag: d => { planStaat().datum = d.d; render(); },
   leadErbij: d => leadErbij(S.leads.find(l => l.id === d.id)),
