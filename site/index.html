@@ -642,7 +642,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-23.4';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-26.1';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -718,7 +718,7 @@ const T = b => S.inst.termijnen[b?.kopje] || S.inst.termijnen.prospect;
 const contactVan = (b,i) => (b.contacten||[])[i ?? 0] || null;
 const voornaam = c => (c?.naam||'').trim().split(/\s+/)[0] || '';
 /* Vaste tags met hun betekenis. "koud" en "klant" worden automatisch bijgehouden. */
-const VASTE_TAGS = {'koud':'Nog 0 contact gehad', 'klant':'Is klant', 'uw garantie verloopt':'Garantie van de klant verloopt', 'werkplekcheck':'Ferry komt de werkplek checken'};
+const VASTE_TAGS = {'koud':'Nog 0 contact gehad', 'klant':'Is klant', 'uw garantie verloopt':'Garantie van de klant verloopt', 'werkplekcheck':'Ferry komt de werkplek checken', 'lead info':''};
 const heeftTag = (b, t) => (b.tags||[]).some(x => x.toLowerCase()===t);
 const zonderTag = (tags, t) => (tags||[]).filter(x => x.toLowerCase()!==t);
 function alleTags(){ const m = new Map(); Object.keys(VASTE_TAGS).forEach(t => m.set(t, t)); S.bedrijven.forEach(b => (b.tags||[]).forEach(t => m.set(t.toLowerCase(), t))); (S.inst?.mailreeksen || []).forEach(r => r.tag && m.set(r.tag.toLowerCase(), r.tag)); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
