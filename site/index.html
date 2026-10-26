@@ -342,6 +342,11 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .meer-opties{margin-top:6px}.meer-opties summary{cursor:pointer;font-size:.86rem;font-weight:600;color:var(--muted);padding:4px 0}.meer-opties .btns{margin-top:6px}
 .ev.mini{padding-top:2px;padding-bottom:2px}.ev.mini .ico{width:18px;height:18px;margin-left:5px}.ev.mini p{margin:0;font-size:.8rem;color:var(--faint)}.ev.mini small{white-space:nowrap}
 .empty.klein{padding:14px;flex-direction:row;gap:8px;justify-content:center}
+.vd-zoek{margin:2px 0 12px;position:relative}.vd-zoek .search{display:block}.vd-zoek .search input{background:#fff;color:#000;border-color:#fff}
+.vd-zoek-uit:empty{display:none}.vd-zoek-uit{margin-top:8px;color:var(--ink)}.vd-zoek-uit .rows{box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.vd-zoek-rij{grid-template-columns:auto 1fr auto!important}.linkrij{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}.linkrij:focus-visible{outline:2px solid var(--accent)}
+.vd-zoek-leeg{margin:0;background:var(--surface);color:var(--muted);border-radius:var(--r);padding:12px 14px}.linkknop{all:unset;cursor:pointer;color:var(--accent);font-weight:650;text-decoration:underline}
+.task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .vd-teller{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 14px}
 .vd-tel{all:unset;cursor:pointer;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;color:#fff;background:rgba(255,255,255,.06)}
 .vd-tel b{font-size:1.7rem;line-height:1}.vd-tel span{font-size:.82rem;opacity:.8}.vd-tel.on{background:#fff;color:#000;border-color:#fff}.vd-tel:focus-visible{outline:2px solid #51C26F}
@@ -668,7 +673,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-26.3';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-26.4';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1014,7 +1019,8 @@ function vandaagView(){
         <div class="top">${chipKopje(t.b.kopje)}<span class="due ${late?'late':''}">${ic('clock')}${esc(dueTekst(t.datum))}${t.s?.tijd ? ' · ' + esc(t.s.tijd) : ''}</span></div>
         <h3><button data-act="open" data-id="${t.b.id}">${esc(t.b.naam)}</button></h3>
         <p class="what">${esc(t.soort==='opvolg' ? t.s.label : t.label)}</p></div></div>
-      <div class="btns">${knoppen}</div></article>`;
+      <div class="btns">${knoppen}</div>
+      <div class="task-extra"><button class="btn small ghost" data-act="open" data-id="${t.b.id}">${ic('right','sm')}Openen</button><button class="btn small ghost" data-act="actForm" data-type="notitie" data-id="${t.b.id}">${ic('note','sm')}Notitie</button></div></article>`;
   };
   const ik = S.gebruiker?.naam;
   if(!alleActs && !actsLaden) setTimeout(() => laadAlleActiviteiten(), 0);
@@ -1025,6 +1031,8 @@ function vandaagView(){
       <div class="page-head"><p class="eyebrow">${['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][d.getDay()]} ${d.getDate()} ${['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'][d.getMonth()]} · week ${isoWeek(today())}</p>
         <h1>${groet()}${voor?`, <span class="grad">${esc(voor)}</span>`:''}</h1>
         <p class="lead">${nu.length ? `Vandaag ${nu.length} ${nu.length===1?'actie':'acties'} om op te volgen.` : 'Vandaag niets meer openstaand.'}</p></div>
+      <div class="vd-zoek"><label class="search">${ic('search')}<input id="vd-zoek" type="search" placeholder="Zoek een klant of prospect" value="${esc(V.vdZoek || '')}" autocomplete="off" aria-label="Zoek een klant of prospect"></label>
+        <div id="vd-zoek-uit" class="vd-zoek-uit">${vdZoekLijst(V.vdZoek)}</div></div>
       <div class="vd-teller">
         <button class="vd-tel ${blad==='todo'?'on':''}" data-act="vblad" data-b="todo"><b class="num">${td.aantal}</b><span>Te doen deze week</span></button>
         <button class="vd-tel ${blad==='gedaan'?'on':''}" data-act="vblad" data-b="gedaan"><b class="num">${gd.aantal}</b><span>Gedaan deze week</span></button>
@@ -1062,6 +1070,15 @@ function vandaagView(){
     </div>
     ${meldingBanner()}
   </div>`;
+}
+/* Snel naar een bedrijf vanaf Vandaag: zoeken op naam, plaats of contactpersoon. */
+function vdZoekLijst(q){
+  const w = String(q || '').toLowerCase().split(/\s+/).filter(Boolean); if(!w.length) return '';
+  const r = S.bedrijven.filter(b => { const h = [b.naam, b.plaats, ...(b.contacten||[]).map(c => c.naam)].join(' ').toLowerCase(); return w.every(x => h.includes(x)); })
+    .sort((a, b) => (a.naam.toLowerCase().startsWith(w[0]) ? 0 : 1) - (b.naam.toLowerCase().startsWith(w[0]) ? 0 : 1) || a.naam.localeCompare(b.naam)).slice(0, 6);
+  if(!r.length) return `<p class="vd-zoek-leeg">Niets gevonden. <button class="linkknop" data-act="nieuw">Nieuw bedrijf toevoegen</button></p>`;
+  return `<div class="rows">${r.map(b => `<div class="row static vd-zoek-rij">${mono(b)}<button class="t linkrij" data-act="open" data-id="${b.id}"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span><span class="meta">${esc([contactVan(b, 0)?.naam, b.plaats].filter(Boolean).join(' · ') || 'Geen gegevens')}</span></button>
+    <span class="btns" style="flex-wrap:nowrap"><button class="btn small" data-act="actForm" data-type="notitie" data-id="${b.id}" aria-label="Notitie bij ${esc(b.naam)}">${ic('note','sm')}<span class="lbl">Notitie</span></button><button class="btn small primary" data-act="open" data-id="${b.id}" aria-label="${esc(b.naam)} openen">${ic('right','sm')}<span class="lbl">Openen</span></button></span></div>`).join('')}</div>`;
 }
 /* ---------- deze week: te doen en gedaan ---------- */
 const dagNaamLang = d => { const x = parse(d); return `${['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][x.getDay()]} ${x.getDate()} ${MAANDEN[x.getMonth()]}`; };
@@ -4234,6 +4251,7 @@ document.addEventListener('submit', e => {
 }, true);
 document.addEventListener('input', e => { const f = e.target.closest?.('form'); if(f) delete f.dataset.bezig; }, true);   // iets aangepast: opnieuw versturen mag
 document.addEventListener('input', e => {
+  if(e.target.id === 'vd-zoek'){ V.vdZoek = e.target.value; const u = $('#vd-zoek-uit'); if(u) u.innerHTML = vdZoekLijst(V.vdZoek); return; }
   if(e.target.id === 'pijp-zoek'){ V.pijp.zoek = e.target.value; clearTimeout(V._pz); V._pz = setTimeout(() => { const pos = e.target.selectionStart; render(); const el = $('#pijp-zoek'); if(el){ el.focus(); try{ el.setSelectionRange(pos, pos); }catch{} } }, 200); return; }
   if(e.target.id === 'plan-zoek'){ planStaat().zoek = e.target.value; clearTimeout(V._pz); V._pz = setTimeout(() => { const pos = e.target.selectionStart; render(); const el = $('#plan-zoek'); if(el){ el.focus(); try{ el.setSelectionRange(pos, pos); }catch{} } }, 200); return; }
   const z = e.target.dataset?.zoek; if(z==null) return;
