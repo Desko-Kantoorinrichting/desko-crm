@@ -633,6 +633,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
 }
 /* Route printen: alleen de lijst, zwart op wit */
 #print{display:none}
+@page liggend{size:A4 landscape;margin:10mm 12mm}
 @media print{
   @page{size:A4;margin:14mm 12mm}
   html,body{background:#fff !important}
@@ -653,12 +654,14 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
   .pr-vak span{display:inline-block;width:13px;height:13px;border:1.5px solid #000;vertical-align:-2px;margin-left:4px}
   .pr-lijn{grid-column:3/5;border-bottom:1px dotted #777;height:16px}
   .pr-voet{margin-top:10px;font-size:9pt;color:#444}
-  .dr-kop{display:flex;justify-content:space-between;align-items:center;margin-bottom:6mm}.dr-kop h1{font-size:20pt;margin:0}.dr-kop img{height:22px}
-  .dr-datum{font-size:12pt;margin:0 0 6mm;display:flex;gap:3mm;align-items:flex-end}.dr-datum span{display:inline-block;width:70mm;border-bottom:1px solid #000;height:6mm}
+  .dr{page:liggend}
+  .dr-kop{display:flex;justify-content:space-between;align-items:center;gap:10mm;margin-bottom:5mm}.dr-kop h1{font-size:20pt;margin:0}.dr-kop img{height:22px}
+  .dr-datum{font-size:12pt;margin:0;display:flex;gap:3mm;align-items:flex-end;flex:1}.dr-datum span{display:inline-block;width:70mm;border-bottom:1px solid #000;height:6mm}
   .dr-tabel{width:100%;border-collapse:collapse;table-layout:fixed}
   .dr-tabel th{text-align:left;font-size:10.5pt;border-bottom:2px solid #000;padding:2mm 2mm}
-  .dr-tabel th:nth-child(1){width:26%}.dr-tabel th:nth-child(2){width:20%}.dr-tabel th:nth-child(3){width:14%}
-  .dr-tabel td{border:1px solid #888;height:15mm}
+  .dr-tabel th:nth-child(1){width:19%}.dr-tabel th:nth-child(2){width:15%}.dr-tabel th:nth-child(3){width:24%}.dr-tabel th:nth-child(4){width:11%}
+  .dr-tabel td{border:1px solid #888;height:19mm;vertical-align:top}
+  .dr-cg{padding:0!important}.dr-cg span{display:block;height:9.5mm;box-sizing:border-box;padding:1mm 1.5mm;font-size:8pt;color:#555}.dr-cg span+span{border-top:1px dotted #aaa}
   .pr-h2{font-size:13pt;margin:14px 0 4px;border-bottom:1px solid #000;padding-bottom:2px}
   .pr-rap{grid-template-columns:26px 78px 1fr}
 }
@@ -681,7 +684,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.3';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.4';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -3241,14 +3244,14 @@ function dagrapportenView(){
   const lijst = [...(S.dagrapporten || [])].sort((a, b) => (b.ingestuurd || '').localeCompare(a.ingestuurd || ''));
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Ferry</p><h1>Dagrapporten</h1>
-      <p class="sub">Foto's van ingevulde dagrapporten. Op werkdagen om 17:30, 19:30 en 21:30 worden nieuwe rapporten verwerkt: bestaande bedrijven krijgen een bezoek erbij, nieuwe worden aangemaakt als prospect (met #dagrapport).</p>
+      <p class="sub">Foto's van ingevulde dagrapporten. E-mail en telefoon komen bij de contactpersoon te staan. Op werkdagen om 17:30, 19:30 en 21:30 worden nieuwe rapporten verwerkt: bestaande bedrijven krijgen een bezoek erbij, nieuwe worden aangemaakt als prospect (met #dagrapport).</p>
       <div class="btns"><button class="btn primary" data-act="dagrapportInsturen">${ic('camera','sm')}Dagrapport insturen</button><button class="btn" data-act="leegDagrapport">${ic('print','sm')}Leeg formulier printen</button></div></header>
     ${lijst.length ? `<div class="dr-lijst">${lijst.map(r => { const [st, cls] = DR_STATUS[r.status] || [r.status, ''];
       return `<article class="card dr-kaart"><div class="section-title"><h2>${esc(dagNaamLang(r.datum))}</h2><span class="chip ${cls}">${esc(st)}</span></div>
         <p class="sub">Ingestuurd ${esc(fmtTijd(r.ingestuurd))}${r.door ? ' door ' + esc(r.door) : ''}${r.verwerkt ? ` · verwerkt ${esc(fmtTijd(r.verwerkt))}` : ''}</p>
         ${(r.resultaat || []).length ? `<div class="rows">${r.resultaat.map(x => { const b = x.bedrijfId && bedrijf(x.bedrijfId);
           return `<${b ? `button class="row" data-act="open" data-id="${b.id}"` : 'div class="row static"'}>${b ? mono(b) : ''}<span class="t"><span class="row-top"><b>${esc(x.bedrijf)}</b><span class="chip ${x.nieuw ? '' : 'k-klant'}">${x.nieuw ? 'Nieuw aangemaakt' : 'Bezoek toegevoegd'}</span></span>
-            <span class="meta">${esc([x.contactpersoon, x.plaats, x.opmerkingen].filter(Boolean).join(' · '))}</span></span>${b ? ic('right') : ''}</${b ? 'button' : 'div'}>`; }).join('')}</div>` : ''}
+            <span class="meta">${esc([x.contactpersoon, x.email, x.telefoon, x.plaats, x.opmerkingen].filter(Boolean).join(' · '))}</span></span>${b ? ic('right') : ''}</${b ? 'button' : 'div'}>`; }).join('')}</div>` : ''}
         ${(r.onleesbaar || []).length ? `<p class="note">Niet goed te lezen, controleer zelf: ${esc(r.onleesbaar.join('; '))}</p>` : ''}
         ${r.opmerking ? `<p class="hint">${esc(r.opmerking)}</p>` : ''}
         <div class="btns"><button class="btn small ghost" data-act="dagrapportFoto" data-id="${esc(r.id)}">${ic('camera','sm')}Foto bekijken</button></div>
@@ -3265,12 +3268,11 @@ async function dagrapportFoto(id){
 }
 /* Leeg dagrapport om op papier in te vullen: datum en per regel bedrijf, contact, plaats, opmerkingen. */
 function printLeegDagrapport(){
-  const regels = 14;
+  const regels = 8;
   $('#print').innerHTML = `<div class="dr">
-    <div class="dr-kop"><h1>Dagrapport</h1><img src="logo-zwart.png" alt="Desko"></div>
-    <p class="dr-datum">Datum: <span></span></p>
-    <table class="dr-tabel"><thead><tr><th>Bedrijfsnaam</th><th>Contactpersoon</th><th>Plaats</th><th>Opmerkingen</th></tr></thead>
-      <tbody>${'<tr><td></td><td></td><td></td><td></td></tr>'.repeat(regels)}</tbody></table></div>`;
+    <div class="dr-kop"><h1>Dagrapport</h1><p class="dr-datum">Datum: <span></span></p><img src="logo-zwart.png" alt="Desko"></div>
+    <table class="dr-tabel"><thead><tr><th>Bedrijfsnaam</th><th>Contactpersoon</th><th>Contactgegevens</th><th>Plaats</th><th>Opmerkingen</th></tr></thead>
+      <tbody>${'<tr><td></td><td></td><td class="dr-cg"><span>E-mail:</span><span>Tel.:</span></td><td></td><td></td></tr>'.repeat(regels)}</tbody></table></div>`;
   const img = $('#print img'), go = () => window.print();
   if(img && !img.complete){ img.onload = img.onerror = go; setTimeout(go, 1500); } else go();
 }
