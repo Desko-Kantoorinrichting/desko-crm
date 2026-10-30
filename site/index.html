@@ -349,6 +349,7 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .gesproken-kies .seg{flex-wrap:wrap}
 .mailopties{display:grid;gap:8px}
+.mo-soort label{flex:1 1 140px}
 .mailoptie{display:block;cursor:pointer}
 .mailoptie input{position:absolute;opacity:0;pointer-events:none}
 .mailoptie>span{display:flex;flex-direction:column;gap:3px;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px 12px 42px;background:var(--bg);position:relative}
@@ -696,7 +697,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.9';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.10';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1741,6 +1742,9 @@ function belSheet(b, ci){
 }
 
 /* ---------- mail ---------- */
+/* Soorten mail: eerst kies je de soort, dan of je de persoon sprak, dan de mail. */
+const MAILSOORTEN = [['koud','Koud','door'], ['netwerk','Netwerk','users'], ['verhuizing','Verhuizing','route'], ['afspraak','Afspraak en offerte','calendar'], ['klant','Klant','building'], ['overig','Overig','mail']];
+const mailSoort = t => MAILSOORTEN.some(([k]) => k===t.soort) ? t.soort : 'overig';
 const sjablonenVoor = kopje => (S.inst.sjablonen||[]).filter(t => !t.kopje || t.kopje==='alle' || t.kopje===kopje);
 function standaardSjabloon(b){
   const lijst = sjablonenVoor(b.kopje);
@@ -1782,22 +1786,46 @@ function mailOpstellen(b, ci, m){
     const $s = q => s.querySelector(q), ond = $s('#mo-ond'), tekst = $s('#mo-tekst');
     const contact = () => cur ? contactVan(cur, Number($s('#mo-ci')?.value ?? 0)) : null;
     const link = () => { const c = contact(), a = $s('#mo-open'); if(a) a.href = c?.email ? mailtoLink(c.email, ond.value, tekst.value) : '#'; };
-    // alle mails als kaartjes: de ingeplande mail, dan de mail die nu aan de beurt is (beide versies), dan de rest
+    // stap 1: soort mail, stap 2: gesproken of niet (alleen als dat iets uitmaakt), stap 3: de mails die passen
+    let soort = null, gespr = null;
+    const mails = () => sjablonenVoor(cur.kopje);
+    const metVerschil = lijst => lijst.some(t => t.tekstGesproken || t.alleen);
     const opties = () => {
-      const c = contact() || {naam:''}, std = standaardSjabloon(cur), lijst = sjablonenVoor(cur.kopje);
-      const versies = t => (t.tekstGesproken ? [true, false] : [false]).map(g => ({...mailOptie(t, g, cur, c, t.tekstGesproken ? `${t.naam} · ${versieTitel(g, c)[0].toLowerCase()}${versieTitel(g, c).slice(1)}` : t.naam), waarde:`${t.id}|${g ? 1 : 0}`}));
-      return [
-        ...(m ? [{waarde:'gepland', titel:`De ingeplande mail${m.datum ? ` (${fmtDag(m.datum)})` : ''}`, onderwerp:m.onderwerp, tekst:m.tekst, sjabloon:m.sjabloon, gesproken:!!m.gesproken}] : []),
-        ...[std, ...lijst.filter(t => t !== std)].filter(Boolean).flatMap(versies),
-        {waarde:'leeg', titel:'Leeg bericht', onderwerp:'(zelf invullen)', tekst:'\nZelf een mail schrijven.'}];
+      const c = contact() || {naam:''}, lijst = mails().filter(t => mailSoort(t)===soort);
+      const pas = metVerschil(lijst) ? lijst.filter(t => !t.alleen || (t.alleen==='gesproken') === (gespr==='1')) : lijst;
+      const std = standaardSjabloon(cur);
+      return [...pas.filter(t => t===std), ...pas.filter(t => t!==std)].map(t => ({...mailOptie(t, gespr==='1', cur, c, t.naam), waarde:`${t.id}|${gespr==='1' && t.tekstGesproken ? 1 : 0}`}));
     };
     const tekenKaarten = () => {
       const box = $s('#mo-kies');
       if(!cur){ box.innerHTML = ''; $s('#mo-klaar').hidden = true; return; }
-      const was = box.querySelector('input:checked')?.value ?? (m ? 'gepland' : null), o = opties();
-      box.innerHTML = `<span>Kies een mail</span>${mailKaarten('mo-mail', o, was)}`;
-      box.querySelectorAll('input[name="mo-mail"]').forEach(r => r.onchange = () => kiesMail(o.find(x => x.waarde===r.value), true));
-      const k = o.find(x => x.waarde===was); if(k) kiesMail(k, false);
+      const c = contact() || {naam:''}, wie = voornaam(c) || 'de contactpersoon';
+      const soorten = MAILSOORTEN.filter(([k]) => mails().some(t => mailSoort(t)===k));
+      const lijst = soort ? mails().filter(t => mailSoort(t)===soort) : [];
+      const vraag = soort && metVerschil(lijst);
+      const o = soort && (!vraag || gespr != null) ? opties() : [];
+      const was = box.querySelector('input[name="mo-mail"]:checked')?.value ?? (m && !soort ? 'gepland' : null);
+      box.innerHTML = `
+        ${m ? mailKaarten('mo-mail', [{waarde:'gepland', titel:`De ingeplande mail${m.datum ? ` (${fmtDag(m.datum)})` : ''}`, onderwerp:m.onderwerp, tekst:m.tekst}], was) + '<p class="sub" style="margin:4px 0 0">Of kies een andere mail:</p>' : ''}
+        <span>Wat voor mail?</span>
+        <div class="seg mo-soort">${soorten.map(([k, naam, icoon]) => `<label><input type="radio" name="mo-soort" value="${k}" ${soort===k ? 'checked' : ''}><span>${ic(icoon, 'sm')}${esc(naam)}</span></label>`).join('')}
+          <label><input type="radio" name="mo-soort" value="leeg" ${soort==='leeg' ? 'checked' : ''}><span>${ic('note', 'sm')}Zelf schrijven</span></label></div>
+        ${vraag ? `<span style="margin-top:6px">Heb je ${esc(wie)} zelf gesproken?</span>
+        <div class="seg"><label><input type="radio" name="mo-gespr" value="1" ${gespr==='1' ? 'checked' : ''}><span>Ja, ik sprak ${esc(wie)}</span></label><label><input type="radio" name="mo-gespr" value="" ${gespr==='' ? 'checked' : ''}><span>Nee, een collega of de receptie</span></label></div>` : ''}
+        ${o.length ? `<span style="margin-top:6px">Kies de mail</span>${mailKaarten('mo-mail', o, was)}` : soort && soort!=='leeg' && (!vraag || gespr != null) ? '<p class="sub">Geen mails voor deze keuze. Kies een andere soort of schrijf hem zelf.</p>' : ''}`;
+      box.querySelectorAll('input[name="mo-soort"]').forEach(r => r.onchange = () => {
+        soort = r.value; gespr = null; keuze = null; $s('#mo-klaar').hidden = true;
+        if(soort==='leeg'){ tekenKaarten(); kiesMail({waarde:'leeg'}, true); return; }
+        const lijst = mails().filter(t => mailSoort(t)===soort);
+        tekenKaarten(); if(!metVerschil(lijst) && lijst.length===1) box.querySelector('input[name="mo-mail"]:not([value="gepland"])')?.click();
+      });
+      box.querySelectorAll('input[name="mo-gespr"]').forEach(r => r.onchange = () => {
+        gespr = r.value; keuze = null; $s('#mo-klaar').hidden = true; tekenKaarten();
+        const k = box.querySelectorAll('input[name="mo-mail"]:not([value="gepland"])'); if(k.length===1) k[0].click();   // maar één mail: meteen kiezen
+      });
+      const alle = [...(m ? [{waarde:'gepland', onderwerp:m.onderwerp, tekst:m.tekst, sjabloon:m.sjabloon, gesproken:!!m.gesproken}] : []), ...o];
+      box.querySelectorAll('input[name="mo-mail"]').forEach(r => r.onchange = () => kiesMail(alle.find(x => x.waarde===r.value), true));
+      const k = alle.find(x => x.waarde===was); if(k) kiesMail(k, false);
     };
     const kiesMail = (o, scroll) => {
       keuze = o; $s('#mo-klaar').hidden = false;
@@ -1812,7 +1840,7 @@ function mailOpstellen(b, ci, m){
       const sel = $s('#mo-ci'); if(sel) sel.onchange = tekenKaarten;   // namen in de mails volgen de contactpersoon
       tekenKaarten();
     };
-    if(kies) $s('#mo-b').onchange = e => { cur = bedrijf(e.target.value); ci = undefined; kiesBedrijf(); };
+    if(kies) $s('#mo-b').onchange = e => { cur = bedrijf(e.target.value); ci = undefined; soort = gespr = null; keuze = null; kiesBedrijf(); };
     ond.oninput = tekst.oninput = link;
     $s('#mo-kopie').onclick = () => navigator.clipboard?.writeText(`${ond.value}\n\n${tekst.value}`).then(() => toast('Tekst gekopieerd'), () => toast('Kopiëren lukte niet'));
     kiesBedrijf();
@@ -2111,10 +2139,12 @@ function sjabloonForm(i){
   openSheet(nieuw ? 'Nieuw sjabloon' : 'Sjabloon bewerken', `<form id="sjf" class="section">
     <div class="grid2"><label class="f"><span>Naam</span><input id="sj-naam" name="naam" required value="${esc(t.naam)}" autocomplete="off"></label>
     <label class="f"><span>Voor</span><select id="sj-kopje" name="kopje"><option value="alle" ${!t.kopje||t.kopje==='alle'?'selected':''}>Alle kopjes</option>${Object.entries(KOPJES).map(([k,v])=>`<option value="${k}" ${t.kopje===k?'selected':''}>${v.naam}</option>`).join('')}</select></label></div>
+    <div class="grid2"><label class="f"><span>Soort mail</span><select id="sj-soort" name="soort">${MAILSOORTEN.map(([k, naam]) => `<option value="${k}" ${mailSoort(t)===k ? 'selected' : ''}>${esc(naam)}</option>`).join('')}</select></label>
+    <label class="f"><span>Tonen als je de persoon…</span><select id="sj-alleen" name="alleen"><option value="">sprak of niet sprak</option><option value="gesproken" ${t.alleen==='gesproken' ? 'selected' : ''}>zelf sprak</option><option value="niet" ${t.alleen==='niet' ? 'selected' : ''}>niet sprak</option></select></label></div>
     <label class="f"><span>Onderwerp</span><input id="sj-ond" name="onderwerp" required value="${esc(t.onderwerp)}" autocomplete="off"></label>
     <label class="f"><span>Tekst</span><textarea id="sj-tekst" name="tekst" required style="min-height:260px">${esc(t.tekst)}</textarea></label>
     <details class="card" ${t.tekstGesproken ? 'open' : ''}><summary style="cursor:pointer"><b>Tweede versie: als je de persoon zelf sprak</b> <small class="sub">(optioneel)</small></summary>
-      <p class="hint">Bijv. als je bij binnenkomst meteen de contactpersoon sprak. Bij het vastleggen van een bezoek kies je welke versie er gaat. Leeg laten = altijd de tekst hierboven.</p>
+      <p class="hint">Bijv. als je bij binnenkomst meteen de contactpersoon sprak. Bij het mailen kies je "Ja, ik sprak …" en dan gaat deze versie. Leeg laten = altijd de tekst hierboven.</p>
       <label class="f"><span>Onderwerp</span><input id="sj-ond2" name="onderwerpGesproken" value="${esc(t.onderwerpGesproken || '')}" autocomplete="off"></label>
       <label class="f"><span>Tekst</span><textarea id="sj-tekst2" name="tekstGesproken" style="min-height:220px">${esc(t.tekstGesproken || '')}</textarea></label></details>
     <p class="hint">Invulvelden: {voornaam}, {naam}, {bedrijf}, {mijnnaam}, {mijnvoornaam}. Schrijf kort en persoonlijk, in platte tekst.</p>
@@ -2124,7 +2154,7 @@ function sjabloonForm(i){
     s.querySelector('#sjf').onsubmit = async e => {
       e.preventDefault(); const d = formData(e.target);
       const lijst = clone(S.inst.sjablonen||[]);
-      const item = {id: nieuw ? 'sj-' + Date.now().toString(36) : t.id, kopje:d.kopje, naam:d.naam.trim(), onderwerp:d.onderwerp.trim(), tekst:d.tekst, ...(d.tekstGesproken?.trim() ? {onderwerpGesproken:d.onderwerpGesproken.trim(), tekstGesproken:d.tekstGesproken} : {})};
+      const item = {id: nieuw ? 'sj-' + Date.now().toString(36) : t.id, kopje:d.kopje, soort:d.soort, ...(d.alleen && !d.tekstGesproken?.trim() ? {alleen:d.alleen} : {}), naam:d.naam.trim(), onderwerp:d.onderwerp.trim(), tekst:d.tekst, ...(d.tekstGesproken?.trim() ? {onderwerpGesproken:d.onderwerpGesproken.trim(), tekstGesproken:d.tekstGesproken} : {})};
       if(nieuw) lijst.push(item); else lijst[i] = item;
       if(await bewaar(lijst)) closeSheet();
     };
