@@ -87,15 +87,18 @@
     const tags = (b.tags || []).map(t => t.toLowerCase());
     return (inst.mailreeksen || []).find(r => r.tag && tags.includes(r.tag.toLowerCase())) || null;
   }
-  /* Mail voor stap `idx` van een reeks, vanaf datum `vanaf`. null als er geen e-mailadres of sjabloon is. */
-  function planMail(b, reeks, idx, vanaf, inst, afzender, ci){
+  /* Mail voor stap `idx` van een reeks, vanaf datum `vanaf`. null als er geen e-mailadres of sjabloon is.
+     gesproken: de accountmanager sprak de persoon zelf (niet via een collega of de receptie); dan
+     gebruikt het sjabloon zijn tweede versie, als die er is. */
+  const versie = (sj, gesproken) => gesproken && sj.tekstGesproken ? {onderwerp:sj.onderwerpGesproken || sj.onderwerp, tekst:sj.tekstGesproken} : {onderwerp:sj.onderwerp, tekst:sj.tekst};
+  function planMail(b, reeks, idx, vanaf, inst, afzender, ci, gesproken){
     const stap = reeks && reeks.stappen[idx];
     const sj = stap && (inst.sjablonen || []).find(s => s.id === stap.sjabloon);
     const c = (b.contacten || [])[ci || 0];
     if(!sj || !c || !c.email) return null;
     const datum = stap.werkdagenNa != null ? addWerkdagen(vanaf, stap.werkdagenNa) : volgendeWerkdag(addDays(vanaf, stap.dagenNa || 0));
     return {status:'gepland', bedrijfId:b.id, bedrijf:b.naam, kopje:b.kopje, reeks:reeks.id, stap:idx, laatste:idx === reeks.stappen.length-1,
-      contact:ci || 0, aan:c.naam, email:c.email, onderwerp:vul(sj.onderwerp, b, c, afzender), tekst:vul(sj.tekst, b, c, afzender),
+      contact:ci || 0, aan:c.naam, email:c.email, onderwerp:vul(versie(sj, gesproken).onderwerp, b, c, afzender), tekst:vul(versie(sj, gesproken).tekst, b, c, afzender), gesproken:!!gesproken,
       sjabloon:sj.id, datum, tijd:(inst.kantoortijden && inst.kantoortijden.verzendtijd) || '09:30', afzender:afzender || '', aangemaakt:new Date().toISOString()};
   }
   /* Na het versturen van een (reeks)mail: nieuwe opvolging en eventueel de volgende mail. */
@@ -103,7 +106,7 @@
     const t = termijn(inst, b.kopje);
     const o = Object.assign({}, b.opvolging, {actief:true, gepauzeerd:false, tijd:null, pogingen:((b.opvolging && b.opvolging.pogingen) || 0) + 1});
     const reeks = mail && mail.reeks ? (inst.mailreeksen || []).find(r => r.id === mail.reeks) : null;
-    const volgende = reeks ? planMail(b, reeks, mail.stap + 1, vandaag, inst, mail.afzender, mail.contact) : null;
+    const volgende = reeks ? planMail(b, reeks, mail.stap + 1, vandaag, inst, mail.afzender, mail.contact, mail.gesproken) : null;
     if(volgende){ o.stap = 'mail'; o.datum = volgende.datum; }
     else { o.stap = 'wacht'; o.datum = addWerkdagen(vandaag, t.geenReactieWerkdagen ?? 5); }   // herinnering om op te volgen
     return {opvolging:o, volgende};
@@ -113,5 +116,5 @@
   const contactSinds = (acts, sinds) => acts.some(a => CONTACT(a) && a.datum > sinds);
 
   return {pad, ds, parse, addDays, diffDays, feestdagen, isWerkdag, addWerkdagen, volgendeWerkdag, clone, merge,
-    DEFAULT_INST, instellingen, termijn, voornaam, vul, reeksVoor, planMail, naVerzending, contactSinds};
+    DEFAULT_INST, instellingen, termijn, voornaam, vul, versie, reeksVoor, planMail, naVerzending, contactSinds};
 });

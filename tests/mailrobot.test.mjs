@@ -146,3 +146,17 @@ test('planMail: geen e-mailadres betekent geen mail; werkdagen en weekenden klop
   assert.equal(m.tekst, 'Hi Aukje,\nGroet,\nFerry Jansen');
   assert.equal(R.planMail(b, reeks, 1, '2026-12-19', inst, 'F', 0).datum, '2026-12-28');   // +7 = kerst → maandag 28
 });
+
+test('tweede versie van een sjabloon als de accountmanager de persoon zelf sprak', () => {
+  const inst = {kantoortijden:{verzendtijd:'09:30'}, mailreeksen:[{id:'koud', tag:'x', stappen:[{sjabloon:'k1', werkdagenNa:1}, {sjabloon:'k2', werkdagenNa:5}]}],
+    sjablonen:[{id:'k1', onderwerp:'Je collega wees me jouw kant op', tekst:'Hi {voornaam}, collega', onderwerpGesproken:'Leuk je gesproken te hebben', tekstGesproken:'Hi {voornaam}, net gesproken'},
+               {id:'k2', onderwerp:'Re: collega', tekst:'Hi {voornaam}, nog eens'}]};
+  const b = {id:'b1', naam:'Hoek', kopje:'prospect', contacten:[{naam:'Aukje Hoek', email:'a@hoek.nl'}]};
+  const viaCollega = R.planMail(b, inst.mailreeksen[0], 0, '2026-10-26', inst, 'Ferry', 0);
+  assert.equal(viaCollega.onderwerp, 'Je collega wees me jouw kant op'); assert.equal(viaCollega.gesproken, false);
+  const zelf = R.planMail(b, inst.mailreeksen[0], 0, '2026-10-26', inst, 'Ferry', 0, true);
+  assert.equal(zelf.onderwerp, 'Leuk je gesproken te hebben'); assert.equal(zelf.tekst, 'Hi Aukje, net gesproken'); assert.equal(zelf.gesproken, true);
+  // de volgende mail onthoudt de keuze; zonder tweede versie gewoon de normale tekst
+  const {volgende} = R.naVerzending({...b, opvolging:{actief:true, stap:'mail'}}, zelf, {...inst, termijnen:{prospect:{geenReactieWerkdagen:5}}}, '2026-10-27');
+  assert.equal(volgende.gesproken, true); assert.equal(volgende.onderwerp, 'Re: collega');
+});

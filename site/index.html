@@ -347,6 +347,7 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .vd-zoek-rij{grid-template-columns:auto 1fr auto!important}.linkrij{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}.linkrij:focus-visible{outline:2px solid var(--accent)}
 .vd-zoek-leeg{margin:0;background:var(--surface);color:var(--muted);border-radius:var(--r);padding:12px 14px}.linkknop{all:unset;cursor:pointer;color:var(--accent);font-weight:650;text-decoration:underline}
 .task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
+.gesproken-kies .seg{flex-wrap:wrap}
 .vd-teller{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 14px}
 .vd-tel{all:unset;cursor:pointer;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;color:#fff;background:rgba(255,255,255,.06)}
 .vd-tel b{font-size:1.7rem;line-height:1}.vd-tel span{font-size:.82rem;opacity:.8}.vd-tel.on{background:#fff;color:#000;border-color:#fff}.vd-tel:focus-visible{outline:2px solid #51C26F}
@@ -673,7 +674,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-26.4';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.1';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -800,14 +801,14 @@ async function updBedrijf(id, patch){ await db.collection('bedrijven').doc(id).u
 async function logAct(b, a){ const doc = {bedrijfId:b.id, datum:new Date().toISOString(), ...(S.gebruiker?.naam && a.type !== 'systeem' ? {door:S.gebruiker.naam} : {}), ...a}; const ref = await db.collection('activiteiten').add(doc); if(alleActs) alleActs.push({id:ref?.id, ...doc}); }
 async function systeem(b, tekst){ await logAct(b, {type:'systeem', tekst}); }
 
-async function startReeks(b, ci){
+async function startReeks(b, ci, gesproken){
   const c = contactVan(b, ci), t = T(b);
   await annuleerGepland(b, 'nieuwe opvolging gestart');
   const reeks = REEKS.reeksVoor(b, S.inst);
-  const mail = reeks ? REEKS.planMail(b, reeks, 0, today(), S.inst, S.gebruiker?.naam, ci) : null;
+  const mail = reeks ? REEKS.planMail(b, reeks, 0, today(), S.inst, S.gebruiker?.naam, ci, gesproken) : null;
   if(mail){
     await db.collection('mails').add(mail);
-    await updBedrijf(b.id, {opvolging:{actief:true, stap:'mail', reeks:reeks.id, contact:ci, pogingen:0, datum:mail.datum, gestart:today(), gepauzeerd:false}});
+    await updBedrijf(b.id, {opvolging:{actief:true, stap:'mail', reeks:reeks.id, contact:ci, pogingen:0, datum:mail.datum, gestart:today(), gepauzeerd:false, gesproken:!!gesproken}});
     await systeem(b, `Mailreeks "${reeks.naam}" gestart voor ${c.naam}. Mail 1 ("${mail.onderwerp}") ingepland voor ${fmtDag(mail.datum)} om ${mail.tijd}.`);
     return;
   }
@@ -852,7 +853,7 @@ async function verwerkActiviteit(b, a, opts={}){
   if(Object.keys(patch).length) await updBedrijf(b.id, patch);
   const fresh = {...b, ...patch};
   const actief = b.opvolging?.actief && b.opvolging.stap!=='actie';
-  if(a.type==='bezoek' && opts.startReeks){ await startReeks(fresh, opts.contact ?? 0); return; }
+  if(a.type==='bezoek' && opts.startReeks){ await startReeks(fresh, opts.contact ?? 0, opts.gesproken); return; }
   if(!actief || opts.achteraf) return;
   if(a.type==='bel' && a.uitkomst==='gesproken') await stopReeks(fresh, `gesproken met ${a.contactNaam||'contactpersoon'}`);
   else if(a.type==='bel' && a.uitkomst==='niet opgenomen' && fresh.opvolging.stap==='mail'){
@@ -1583,7 +1584,7 @@ function actForm(b, type, ci){
       : type==='afspraak' ? '' : `<details><summary class="sub" style="cursor:pointer">Was het eerder? Datum aanpassen</summary><label class="f" style="padding-top:8px"><span>Wanneer</span><input id="af-wanneer" name="wanneer" type="datetime-local" value="${localDT()}" max="${localDT()}"></label></details>`}
     ${type==='bezoek' ? tagField(b.tags||[]) : ''}
     ${type==='bezoek' ? reeksKeuze(b, 'af') : planVelden({id:'af', metGeen:true, titel:'Volgende stap'})}
-    ${reeksMogelijk ? `<label class="check"><input type="checkbox" id="af-reeks" name="reeks" checked><span>Opvolging starten</span></label>` : ''}
+    ${reeksMogelijk ? `<label class="check"><input type="checkbox" id="af-reeks" name="reeks" checked><span>Opvolging starten</span></label><div class="f gesproken-kies" id="af-gespr"><span>Met wie heb je gesproken?</span><div class="seg"><label><input type="radio" name="gesproken" value="1" ><span>Met de contactpersoon zelf</span></label><label><input type="radio" name="gesproken" value="" checked><span>Via een collega of de receptie</span></label></div><span class="hint">Bepaalt welke versie van de mail er gaat.</span></div>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
   </form>`, s => {
     if(type==='bezoek') mountTags(s); else mountPlan(s, 'af');
@@ -1608,7 +1609,7 @@ function actForm(b, type, ci){
         const a = {type, tekst:d.tekst.trim(), contactNaam:c?.naam||''};
         if(d.wanneer && d.wanneer < localDT()) a.datum = new Date(d.wanneer).toISOString();
         if(type==='afspraak' && d.afspraakOp){ a.afspraakOp = new Date(d.afspraakOp).toISOString(); afspraak = a; }
-        await verwerkActiviteit(bb, a, {startReeks: !!d.reeks && !!c, contact: idx});
+        await verwerkActiviteit(bb, a, {startReeks: !!d.reeks && !!c, contact: idx, gesproken: d.gesproken==='1'});
         const plan = type!=='bezoek' ? leesPlan(d) : null;
         if(plan) await slaPlanOp(bedrijf(b.id) || bb, plan, idx);
       }, 'Vastgelegd');
@@ -1803,6 +1804,7 @@ function geplandeMailSheet(m){
     <p class="sub">${esc(b.naam)} · ${esc(m.aan)} · ${esc(m.email)}</p>
     <div class="grid2"><label class="f"><span>Verzenddatum</span><input id="gm-datum" name="datum" type="date" value="${esc(m.datum)}" min="${today()}"></label>
       <label class="f"><span>Tijd</span><input id="gm-tijd" name="tijd" type="time" value="${esc(m.tijd||'09:30')}"></label></div>
+    ${(() => { const sj = (S.inst.sjablonen || []).find(t => t.id===m.sjabloon); return sj?.tekstGesproken ? `<div class="f gesproken-kies"><span>Welke versie?</span><div class="seg"><label><input type="radio" name="gm-versie" value="1" ${m.gesproken ? 'checked' : ''}><span>Ik sprak ${esc(voornaam({naam:m.aan}) || 'de persoon')} zelf</span></label><label><input type="radio" name="gm-versie" value="" ${m.gesproken ? '' : 'checked'}><span>Via een collega of de receptie</span></label></div><span class="hint">Wisselen zet de standaardtekst van die versie terug in het bericht.</span></div>` : ''; })()}
     <label class="f"><span>Onderwerp</span><input id="gm-ond" name="onderwerp" required value="${esc(m.onderwerp)}" autocomplete="off"></label>
     <label class="f"><span>Bericht</span><textarea id="gm-tekst" name="tekst" required style="min-height:300px">${esc(m.tekst)}</textarea></label>
     <div class="sheet-actions">
@@ -1816,7 +1818,12 @@ function geplandeMailSheet(m){
     if(open) open.onclick = e => { e.preventDefault(); const w = wijzig(); closeSheet(); mailen(bedrijf(m.bedrijfId), m.contact, {...m, ...w}); };
     const link = () => { const a = $s('#gm-open'); if(a) a.href = `mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent(ond.value)}&body=${encodeURIComponent(tekst.value)}`; };
     ond.oninput = tekst.oninput = link; link();
-    const wijzig = () => ({onderwerp:ond.value, tekst:tekst.value, datum:$s('#gm-datum').value || m.datum, tijd:$s('#gm-tijd').value || m.tijd});
+    let gesproken = !!m.gesproken;
+    s.querySelectorAll('input[name="gm-versie"]').forEach(r => r.onchange = () => {
+      gesproken = r.value === '1'; const sj = (S.inst.sjablonen || []).find(t => t.id===m.sjabloon), c = contactVan(b, m.contact); if(!sj) return;
+      const v = REEKS.versie(sj, gesproken); ond.value = REEKS.vul(v.onderwerp, b, c, m.afzender || S.gebruiker?.naam); tekst.value = REEKS.vul(v.tekst, b, c, m.afzender || S.gebruiker?.naam); link();
+    });
+    const wijzig = () => ({onderwerp:ond.value, tekst:tekst.value, gesproken, datum:$s('#gm-datum').value || m.datum, tijd:$s('#gm-tijd').value || m.tijd});
     $s('#gm').onsubmit = async e => {
       e.preventDefault(); const w = wijzig();
       if(await veilig(async () => {
@@ -1995,6 +2002,10 @@ function sjabloonForm(i){
     <label class="f"><span>Voor</span><select id="sj-kopje" name="kopje"><option value="alle" ${!t.kopje||t.kopje==='alle'?'selected':''}>Alle kopjes</option>${Object.entries(KOPJES).map(([k,v])=>`<option value="${k}" ${t.kopje===k?'selected':''}>${v.naam}</option>`).join('')}</select></label></div>
     <label class="f"><span>Onderwerp</span><input id="sj-ond" name="onderwerp" required value="${esc(t.onderwerp)}" autocomplete="off"></label>
     <label class="f"><span>Tekst</span><textarea id="sj-tekst" name="tekst" required style="min-height:260px">${esc(t.tekst)}</textarea></label>
+    <details class="card" ${t.tekstGesproken ? 'open' : ''}><summary style="cursor:pointer"><b>Tweede versie: als je de persoon zelf sprak</b> <small class="sub">(optioneel)</small></summary>
+      <p class="hint">Bijv. als je bij binnenkomst meteen de contactpersoon sprak. Bij het vastleggen van een bezoek kies je welke versie er gaat. Leeg laten = altijd de tekst hierboven.</p>
+      <label class="f"><span>Onderwerp</span><input id="sj-ond2" name="onderwerpGesproken" value="${esc(t.onderwerpGesproken || '')}" autocomplete="off"></label>
+      <label class="f"><span>Tekst</span><textarea id="sj-tekst2" name="tekstGesproken" style="min-height:220px">${esc(t.tekstGesproken || '')}</textarea></label></details>
     <p class="hint">Invulvelden: {voornaam}, {naam}, {bedrijf}, {mijnnaam}, {mijnvoornaam}. Schrijf kort en persoonlijk, in platte tekst.</p>
     <div class="sheet-actions">${nieuw?'':`<button type="button" class="btn danger" id="sj-del">Verwijderen</button>`}<button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
   </form>`, s => {
@@ -2002,7 +2013,7 @@ function sjabloonForm(i){
     s.querySelector('#sjf').onsubmit = async e => {
       e.preventDefault(); const d = formData(e.target);
       const lijst = clone(S.inst.sjablonen||[]);
-      const item = {id: nieuw ? 'sj-' + Date.now().toString(36) : t.id, kopje:d.kopje, naam:d.naam.trim(), onderwerp:d.onderwerp.trim(), tekst:d.tekst};
+      const item = {id: nieuw ? 'sj-' + Date.now().toString(36) : t.id, kopje:d.kopje, naam:d.naam.trim(), onderwerp:d.onderwerp.trim(), tekst:d.tekst, ...(d.tekstGesproken?.trim() ? {onderwerpGesproken:d.onderwerpGesproken.trim(), tekstGesproken:d.tekstGesproken} : {})};
       if(nieuw) lijst.push(item); else lijst[i] = item;
       if(await bewaar(lijst)) closeSheet();
     };
@@ -2942,6 +2953,7 @@ async function mailsBijTags(oud, b, {vraag = true} = {}){
   return null;
 }
 /* Nieuwe tag van een mailreeks: vragen of de mails moeten starten, met een voorbeeld. */
+const heeftVersies = reeks => (reeks?.stappen || []).some(st => (S.inst.sjablonen || []).find(t => t.id===st.sjabloon)?.tekstGesproken);
 function reeksVraag(lijst, reeks){
   const met = lijst.filter(b => b.kopje==='prospect' && (b.contacten||[]).some(c => c.email));
   if(!met.length) return;
@@ -2949,10 +2961,15 @@ function reeksVraag(lijst, reeks){
   const m = REEKS.planMail(b, reeks, 0, today(), S.inst, S.gebruiker?.naam, ci);
   openSheet('Mailreeks starten?', `<div class="section">
     <p>${met.length > 1 ? `${met.length} prospects hebben` : `<b>${esc(b.naam)}</b> heeft`} nu de tag <b>#${esc(reeks.tag)}</b>. Wil je de mails van "${esc(reeks.naam)}" inplannen?</p>
-    ${m ? `<div class="begrepen"><span>${ic('mail','sm')}<span>Mail 1 aan ${esc(m.aan)}: <b>"${esc(m.onderwerp)}"</b></span></span><span>${ic('calendar','sm')}${esc(fmtDag(m.datum))} om ${esc(m.tijd)}${reeks.stappen.length > 1 ? ` · daarna nog ${reeks.stappen.length - 1} mail${reeks.stappen.length > 2 ? 's' : ''} als er geen reactie komt` : ''}</span></div>` : ''}
+    ${heeftVersies(reeks) ? `<div class="f gesproken-kies"><span>Met wie heb je gesproken?</span><div class="seg"><label><input type="radio" name="rv-gespr" value="1"><span>Met de contactpersoon zelf</span></label><label><input type="radio" name="rv-gespr" value="" checked><span>Via een collega of de receptie</span></label></div></div>` : ''}
+    ${m ? `<div class="begrepen"><span>${ic('mail','sm')}<span>Mail 1 aan ${esc(m.aan)}: <b id="rv-ond">"${esc(m.onderwerp)}"</b></span></span><span>${ic('calendar','sm')}${esc(fmtDag(m.datum))} om ${esc(m.tijd)}${reeks.stappen.length > 1 ? ` · daarna nog ${reeks.stappen.length - 1} mail${reeks.stappen.length > 2 ? 's' : ''} als er geen reactie komt` : ''}</span></div>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Nee, alleen de tag</button><button type="button" class="btn primary" id="rv-ja">${ic('mail','sm')}Ja, inplannen</button></div></div>`,
-    s => s.querySelector('#rv-ja').onclick = async () => {
-      if(await veilig(async () => { for(const x of met){ const y = bedrijf(x.id) || x; await startReeks(y, Math.max(0, y.contacten.findIndex(c => c.email))); } }, met.length > 1 ? `Mails ingepland voor ${met.length} prospects` : 'Mail 1 ingepland')) closeSheet();
+    s => {
+      const gespr = () => s.querySelector('input[name="rv-gespr"]:checked')?.value === '1';
+      s.querySelectorAll('input[name="rv-gespr"]').forEach(r => r.onchange = () => { const x = REEKS.planMail(b, reeks, 0, today(), S.inst, S.gebruiker?.naam, ci, gespr()), o = s.querySelector('#rv-ond'); if(x && o) o.textContent = `"${x.onderwerp}"`; });
+      s.querySelector('#rv-ja').onclick = async () => {
+        if(await veilig(async () => { for(const x of met){ const y = bedrijf(x.id) || x; await startReeks(y, Math.max(0, y.contacten.findIndex(c => c.email)), gespr()); } }, met.length > 1 ? `Mails ingepland voor ${met.length} prospects` : 'Mail 1 ingepland')) closeSheet();
+      };
     });
 }
 function tagSheet(b){
@@ -3832,7 +3849,7 @@ function naBezoek(b, {afspraak = null} = {}){
       <label class="f"><span>Wanneer nodig?</span><input name="nodig" value="${esc(be.wanneer||'')}" placeholder="Bijv. verhuizing maart 2027" autocomplete="off"></label></div>
     <label class="f"><span>Wanneer was het bezoek?</span><input name="datum" type="datetime-local" value="${localDT(wanneer)}" max="${localDT(new Date(Date.now()+3600000))}"></label>
     ${planVelden({id:'nb', wat:'Bellen', titel:'Wanneer volg je op?'})}
-    ${reeks ? `<label class="check" id="nb-reekslbl"><input type="checkbox" name="reeks" id="nb-reeks"><span>In plaats daarvan mailreeks "${esc(reeks.naam)}" starten</span></label>` : ''}
+    ${reeks ? `<div id="nb-reekslbl"><label class="check"><input type="checkbox" name="reeks" id="nb-reeks"><span>In plaats daarvan mailreeks "${esc(reeks.naam)}" starten</span></label><div class="f gesproken-kies" id="nb-gespr"><span>Met wie heb je gesproken?</span><div class="seg"><label><input type="radio" name="gesproken" value="1" checked><span>Met de contactpersoon zelf</span></label><label><input type="radio" name="gesproken" value="" ><span>Via een collega of de receptie</span></label></div><span class="hint">Bepaalt welke versie van de mail er gaat.</span></div></div>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">${inRoute ? 'Nog niet geweest' : 'Annuleren'}</button><button class="btn primary" type="submit">Opslaan${volgende ? ' en verder' : ''}</button></div>
   </form>`, s => {
     mountPlan(s, 'nb'); mountAfspraak(s, 'nb-op');
@@ -3843,6 +3860,7 @@ function naBezoek(b, {afspraak = null} = {}){
       const u = s.querySelector('#nb-uitkomst').value = k.dataset.uit;
       s.querySelector('#nb-afspraak').hidden = u!=='afspraak';
       const rl = s.querySelector('#nb-reekslbl'); if(rl) rl.hidden = ['afspraak','offerte','geen'].includes(u);
+      const g = s.querySelector(`#nb-gespr input[value="${u==='niet' ? '' : '1'}"]`); if(g) g.checked = true;
       if(u==='geen'){ datum.value = ''; actie.value = ''; box.querySelectorAll('.on').forEach(x => x.classList.remove('on')); }
       else if(u==='afspraak' || u==='offerte') kies('Offerte sturen', u==='offerte' ? 2 : 3);
       else if(u==='niet') kies('Bellen', 1);
@@ -3885,7 +3903,7 @@ function naBezoek(b, {afspraak = null} = {}){
       const vervolg = [d.uitkomst==='afspraak' && d.afspraakOp && `Afspraak op ${fmtTijd(new Date(d.afspraakOp).toISOString())}`, plan0 && `${plan0.actie} op ${fmtDag(plan0.datum)}${plan0.tijd ? ' om ' + plan0.tijd : ''}`, metReeks && 'Mailreeks gestart'].filter(Boolean).join('; ');
       const ok = await veilig(async () => {
         await verwerkActiviteit(b, {type:'bezoek', datum:op.toISOString(), uitkomst:d.uitkomst, tekst:regels.join('\n'), contactNaam:c?.naam||'', verslag:true, ...(vervolg ? {vervolg} : {}),
-          ...(interesse.length ? {interesse} : {}), ...(werkplekken ? {werkplekken} : {}), ...(nodig ? {nodig} : {}), ...(afspraak?.id ? {naAfspraak:afspraak.id} : {})}, {startReeks:metReeks, contact:idx});
+          ...(interesse.length ? {interesse} : {}), ...(werkplekken ? {werkplekken} : {}), ...(nodig ? {nodig} : {}), ...(afspraak?.id ? {naAfspraak:afspraak.id} : {})}, {startReeks:metReeks, contact:idx, gesproken:d.gesproken==='1'});
         const patch = {};
         if(interesse.length || werkplekken || nodig) patch.behoefte = {interesse, werkplekken, wanneer:nodig, bijgewerkt:today()};
         const st = bedrijf(b.id)?.status || b.status || 'nieuw';
