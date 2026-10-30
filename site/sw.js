@@ -1,6 +1,6 @@
 /* Service worker: maakt de app installeerbaar, toont de laatst geladen versie als er
    geen internet is (altijd eerst het netwerk) en toont herinneringen als melding. */
-const CACHE = 'desko-crm-v60';
+const CACHE = 'desko-crm-v61';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {

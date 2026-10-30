@@ -348,6 +348,14 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .vd-zoek-leeg{margin:0;background:var(--surface);color:var(--muted);border-radius:var(--r);padding:12px 14px}.linkknop{all:unset;cursor:pointer;color:var(--accent);font-weight:650;text-decoration:underline}
 .task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .gesproken-kies .seg{flex-wrap:wrap}
+.mail-tegels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 14px}
+.mail-tegel{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:12px 14px;font:inherit;color:var(--ink);cursor:pointer}
+.mail-tegel b{font-size:1.6rem;line-height:1}.mail-tegel span{font-weight:700;font-size:.92rem}.mail-tegel small{color:var(--muted);font-size:.78rem}
+.mail-tegel.on{border-color:var(--accent);background:var(--accent-soft)}
+@media (max-width:520px){.mail-tegel{padding:10px}.mail-tegel b{font-size:1.35rem}.mail-tegel span{font-size:.82rem}}
+.mail-uitleg{margin:0 0 12px}.mail-uitleg summary{cursor:pointer;display:flex;gap:8px;align-items:center}
+.mail-uitleg ol{margin:10px 0 0;padding-left:20px;display:grid;gap:8px;font-size:.93rem}
+.mail-dag{display:flex;gap:6px;align-items:center;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 6px}
 .mailopties{display:grid;gap:8px}
 .mo-soort label{flex:1 1 140px}
 .mailoptie{display:block;cursor:pointer}
@@ -708,7 +716,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.11';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.12';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -2104,74 +2112,112 @@ function mailZoekResultaten(q){
     ${treffers.length > 15 ? `<p class="hint">${treffers.length - 15} meer. Typ verder om te verfijnen.</p>` : ''}`;
 }
 
+/* Mail: drie bladen (Te sturen, Verstuurd, Sjablonen) met bovenaan wat er nu speelt
+   en een korte uitleg hoe mailen in het CRM werkt. */
 function mailView(){
-  const zoek = V.zoek.mail || '';
+  const zoek = V.zoek.mail || '', auto = robotActief(), blad = V.mailBlad || 'sturen';
   const teMailen = S.bedrijven.map(b => ({b, s:opvolgStatus(b)}))
     .filter(x => x.s && !x.s.gepauzeerd && x.s.datum <= addDays(today(),3))
     .map(x => ({...x, c:contactVan(x.b, x.b.opvolging?.contact)}))
-    .filter(x => x.c?.email)
+    .filter(x => x.c?.email && !geplandeMail(x.b))   // met een ingeplande mail staat hij al bij Ingepland
     .sort((a,b) => a.s.datum.localeCompare(b.s.datum));
   const gepland = S.mails.filter(m => m.status==='gepland').sort((a,b) => (a.datum+a.tijd).localeCompare(b.datum+b.tijd));
   const verstuurd = S.mails.filter(m => m.status!=='gepland').sort((a,b) => (b.verstuurdOp||b.geannuleerdOp||b.datum).localeCompare(a.verstuurdOp||a.geannuleerdOp||a.datum));
   const zonderMail = S.bedrijven.filter(b => opvolgStatus(b)?.due && !contactVan(b, b.opvolging?.contact)?.email).length;
-  return `<div class="wrap">
-    <header class="page-head"><p class="eyebrow">Mail</p><h1>Mail</h1></header>
-    <label class="search">${ic('search')}<input id="zoek-mail" type="search" placeholder="Zoek een bedrijf of contactpersoon om te mailen" value="${esc(zoek)}" data-zoek="mail" autocomplete="off" aria-label="Zoek om te mailen"></label>
-    ${zoek.trim() ? `<section class="section"><div class="section-title"><h2>Zoekresultaten</h2></div>${mailZoekResultaten(zoek.trim())}</section>` : ''}
-    <div class="btns"><button class="btn primary" data-act="mail">${ic('plus','sm')}Nieuwe mail</button><button class="btn" data-act="mailHandmatig" data-richting="uit">${ic('mail','sm')}Verstuurde mail vastleggen</button><button class="btn" data-act="mailHandmatig" data-richting="in">${ic('inbox','sm')}Ontvangen mail vastleggen</button></div>
+  const ma = maandagVan(today()), dezeWeek = verstuurd.filter(m => m.status==='verstuurd' && mailDag(m) >= ma).length;
+  const nuKlaar = gepland.filter(m => m.datum <= today()).length;
+  const reeksNaam = m => (S.inst.mailreeksen || []).find(r => r.id===m.reeks)?.naam;
+  const wanneer = m => m.datum <= today()
+    ? (auto ? `Gaat vandaag automatisch${m.tijd ? ' om ' + m.tijd : ''}` : 'Staat klaar: open hem en druk op Mailen')
+    : `${auto ? 'Gaat automatisch' : 'Staat klaar voor'} ${fmtDag(m.datum)}${m.tijd ? ' om ' + m.tijd : ''}`;
+  const groep = (lijst, sleutel) => { const uit = []; for(const x of lijst){ const k = sleutel(x); const g = uit[uit.length - 1]; if(g && g.k===k) g.items.push(x); else uit.push({k, items:[x]}); } return uit; };
+  const dagNaam = d => { const n = diffDays(d, today()); return n===0 ? 'Vandaag' : n===1 ? 'Gisteren' : n===-1 ? 'Morgen' : fmtDag(d); };
+  const tegel = (b, n, label, uitleg) => `<button class="mail-tegel ${blad===b ? 'on' : ''}" data-act="mailBlad" data-b="${b}" aria-pressed="${blad===b}"><b class="num">${n}</b><span>${label}</span><small>${uitleg}</small></button>`;
+
+  const sturen = `
     <section class="section">
-      <div class="section-title"><h2>Om te mailen</h2><span class="count num">${teMailen.length}</span></div>
+      <div class="section-title"><h2>Nu mailen</h2><span class="count num">${teMailen.length}</span></div>
+      <p class="hint">Deze bedrijven staan op de lijst om te mailen. Druk op Mailen, kies de mail en verstuur hem.</p>
       ${teMailen.length ? `<div class="rows">${teMailen.map(({b,s,c}) => `<div class="row static" style="grid-template-columns:auto 1fr auto">
         ${mono(b)}<span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
           <span class="meta">${esc(c.naam)} · ${esc(c.email)}</span>
           <span class="next ${s.due?'late':''}">${ic(s.due?'bolt':'clock')}<span>${esc(s.due ? dueTekst(s.datum) : fmtDag(s.datum))} · ${esc(STAP_NAAM[s.stap]||s.label)}</span></span></span>
         <button class="btn small primary" data-act="mailen" data-id="${b.id}" data-ci="${b.opvolging?.contact ?? 0}" ${geplandeMail(b)?`data-mail="${geplandeMail(b).id}"`:''} aria-label="Mailen">${ic('mail','sm')}<span class="lbl">Mailen</span></button></div>`).join('')}</div>`
-        : `<div class="empty">${ic('check')}<p>Er staan geen mails klaar om te sturen.</p></div>`}
-      ${zonderMail ? `<p class="hint">${zonderMail} ${zonderMail===1?'bedrijf staat':'bedrijven staan'} vandaag op de lijst, maar de contactpersoon heeft geen e-mailadres. Die vind je bij Vandaag.</p>` : ''}
+        : `<div class="empty">${ic('check')}<p>Niemand om nu te mailen.</p></div>`}
+      ${zonderMail ? `<p class="hint">${zonderMail} ${zonderMail===1?'bedrijf staat':'bedrijven staan'} vandaag op de lijst, maar zonder e-mailadres. Die vind je bij Vandaag.</p>` : ''}
     </section>
     <section class="section">
       <div class="section-title"><h2>Ingepland</h2><span class="count num">${gepland.length}</span></div>
-      <p class="hint">${robotActief() ? `Automatisch versturen staat aan. Mails gaan op werkdagen vanaf de ingeplande tijd, vanuit je eigen mailbox.` : `Deze mails staan klaar. Op de dag zelf druk je op "Mailen": je mailprogramma opent met de tekst en je verstuurt hem zelf.`}</p>
-      ${gepland.length ? `<div class="rows">${gepland.map(m => `<button class="row" data-act="geplandeMail" data-mail="${m.id}">
-        <span class="cal"><span>${DAGEN[parse(m.datum).getDay()]}</span><b>${parse(m.datum).getDate()}</b></span>
-        <span class="t"><span class="row-top"><b>${esc(m.onderwerp)}</b><span class="chip ${m.datum<=today()?'warn':''}">${m.datum<=today()?(robotActief()?'vandaag':'klaar'):esc(m.tijd||'09:30')}</span></span>
-          <span class="meta">${esc(m.bedrijf)} · ${esc(m.aan)}${m.reeks?` · mail ${m.stap+1}`:''}</span></span>${ic('right')}</button>`).join('')}</div>`
-        : `<div class="empty">${ic('calendar')}<p>Geen ingeplande mails. Geef een prospect de tag #deuren intrappen of #netwerk en leg een bezoek vast, dan wordt de eerste mail ingepland.</p></div>`}
-    </section>
-    ${(() => {
-      const lijst = S.bedrijven.map(b => ({b, m:mailStand(b)})).filter(x => x.m.laatste).sort((x, y) => y.m.op.localeCompare(x.m.op) || x.b.naam.localeCompare(y.b.naam));
-      return `<section class="section">
-      <div class="section-title"><h2>Wie is gemaild</h2><span class="count num">${lijst.length}</span></div>
-      ${lijst.length ? `<div class="rows">${lijst.map(({b, m}) => `<button class="row" data-act="open" data-id="${b.id}">
+      <p class="hint">${auto ? 'Deze mails gaan vanzelf vanuit je eigen mailbox. Komt er eerder een reactie of spreek je de persoon, dan gaan ze niet.' : 'Deze mails staan klaar. Op de dag zelf open je hem en druk je op Mailen.'} Tik op een mail om de tekst te lezen, te veranderen of te annuleren.</p>
+      ${gepland.length ? groep(gepland, m => m.datum <= today() ? 'Vandaag' : dagNaam(m.datum)).map(g => `<p class="mail-dag">${esc(g.k)}</p><div class="rows">${g.items.map(m => `<button class="row" data-act="geplandeMail" data-mail="${m.id}">
+        <span class="mono k-${esc(m.kopje||'prospect')}" aria-hidden="true">${esc(initialen(m.bedrijf))}</span>
+        <span class="t"><span class="row-top"><b>${esc(m.bedrijf)}</b><span class="chip ${m.datum<=today()?'warn':''}">${esc(m.tijd||'09:30')}</span></span>
+          <span class="meta">Aan ${esc(m.aan)} · "${esc(m.onderwerp)}"</span>
+          <span class="next">${ic(auto ? 'clock' : 'mail')}<span>${esc(wanneer(m))}${m.reeks ? ` · mail ${m.stap+1} van ${esc(reeksNaam(m) || 'de reeks')}` : ''}</span></span></span>${ic('right')}</button>`).join('')}</div>`).join('')
+        : `<div class="empty">${ic('calendar')}<p>Geen mails ingepland. Leg een bezoek vast bij een prospect met #deuren intrappen of #netwerk, dan wordt de eerste mail ingepland.</p></div>`}
+    </section>`;
+
+  const gemaild = S.bedrijven.map(b => ({b, m:mailStand(b)})).filter(x => x.m.laatste).sort((x, y) => y.m.op.localeCompare(x.m.op) || x.b.naam.localeCompare(y.b.naam));
+  const STATUS_WOORD = {verstuurd:['Verstuurd aan', ''], ontvangen:['Reactie van', 'k-klant'], geannuleerd:['Niet verstuurd aan', 'warn']};
+  const verstuurdBlad = `
+    <section class="section">
+      <div class="section-title"><h2>Wie is gemaild</h2><span class="count num">${gemaild.length}</span></div>
+      <p class="hint">Per bedrijf: wanneer de laatste mail ging, hoeveel mails er zijn gestuurd en wat er nog klaarstaat.</p>
+      ${gemaild.length ? `<div class="rows">${gemaild.map(({b, m}) => `<button class="row" data-act="open" data-id="${b.id}">
         <span class="cal"><span>${MAANDEN[parse(m.op).getMonth()]}</span><b>${parse(m.op).getDate()}</b></span>
         <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}<span class="chip">${m.uit.length} ${m.uit.length===1 ? 'mail' : 'mails'}</span></span>
-          <span class="meta">Laatst ${esc(geledenTekst(m.op))} · ${esc(m.laatste.aan || '')} · ${esc(m.laatste.onderwerp || '')}</span>
+          <span class="meta">Laatst ${esc(geledenTekst(m.op))} aan ${esc(m.laatste.aan || '')} · "${esc(m.laatste.onderwerp || '')}"</span>
           ${m.gepland ? `<span class="next">${ic('clock')}<span>Volgende mail ${esc(fmtDag(m.gepland.datum))}</span></span>` : ''}</span>${ic('right')}</button>`).join('')}</div>`
         : `<div class="empty">${ic('mail')}<p>Nog niemand gemaild.</p></div>`}
-    </section>`; })()}
+    </section>
     <section class="section">
       <div class="section-title"><h2>Verstuurd en ontvangen</h2><span class="count num">${verstuurd.length}</span></div>
-      ${verstuurd.length ? `<div class="rows">${verstuurd.slice(0,100).map(m => `<button class="row" data-act="mailDetail" data-mail="${m.id}">
+      <p class="hint">Alle mails op volgorde, nieuwste eerst. Tik op een mail om hem te lezen.</p>
+      ${verstuurd.length ? groep(verstuurd.slice(0, 100), m => dagNaam(mailDag(m.status==='geannuleerd' ? {verstuurdOp:m.geannuleerdOp, datum:m.datum} : m))).map(g => `<p class="mail-dag">${esc(g.k)}</p><div class="rows">${g.items.map(m => { const [woord, kl] = STATUS_WOORD[m.status] || STATUS_WOORD.verstuurd; return `<button class="row" data-act="mailDetail" data-mail="${m.id}">
         <span class="mono k-${esc(m.kopje||'prospect')}" aria-hidden="true">${esc(initialen(m.bedrijf))}</span>
-        <span class="t"><span class="row-top"><b>${esc(m.onderwerp||'(geen onderwerp)')}</b><span class="chip ${m.status==='ontvangen'?'k-klant':m.status==='geannuleerd'?'warn':''}">${m.status==='ontvangen'?'ontvangen':m.status==='geannuleerd'?'niet verstuurd':'verstuurd'}</span></span>
-          <span class="meta">${esc(fmtTijd(m.verstuurdOp||m.geannuleerdOp||m.datum))} · ${esc(m.bedrijf)} · ${esc(m.aan)}${m.reeks?` · reeksmail ${m.stap+1}`:''}${m.vastgelegd?' · handmatig vastgelegd':''}</span></span>${ic('right')}</button>`).join('')}</div>`
+        <span class="t"><span class="row-top"><b>${esc(m.onderwerp||'(geen onderwerp)')}</b><span class="chip ${kl}">${m.status==='ontvangen'?'ontvangen':m.status==='geannuleerd'?'niet verstuurd':'verstuurd'}</span></span>
+          <span class="meta">${esc(woord)} ${esc(m.aan)} · ${esc(m.bedrijf)}${m.verstuurdOp ? ' · ' + esc(fmtTijd(m.verstuurdOp).split(' ').pop()) : ''}${m.reeks?` · mail ${m.stap+1} van ${esc(reeksNaam(m) || 'de reeks')}`:''}${m.vastgelegd?' · zelf vastgelegd':''}${m.status==='geannuleerd' && m.reden ? ` · ${esc(m.reden)}` : ''}</span></span>${ic('right')}</button>`; }).join('')}</div>`).join('')
         : `<div class="empty">${ic('mail')}<p>Nog geen mails. Stuurde je er een vanuit Outlook? Leg hem vast met "Verstuurde mail vastleggen".</p></div>`}
+    </section>`;
+
+  const sjablonenBlad = `
+    <section class="section">
+      <div class="section-title"><h2>Mails om uit te kiezen</h2><button class="btn small" data-act="sjabloon">${ic('plus','sm')}Nieuwe mail maken</button></div>
+      <p class="hint">Dit zijn de mails die je kiest als je op Mailen drukt, per soort. Tik op een mail om de tekst aan te passen.</p>
+      ${MAILSOORTEN.map(([k, naam, icoon]) => { const lijst = (S.inst.sjablonen||[]).map((t, i) => ({t, i})).filter(x => mailSoort(x.t)===k); return lijst.length ? `<p class="mail-dag">${ic(icoon, 'sm')} ${esc(naam)}</p><div class="rows">${lijst.map(({t, i}) => `<button class="row" data-act="sjabloon" data-i="${i}">
+        <span class="t"><span class="row-top"><b>${esc(t.naam)}</b>${t.kopje && t.kopje!=='alle' ? chipKopje(t.kopje) : '<span class="chip">alle</span>'}${t.tekstGesproken ? '<span class="chip">2 versies</span>' : ''}</span>
+        <span class="meta">"${esc(t.onderwerp)}"${t.tekstGesproken ? ` · gesproken: "${esc(t.onderwerpGesproken || t.onderwerp)}"` : t.alleen==='gesproken' ? ' · als je de persoon sprak' : t.alleen==='niet' ? ' · als je de persoon niet sprak' : ''}</span></span>${ic('right')}</button>`).join('')}</div>` : ''; }).join('')}
+      <p class="hint">Invulvelden: {voornaam}, {naam}, {bedrijf}, {mijnnaam}, {mijnvoornaam}. Je eigen handtekening komt er vanzelf onder.</p>
     </section>
     <section class="section">
-      <div class="section-title"><h2>Sjablonen</h2><button class="btn small" data-act="sjabloon">${ic('plus','sm')}Nieuw sjabloon</button></div>
-      <div class="rows">${(S.inst.sjablonen||[]).map((t,i) => `<button class="row" data-act="sjabloon" data-i="${i}">
-        <span class="t"><span class="row-top"><b>${esc(t.naam)}</b>${t.kopje && t.kopje!=='alle' ? chipKopje(t.kopje) : '<span class="chip">alle</span>'}</span>
-        <span class="meta">${esc(t.onderwerp)}</span></span>${ic('right')}</button>`).join('')}</div>
-      <p class="hint">Invulvelden: {voornaam}, {naam}, {bedrijf}, {mijnnaam}, {mijnvoornaam}.</p>
-    </section>
-    <section class="section">
-      <div class="section-title"><h2>Mailreeksen</h2></div>
+      <div class="section-title"><h2>Automatische reeksen</h2></div>
+      <p class="hint">Geef een prospect de tag en leg een bezoek vast: dan plant het CRM deze mails in.</p>
       ${(S.inst.mailreeksen||[]).length ? `<div class="rows">${S.inst.mailreeksen.map(r => `<div class="row static"><span class="t">
         <span class="row-top"><b>${esc(r.naam)}</b><span class="chip tag">${esc(r.tag)}</span></span>
-        <span class="meta wrap">${r.stappen.map((st,i) => { const t = (S.inst.sjablonen||[]).find(x => x.id===st.sjabloon); return `Mail ${i+1}: ${esc(t?.naam||st.sjabloon)} (${st.werkdagenNa!=null ? st.werkdagenNa+' werkdag'+(st.werkdagenNa===1?'':'en') : st.dagenNa+' dagen'} ${i?'na de vorige mail, bij geen reactie':'na het bezoek'})`; }).join('<br>')}</span></span></div>`).join('')}</div>`
-        : `<p class="sub">Nog geen mailreeksen ingesteld.</p>`}
+        <span class="meta wrap">${r.stappen.map((st,i) => { const t = (S.inst.sjablonen||[]).find(x => x.id===st.sjabloon); return `Mail ${i+1}: ${esc(t?.naam||st.sjabloon)} (${st.werkdagenNa!=null ? st.werkdagenNa+' werkdag'+(st.werkdagenNa===1?'':'en') : st.dagenNa+' dagen'} ${i?'na de vorige mail, als er geen reactie is':'na het bezoek'})`; }).join('<br>')}</span></span></div>`).join('')}</div>`
+        : `<p class="sub">Nog geen reeksen ingesteld.</p>`}
       <p class="hint">Een reeks stopt zodra er contact is: een reactie, een gesprek, een afspraak of een nieuw bezoek. Er gaat nooit een automatische mail na contact.</p>
-    </section>
+    </section>`;
+
+  return `<div class="wrap">
+    <header class="page-head"><p class="eyebrow">Mail</p><h1>Mail</h1></header>
+    <details class="card mail-uitleg" ${V.mailUitleg ? 'open' : ''}><summary>${ic('bolt','sm')}<b>Hoe werkt mailen in het CRM?</b></summary>
+      <ol>
+        <li><b>Bezoek vastleggen.</b> Heeft een prospect de tag #deuren intrappen of #netwerk? Dan kies je welke mail er gaat: "ik sprak de persoon zelf" of "via een collega of de receptie".</li>
+        <li><b>Mail 1 wordt ingepland</b>, meestal voor de volgende werkdag om 09:30. Je ziet hem hieronder bij Ingepland en kunt hem nog aanpassen of annuleren.</li>
+        <li><b>${auto ? 'Hij gaat vanzelf' : 'Op de dag zelf druk je op Mailen'}</b> vanuit je eigen mailbox, met je eigen handtekening eronder.</li>
+        <li><b>Geen reactie?</b> Dan volgt mail 2. Komt er een reactie, bel je of ga je langs, dan stopt de reeks vanzelf.</li>
+        <li><b>Zelf iets sturen?</b> Druk op Mailen bij een bedrijf (of hier op Nieuwe mail), kies de soort mail en of je de persoon sprak.</li>
+      </ol></details>
+    <div class="mail-tegels">
+      ${tegel('sturen', teMailen.length + nuKlaar, 'Te sturen', `${gepland.length} ingepland`)}
+      ${tegel('verstuurd', dezeWeek, 'Verstuurd deze week', `${gemaild.length} bedrijven gemaild`)}
+      ${tegel('sjablonen', (S.inst.sjablonen||[]).length, 'Mails om te kiezen', 'sjablonen en reeksen')}
+    </div>
+    <label class="search">${ic('search')}<input id="zoek-mail" type="search" placeholder="Zoek een bedrijf of contactpersoon om te mailen" value="${esc(zoek)}" data-zoek="mail" autocomplete="off" aria-label="Zoek om te mailen"></label>
+    ${zoek.trim() ? `<section class="section"><div class="section-title"><h2>Zoekresultaten</h2></div>${mailZoekResultaten(zoek.trim())}</section>` : ''}
+    <div class="btns"><button class="btn primary" data-act="mail">${ic('plus','sm')}Nieuwe mail</button><button class="btn" data-act="mailHandmatig" data-richting="uit">${ic('mail','sm')}Verstuurde mail vastleggen</button><button class="btn" data-act="mailHandmatig" data-richting="in">${ic('inbox','sm')}Ontvangen mail vastleggen</button></div>
+    ${blad==='verstuurd' ? verstuurdBlad : blad==='sjablonen' ? sjablonenBlad : sturen}
   </div>`;
 }
 
@@ -4408,6 +4454,7 @@ const ACT = {
   open: d => openDetail(d.id),
   tlFilter: d => { V.tl = d.f; render(); },
   tlSys: () => { V.tlSys = !V.tlSys; try{ localStorage.setItem('crm-tl-sys', V.tlSys ? '1' : '0'); }catch{} render(); },
+  mailBlad: d => { V.mailBlad = d.b; render(); },
   sluitDetail,
   closeSheet,
   nieuw: d => bedrijfForm(null, d.kopje || (['klant','prospect'].includes(V.tab) ? V.tab : 'prospect')),
