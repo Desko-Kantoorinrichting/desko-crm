@@ -694,7 +694,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.7';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.8';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -2063,7 +2063,7 @@ function mailView(){
 }
 
 function sjabloonForm(i){
-  const nieuw = i==null, t = nieuw ? {kopje:'prospect', naam:'', onderwerp:'', tekst:'Hoi {voornaam},\n\n\n\nGroet,\n{mijnnaam}\nDesko Kantoorinrichting'} : S.inst.sjablonen[i];
+  const nieuw = i==null, t = nieuw ? {kopje:'prospect', naam:'', onderwerp:'', tekst:'Hi {voornaam},\n\n'} : S.inst.sjablonen[i];
   openSheet(nieuw ? 'Nieuw sjabloon' : 'Sjabloon bewerken', `<form id="sjf" class="section">
     <div class="grid2"><label class="f"><span>Naam</span><input id="sj-naam" name="naam" required value="${esc(t.naam)}" autocomplete="off"></label>
     <label class="f"><span>Voor</span><select id="sj-kopje" name="kopje"><option value="alle" ${!t.kopje||t.kopje==='alle'?'selected':''}>Alle kopjes</option>${Object.entries(KOPJES).map(([k,v])=>`<option value="${k}" ${t.kopje===k?'selected':''}>${v.naam}</option>`).join('')}</select></label></div>
