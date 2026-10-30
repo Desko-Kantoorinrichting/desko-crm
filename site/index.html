@@ -652,6 +652,12 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
   .pr-vak span{display:inline-block;width:13px;height:13px;border:1.5px solid #000;vertical-align:-2px;margin-left:4px}
   .pr-lijn{grid-column:3/5;border-bottom:1px dotted #777;height:16px}
   .pr-voet{margin-top:10px;font-size:9pt;color:#444}
+  .dr-kop{display:flex;justify-content:space-between;align-items:center;margin-bottom:6mm}.dr-kop h1{font-size:20pt;margin:0}.dr-kop img{height:22px}
+  .dr-datum{font-size:12pt;margin:0 0 6mm;display:flex;gap:3mm;align-items:flex-end}.dr-datum span{display:inline-block;width:70mm;border-bottom:1px solid #000;height:6mm}
+  .dr-tabel{width:100%;border-collapse:collapse;table-layout:fixed}
+  .dr-tabel th{text-align:left;font-size:10.5pt;border-bottom:2px solid #000;padding:2mm 2mm}
+  .dr-tabel th:nth-child(1){width:26%}.dr-tabel th:nth-child(2){width:20%}.dr-tabel th:nth-child(3){width:14%}
+  .dr-tabel td{border:1px solid #888;height:15mm}
   .pr-h2{font-size:13pt;margin:14px 0 4px;border-bottom:1px solid #000;padding-bottom:2px}
   .pr-rap{grid-template-columns:26px 78px 1fr}
 }
@@ -674,7 +680,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.1';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.2';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1039,7 +1045,7 @@ function vandaagView(){
         <button class="vd-tel ${blad==='gedaan'?'on':''}" data-act="vblad" data-b="gedaan"><b class="num">${gd.aantal}</b><span>Gedaan deze week</span></button>
       </div>
       <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
-      <div class="snelrij" role="group" aria-label="Snel naar"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="rapport">${ic('note','sm')}Weekrapport</button><button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button><button class="btn heroknop" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar${nieuweLeads().length ? ` (${nieuweLeads().length})` : ''}</button></div>
+      <div class="snelrij" role="group" aria-label="Snel naar"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="rapport">${ic('note','sm')}Weekrapport</button><button class="btn heroknop" data-act="leegDagrapport">${ic('print','sm')}Leeg dagrapport</button><button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button><button class="btn heroknop" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar${nieuweLeads().length ? ` (${nieuweLeads().length})` : ''}</button></div>
       </div></div>
     <div class="vd-grid" data-blad="${blad}">
       <section class="vd-kol vd-todo">
@@ -1261,7 +1267,7 @@ function meerView(){
   }));
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Instellingen en overzicht</p><h1>Meer</h1></header>
-    <div class="btns"><button class="btn alleen-klein" data-act="tab" data-tab="mail">${ic('mail','sm')}Mail</button><button class="btn primary" data-act="tab" data-tab="rapport">${ic('note','sm')}Resultaten: weekrapport</button><button class="btn" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
+    <div class="btns"><button class="btn alleen-klein" data-act="tab" data-tab="mail">${ic('mail','sm')}Mail</button><button class="btn" data-act="leegDagrapport">${ic('print','sm')}Leeg dagrapport printen</button><button class="btn primary" data-act="tab" data-tab="rapport">${ic('note','sm')}Resultaten: weekrapport</button><button class="btn" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
     <section class="section"><div class="section-title"><h2>Conversie per tag</h2></div>
       ${perTag.size ? `<div class="card scroll-x"><table class="mini"><thead><tr><th>Tag</th><th class="r">Prospects</th><th class="r">Klant geworden</th><th class="r">Conversie</th></tr></thead><tbody>
       ${[...perTag.entries()].sort((a,b)=>b[1].tot-a[1].tot).map(([tag,r])=>`<tr><td>${esc(tag)}</td><td class="r">${r.tot}</td><td class="r">${r.klant}</td><td class="r">${Math.round(r.klant/r.tot*100)}%</td></tr>`).join('')}
@@ -3191,6 +3197,17 @@ function printRoute(r){
   const img = $('#print img'), go = () => { window.print(); };
   if(img && !img.complete){ img.onload = img.onerror = go; setTimeout(go, 1500); } else go();
 }
+/* Leeg dagrapport om op papier in te vullen: datum en per regel bedrijf, contact, plaats, opmerkingen. */
+function printLeegDagrapport(){
+  const regels = 14;
+  $('#print').innerHTML = `<div class="dr">
+    <div class="dr-kop"><h1>Dagrapport</h1><img src="logo-zwart.png" alt="Desko"></div>
+    <p class="dr-datum">Datum: <span></span></p>
+    <table class="dr-tabel"><thead><tr><th>Bedrijfsnaam</th><th>Contactpersoon</th><th>Plaats</th><th>Opmerkingen</th></tr></thead>
+      <tbody>${'<tr><td></td><td></td><td></td><td></td></tr>'.repeat(regels)}</tbody></table></div>`;
+  const img = $('#print img'), go = () => window.print();
+  if(img && !img.complete){ img.onload = img.onerror = go; setTimeout(go, 1500); } else go();
+}
 window.addEventListener('afterprint', () => { const p = $('#print'); if(p) p.innerHTML = ''; });
 function routeKaart(){
   const r = route(); if(!r) return '';
@@ -4202,6 +4219,7 @@ const ACT = {
     toast(volgorde ? 'Snelste volgorde over de weg' : 'Volgorde met de kortste afstand'); },
   planPrint: () => printRoute(planRoute(planStaat())),
   rapportPrint: () => printRapport(),
+  leegDagrapport: () => printLeegDagrapport(),
   rapportAlleP: () => { V.rapportAlleP = true; render(); },
   routePrint: () => printRoute(route()),
   planWis: () => bevestig('Route wissen', 'Alle stops van deze dag worden verwijderd.', 'Wissen', () => planStops([])),
