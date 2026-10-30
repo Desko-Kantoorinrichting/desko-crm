@@ -521,7 +521,7 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 
 /* nav: bottom bar on phone, sidebar on desktop */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
 nav.tabs .side-brand,nav.tabs .side-foot{display:none}
 nav.tabs button{border:0;background:transparent;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7rem;font-weight:650;color:var(--faint);cursor:pointer;position:relative}
 nav.tabs button .pill{display:grid;place-items:center;width:44px;max-width:100%;height:28px;border-radius:999px;transition:background .15s}
@@ -684,7 +684,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.4';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.5';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1328,10 +1328,10 @@ function render(){
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length;
   // Ferry: de vier kopjes voor elke dag. Aukje en Silver: een uitklapbare groep (alleen op de computer).
-  const ferryTabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten']];
+  const ferryTabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['dagrapporten','camera','Dagrapport']];
   const kantoorTabs = [['plannen','route','Plannen'],['leadradar','radar','Leadradar'],['kijkje','star','Kijkje waard'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['mail','mail','Mail'],['meer','menu','Meer']];
   const klein = matchMedia('(max-width:959px)').matches;
-  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&klein&&['resultaten','leadradar','kijkje','rapport','mail','dagrapporten'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&klein) || (k==='prospect'&&V.tab==='pijplijn'&&klein)) : (k===V.terugNaar);
+  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&klein&&['resultaten','leadradar','kijkje','rapport','mail'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&klein) || (k==='prospect'&&V.tab==='pijplijn'&&klein)) : (k===V.terugNaar);
   const knop = ([k,i,l], cls='') => `<button data-act="tab" data-tab="${k}" ${cls?`class="${cls}"`:''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}${k==='kijkje'&&kijkjeLeads().length?`<span class="badge num licht">${kijkjeLeads().length}</span>`:''}</button>`;
   if(V.navGroep == null){ try{ V.navGroep = localStorage.getItem(NAVGROEP_KEY) === '1'; }catch{ V.navGroep = false; } }
   const groepOpen = V.navGroep || kantoorTabs.some(([k]) => !V.detail && actief(k));
@@ -3243,9 +3243,11 @@ const DR_STATUS = {nieuw:['Wacht op verwerking', ''], verwerkt:['Verwerkt', 'k-k
 function dagrapportenView(){
   const lijst = [...(S.dagrapporten || [])].sort((a, b) => (b.ingestuurd || '').localeCompare(a.ingestuurd || ''));
   return `<div class="wrap">
-    <header class="page-head"><p class="eyebrow">Ferry</p><h1>Dagrapporten</h1>
+    <header class="page-head"><p class="eyebrow">Ferry</p><h1>Dagrapport</h1>
       <p class="sub">Foto's van ingevulde dagrapporten. E-mail en telefoon komen bij de contactpersoon te staan. Op werkdagen om 17:30, 19:30 en 21:30 worden nieuwe rapporten verwerkt: bestaande bedrijven krijgen een bezoek erbij, nieuwe worden aangemaakt als prospect (met #dagrapport).</p>
-      <div class="btns"><button class="btn primary" data-act="dagrapportInsturen">${ic('camera','sm')}Dagrapport insturen</button><button class="btn" data-act="leegDagrapport">${ic('print','sm')}Leeg formulier printen</button></div></header>
+      </header>
+    <button class="spreekknop dr-groot" data-act="dagrapportInsturen">${ic('camera')}<span><b>Foto van je dagrapport insturen</b><small>Leg het formulier plat en zorg dat alles in beeld is</small></span></button>
+    <div class="btns" style="margin:10px 0 18px"><button class="btn small" data-act="leegDagrapport">${ic('print','sm')}Leeg formulier printen</button></div>
     ${lijst.length ? `<div class="dr-lijst">${lijst.map(r => { const [st, cls] = DR_STATUS[r.status] || [r.status, ''];
       return `<article class="card dr-kaart"><div class="section-title"><h2>${esc(dagNaamLang(r.datum))}</h2><span class="chip ${cls}">${esc(st)}</span></div>
         <p class="sub">Ingestuurd ${esc(fmtTijd(r.ingestuurd))}${r.door ? ' door ' + esc(r.door) : ''}${r.verwerkt ? ` · verwerkt ${esc(fmtTijd(r.verwerkt))}` : ''}</p>
