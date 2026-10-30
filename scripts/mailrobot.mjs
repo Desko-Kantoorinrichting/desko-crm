@@ -88,7 +88,7 @@ export async function main(env = process.env, nu = new Date()){
   }
   async function verstuur(m){
     const r = await graph('/sendMail', {method:'POST', body:JSON.stringify({saveToSentItems:true, message:{
-      subject:m.onderwerp, body:{contentType:'Text', content:m.tekst}, toRecipients:[{emailAddress:{address:m.email, name:m.aan}}]}})});
+      subject:m.onderwerp, body:{contentType:'HTML', content:R.mailHtml(m.tekst)}, toRecipients:[{emailAddress:{address:m.email, name:m.aan}}]}})});
     if(r.status !== 202 && !r.ok) throw new Error(`Versturen mislukt (${r.status})`);
   }
 

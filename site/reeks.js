@@ -83,6 +83,13 @@
       .replace(/\{mijnnaam\}|\[naam\]/gi, mij)
       .replace(/\{mijnvoornaam\}/g, mij.split(' ')[0]);
   }
+  /* Mailtekst als HTML in de huisstijl van de mails: Aptos, zwart, 11 pt. Lege regel = nieuwe alinea. */
+  const MAIL_STIJL = 'font-family:Aptos,Calibri,Arial,sans-serif;font-size:11pt;color:#000000';
+  function mailHtml(tekst){
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const alineas = String(tekst || '').replace(/\r/g, '').split(/\n{2,}/).map(a => `<p style="margin:0 0 11pt 0;${MAIL_STIJL}">${esc(a).replace(/\n/g, '<br>')}</p>`).join('');
+    return `<div style="${MAIL_STIJL}">${alineas}</div>`;
+  }
   function reeksVoor(b, inst){
     const tags = (b.tags || []).map(t => t.toLowerCase());
     return (inst.mailreeksen || []).find(r => r.tag && tags.includes(r.tag.toLowerCase())) || null;
@@ -116,5 +123,5 @@
   const contactSinds = (acts, sinds) => acts.some(a => CONTACT(a) && a.datum > sinds);
 
   return {pad, ds, parse, addDays, diffDays, feestdagen, isWerkdag, addWerkdagen, volgendeWerkdag, clone, merge,
-    DEFAULT_INST, instellingen, termijn, voornaam, vul, versie, reeksVoor, planMail, naVerzending, contactSinds};
+    DEFAULT_INST, instellingen, termijn, voornaam, vul, versie, reeksVoor, planMail, naVerzending, contactSinds, mailHtml, MAIL_STIJL};
 });

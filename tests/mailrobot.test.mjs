@@ -58,6 +58,8 @@ test('mail 1 gaat op tijd en mail 2 wordt een week later ingepland', async () =>
   const t = await main(ENV, op('2026-10-21T07:45:00Z'));
   assert.equal(t.verstuurd, 1);
   assert.equal(w.verzonden[0].toRecipients[0].emailAddress.address, 'aukje@hoek.nl');
+  assert.equal(w.verzonden[0].body.contentType, 'HTML');
+  assert.match(w.verzonden[0].body.content, /font-family:Aptos[^"]*font-size:11pt;color:#000000/);
   const mails = Object.values(w.files['data/mails.json']);
   assert.equal(mails.find(m => m.stap === 0).status, 'verstuurd');
   const m2 = mails.find(m => m.stap === 1);

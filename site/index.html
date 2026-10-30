@@ -363,6 +363,7 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .mail-uitleg{margin:0 0 12px}.mail-uitleg summary{cursor:pointer;display:flex;gap:8px;align-items:center}
 .mail-uitleg ol{margin:10px 0 0;padding-left:20px;display:grid;gap:8px;font-size:.93rem}
 .mail-dag{display:flex;gap:6px;align-items:center;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 6px}
+#mo-tekst,#gm-tekst,.ev-mail p{font-family:Aptos,Calibri,Arial,sans-serif;font-size:11pt;color:#000}   /* zoals de mail eruitziet */
 .mailopties{display:grid;gap:8px}
 .mo-soort label{flex:1 1 140px}
 .mailoptie{display:block;cursor:pointer}
@@ -723,7 +724,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.15';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.16';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1900,7 +1901,7 @@ function mailOpstellen(b, ci, m){
     };
     if(kies) $s('#mo-b').onchange = e => { cur = bedrijf(e.target.value); ci = undefined; soort = gespr = null; keuze = null; kiesBedrijf(); };
     ond.oninput = tekst.oninput = link;
-    $s('#mo-kopie').onclick = () => navigator.clipboard?.writeText(`${ond.value}\n\n${tekst.value}`).then(() => toast('Tekst gekopieerd'), () => toast('Kopiëren lukte niet'));
+    $s('#mo-kopie').onclick = () => kopieerMail(tekst.value);
     kiesBedrijf();
     $s('#mo').onsubmit = async e => {
       e.preventDefault();
@@ -1929,6 +1930,15 @@ function mailOpstellen(b, ci, m){
   });
 }
 
+/* Mailtekst kopiëren met opmaak (Aptos, zwart, 11 pt), zodat hij zo in Outlook geplakt kan worden. */
+async function kopieerMail(tekst){
+  try{
+    if(window.ClipboardItem && navigator.clipboard?.write){
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([REEKS.mailHtml(tekst)], {type:'text/html'}), 'text/plain':new Blob([tekst], {type:'text/plain'})})]);
+    } else await navigator.clipboard.writeText(tekst);
+    toast('Tekst gekopieerd: plak hem in je mail');
+  }catch{ toast('Kopiëren lukte niet'); }
+}
 /* Mailen: het eigen mailprogramma opent direct met de tekst erin; daarna vastleggen. */
 function mailtoLink(email, onderwerp, tekst){
   return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(onderwerp||'')}&body=${encodeURIComponent(tekst||'')}`;
@@ -1957,7 +1967,7 @@ function mailen(b, ci, m){
       <button type="button" class="btn" data-act="closeSheet">Nog niet verstuurd</button>
       <button type="button" class="btn primary" id="mv-ja">${ic('check','sm')}Ja, verstuurd</button>
     </div></div>`, s => {
-    s.querySelector('#mv-kopie').onclick = () => navigator.clipboard?.writeText(`${onderwerp}\n\n${tekst}`).then(() => toast('Tekst gekopieerd'), () => toast('Kopiëren lukte niet'));
+    s.querySelector('#mv-kopie').onclick = () => kopieerMail(tekst);
     s.querySelector('#mv-ja').onclick = async () => {
       const ok = await veilig(async () => {
         if(m) return markeerVerstuurd(m);
