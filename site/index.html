@@ -694,7 +694,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.6';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.7';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1724,66 +1724,87 @@ function standaardSjabloon(b){
   return lijst[0];
 }
 
-function mailOpstellen(b, ci){
-  const kies = !b;
+/* Mail opstellen, van waar dan ook: eerst de mail kiezen (kaartjes met onderwerp en begin van de tekst),
+   dan staat de tekst klaar om aan te passen en te versturen. m: een ingeplande mail, die staat dan bovenaan. */
+function mailOpstellen(b, ci, m){
+  const kies = !b, auto = robotActief();
   const metMail = S.bedrijven.filter(x => (x.contacten||[]).some(c => c.email)).sort((x,y) => x.naam.localeCompare(y.naam));
-  openSheet('Mail opstellen', `<form id="mo" class="section">
+  openSheet(m ? `Mail aan ${m.aan}` : 'Mail sturen', `<form id="mo" class="section">
     ${kies ? `<label class="f"><span>Bedrijf</span><select id="mo-b" required><option value="">Kies een bedrijf…</option>${metMail.map(x=>`<option value="${x.id}">${esc(x.naam)} (${KOPJES[x.kopje].enk.toLowerCase()})</option>`).join('')}</select></label>` : ''}
-    <p class="hint">Al verstuurd vanuit Outlook? <a href="#" data-act="mailHandmatig" data-richting="uit" ${b?`data-id="${b.id}"`:''}>Leg hem hier vast</a>.</p>
     <div id="mo-aan"></div>
-    <label class="f"><span>Sjabloon</span><select id="mo-sj"></select></label>
-    <label class="f"><span>Onderwerp</span><input id="mo-ond" name="onderwerp" required autocomplete="off"></label>
-    <label class="f"><span>Bericht</span><textarea id="mo-tekst" name="tekst" required style="min-height:280px"></textarea></label>
-    <p class="hint">${robotActief() ? 'Versturen gaat vanuit je eigen mailbox, binnen een kwartier. De mail komt daarna vanzelf in de tijdlijn.' : 'Klik op "Open in mail" om hem in je mailprogramma te versturen. Klik daarna op "Markeer als verstuurd", dan komt hij in de tijdlijn.'}</p>
-    <div class="sheet-actions">
-      <button type="button" class="btn" id="mo-kopie">${ic('note','sm')}Kopieer tekst</button>
-      <a class="btn" id="mo-open" href="#">${ic('mail','sm')}Open in mail</a>
-      <button class="btn primary" type="submit" id="mo-ok">${ic('check','sm')}${robotActief() ? 'Versturen' : 'Markeer als verstuurd'}</button>
+    <div class="f" id="mo-kies"></div>
+    <div id="mo-klaar" hidden>
+      <label class="f"><span>Onderwerp</span><input id="mo-ond" name="onderwerp" required autocomplete="off"></label>
+      <label class="f"><span>Bericht</span><textarea id="mo-tekst" name="tekst" required style="min-height:280px"></textarea></label>
+      <p class="hint">${auto ? 'Versturen gaat vanuit je eigen mailbox, binnen een kwartier. De mail komt daarna vanzelf in de tijdlijn.' : 'Klik op "Open in mail" om hem in je mailprogramma te versturen. Klik daarna op "Markeer als verstuurd", dan komt hij in de tijdlijn.'}</p>
+      <div class="sheet-actions">
+        <button type="button" class="btn" id="mo-kopie">${ic('note','sm')}Kopieer tekst</button>
+        <a class="btn ${auto ? '' : 'primary'}" id="mo-open" href="#">${ic('mail','sm')}Open in mail</a>
+        <button class="btn ${auto ? 'primary' : ''}" type="submit" id="mo-ok">${ic('check','sm')}${auto ? 'Versturen' : 'Markeer als verstuurd'}</button>
+      </div>
     </div>
+    <p class="hint">Al verstuurd vanuit Outlook? <a href="#" data-act="mailHandmatig" data-richting="uit" ${b?`data-id="${b.id}"`:''}>Leg hem hier vast</a>.</p>
   </form>`, s => {
-    let cur = b, bewerkt = false;
-    const $s = q => s.querySelector(q), ond = $s('#mo-ond'), tekst = $s('#mo-tekst'), sj = $s('#mo-sj');
+    let cur = b, keuze = null;
+    const $s = q => s.querySelector(q), ond = $s('#mo-ond'), tekst = $s('#mo-tekst');
     const contact = () => cur ? contactVan(cur, Number($s('#mo-ci')?.value ?? 0)) : null;
-    const link = () => {
-      const c = contact(), a = $s('#mo-open');
-      if(a) a.href = c?.email ? `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent(ond.value)}&body=${encodeURIComponent(tekst.value)}` : '#';
+    const link = () => { const c = contact(), a = $s('#mo-open'); if(a) a.href = c?.email ? mailtoLink(c.email, ond.value, tekst.value) : '#'; };
+    // alle mails als kaartjes: de ingeplande mail, dan de mail die nu aan de beurt is (beide versies), dan de rest
+    const opties = () => {
+      const c = contact() || {naam:''}, std = standaardSjabloon(cur), lijst = sjablonenVoor(cur.kopje);
+      const versies = t => (t.tekstGesproken ? [true, false] : [false]).map(g => ({...mailOptie(t, g, cur, c, t.tekstGesproken ? `${t.naam} · ${versieTitel(g, c)[0].toLowerCase()}${versieTitel(g, c).slice(1)}` : t.naam), waarde:`${t.id}|${g ? 1 : 0}`}));
+      return [
+        ...(m ? [{waarde:'gepland', titel:`De ingeplande mail${m.datum ? ` (${fmtDag(m.datum)})` : ''}`, onderwerp:m.onderwerp, tekst:m.tekst, sjabloon:m.sjabloon, gesproken:!!m.gesproken}] : []),
+        ...[std, ...lijst.filter(t => t !== std)].filter(Boolean).flatMap(versies),
+        {waarde:'leeg', titel:'Leeg bericht', onderwerp:'(zelf invullen)', tekst:'\nZelf een mail schrijven.'}];
     };
-    const pasToe = () => {
-      const t = (S.inst.sjablonen||[]).find(x => x.id === sj.value);
-      if(t && cur){ ond.value = REEKS.vul(t.onderwerp, cur, contact(), S.gebruiker?.naam); tekst.value = REEKS.vul(t.tekst, cur, contact(), S.gebruiker?.naam); bewerkt = false; }
-      link();
+    const tekenKaarten = () => {
+      const box = $s('#mo-kies');
+      if(!cur){ box.innerHTML = ''; $s('#mo-klaar').hidden = true; return; }
+      const was = box.querySelector('input:checked')?.value ?? (m ? 'gepland' : null), o = opties();
+      box.innerHTML = `<span>Kies een mail</span>${mailKaarten('mo-mail', o, was)}`;
+      box.querySelectorAll('input[name="mo-mail"]').forEach(r => r.onchange = () => kiesMail(o.find(x => x.waarde===r.value), true));
+      const k = o.find(x => x.waarde===was); if(k) kiesMail(k, false);
+    };
+    const kiesMail = (o, scroll) => {
+      keuze = o; $s('#mo-klaar').hidden = false;
+      ond.value = o.waarde==='leeg' ? '' : o.onderwerp; tekst.value = o.waarde==='leeg' ? '' : o.tekst; link();
+      if(scroll) $s('#mo-klaar').scrollIntoView({block:'start', behavior:'smooth'});
     };
     const kiesBedrijf = () => {
       const cs = cur?.contacten || [];
-      const start = ci ?? cur?.opvolging?.contact ?? Math.max(0, cs.findIndex(c => c.email));
-      $s('#mo-aan').innerHTML = cur ? `<label class="f"><span>Aan</span><select id="mo-ci">${cs.map((c,i)=>`<option value="${i}" ${i===start?'selected':''} ${c.email?'':'disabled'}>${esc(c.naam)} · ${esc(c.email||'geen e-mailadres')}</option>`).join('')}</select></label>` : '';
-      const lijst = cur ? sjablonenVoor(cur.kopje) : [];
-      const std = cur && standaardSjabloon(cur);
-      sj.innerHTML = lijst.map(t => `<option value="${esc(t.id)}" ${t===std?'selected':''}>${esc(t.naam)}</option>`).join('') + '<option value="">Leeg bericht</option>';
-      const sel = $s('#mo-ci'); if(sel) sel.onchange = () => { if(!bewerkt) pasToe(); else link(); };
-      pasToe();
+      const start = m ? m.contact ?? 0 : ci ?? cur?.opvolging?.contact ?? Math.max(0, cs.findIndex(c => c.email));
+      const eerste = cs[start]?.email ? start : Math.max(0, cs.findIndex(c => c.email));
+      $s('#mo-aan').innerHTML = cur ? `<label class="f"><span>Aan</span><select id="mo-ci">${cs.map((c,i)=>`<option value="${i}" ${i===eerste?'selected':''} ${c.email?'':'disabled'}>${esc(c.naam)} · ${esc(c.email||'geen e-mailadres')}</option>`).join('')}</select></label>` : '';
+      const sel = $s('#mo-ci'); if(sel) sel.onchange = tekenKaarten;   // namen in de mails volgen de contactpersoon
+      tekenKaarten();
     };
     if(kies) $s('#mo-b').onchange = e => { cur = bedrijf(e.target.value); ci = undefined; kiesBedrijf(); };
-    sj.onchange = () => { if(!sj.value){ ond.value=''; tekst.value=''; } pasToe(); };
-    ond.oninput = tekst.oninput = () => { bewerkt = true; link(); };
+    ond.oninput = tekst.oninput = link;
     $s('#mo-kopie').onclick = () => navigator.clipboard?.writeText(`${ond.value}\n\n${tekst.value}`).then(() => toast('Tekst gekopieerd'), () => toast('Kopiëren lukte niet'));
     kiesBedrijf();
     $s('#mo').onsubmit = async e => {
       e.preventDefault();
       const c = contact();
       if(!cur || !c?.email){ toast('Kies een contactpersoon met een e-mailadres.'); return; }
+      if(!keuze){ toast('Kies eerst een mail.'); return; }
+      const sjabloon = keuze.sjabloon || '', w = {onderwerp:ond.value, tekst:tekst.value, ...(sjabloon ? {sjabloon} : {}), gesproken:!!keuze.gesproken};
       const ok = await veilig(async () => {
+        if(m && auto){   // de ingeplande mail (met de gekozen tekst) nu laten versturen; de reeks loopt gewoon door
+          const nu = new Date(); await db.collection('mails').doc(m.id).update({...w, contact:Number($s('#mo-ci')?.value ?? 0), aan:c.naam, email:c.email, datum:today(), tijd:`${pad(nu.getHours())}:${pad(nu.getMinutes())}`}); return;
+        }
+        if(m) return markeerVerstuurd(m, {...w, contact:Number($s('#mo-ci')?.value ?? 0), aan:c.naam, email:c.email});
         await annuleerGepland(cur, 'je stuurde zelf een mail');
         const mail = {bedrijfId:cur.id, bedrijf:cur.naam, kopje:cur.kopje, contact:Number($s('#mo-ci')?.value ?? 0), aan:c.naam, email:c.email,
-          onderwerp:ond.value, tekst:tekst.value, sjabloon:sj.value, afzender:S.gebruiker?.naam||'', door:S.gebruiker?.naam||'', aangemaakt:new Date().toISOString()};
-        if(robotActief()){
+          ...w, sjabloon, afzender:S.gebruiker?.naam||'', door:S.gebruiker?.naam||'', aangemaakt:new Date().toISOString()};
+        if(auto){
           const nu = new Date();
           await db.collection('mails').add({...mail, status:'gepland', handmatig:true, datum:today(), tijd:`${pad(nu.getHours())}:${pad(nu.getMinutes())}`});
         } else {
           await db.collection('mails').add({...mail, status:'verstuurd', handmatig:true, datum:new Date().toISOString(), verstuurdOp:new Date().toISOString()});
           await verwerkActiviteit(cur, {type:'mail_uit', contactNaam:c.naam, aan:c.email, onderwerp:ond.value, tekst:`Onderwerp: ${ond.value}\n\n${tekst.value}`});
         }
-      }, robotActief() ? 'Mail wordt binnen een kwartier verstuurd' : 'Mail vastgelegd');
+      }, auto ? 'Mail wordt binnen een kwartier verstuurd' : 'Mail vastgelegd');
       if(ok) closeSheet();
     };
   });
@@ -4279,7 +4300,7 @@ const ACT = {
   bel: d => belSheet(bedrijf(d.id), d.ci!=null ? Number(d.ci) : undefined),
   mail: d => mailOpstellen(d.id ? bedrijf(d.id) : null, d.ci!=null ? Number(d.ci) : undefined),
   sjabloon: d => sjabloonForm(d.i!=null ? Number(d.i) : null),
-  mailen: d => { const m = d.mail ? S.mails.find(x => x.id===d.mail) : null; mailen(bedrijf(d.id || m?.bedrijfId), d.ci!=null ? Number(d.ci) : undefined, m); },
+  mailen: d => { const m = d.mail ? S.mails.find(x => x.id===d.mail) : null; mailOpstellen(bedrijf(d.id || m?.bedrijfId), d.ci!=null ? Number(d.ci) : undefined, m); },   // altijd eerst een mail kiezen
   mailHandmatig: d => mailHandmatig(d.richting, d.id ? bedrijf(d.id) : null),
   mailDetail: d => { const m = S.mails.find(x => x.id===d.mail); if(m) mailDetail(m); },
   geplandeMail: d => { const m = S.mails.find(x => x.id===d.mail); if(m) geplandeMailSheet(m); },
