@@ -348,7 +348,9 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .vd-zoek-leeg{margin:0;background:var(--surface);color:var(--muted);border-radius:var(--r);padding:12px 14px}.linkknop{all:unset;cursor:pointer;color:var(--accent);font-weight:650;text-decoration:underline}
 .task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .gesproken-kies .seg{flex-wrap:wrap}
-.mail-simpel .spreekknop{margin:0 0 6px}.ms-verstuurd{grid-template-columns:auto 1fr auto}.ms-vink{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff}.ms-vink .ic{width:20px;height:20px}
+.mail-simpel .spreekknop{margin:0 0 6px}.lb-knoppen{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0 14px}.lb-knoppen .btns{gap:6px}
+.lb-rij .meta b{color:var(--ink)}.lb-rij .meta b.lb-lang,.cal.oud b{color:var(--warn)}
+.ms-verstuurd{grid-template-columns:auto 1fr auto}.ms-vink{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff}.ms-vink .ic{width:20px;height:20px}
 .ms-verstuurd .meta b{color:var(--ink)}.chip.ok{background:var(--accent-soft);color:var(--accent);border-color:transparent}.next.ok{color:var(--accent)}
 .mail-simpel h2 .ic{width:18px;height:18px;color:var(--accent);vertical-align:-3px}
 .ms-rij.static{grid-template-columns:auto 1fr auto}
@@ -721,7 +723,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.14';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.15';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1421,21 +1423,22 @@ function render(){
   else if(V.tab==='leadradar') html = leadradarView();
   else if(V.tab==='kijkje') html = kijkjeView();
   else if(V.tab==='dagrapporten') html = dagrapportenView();
+  else if(V.tab==='bezoeken') html = laatsteBezoekView();
   else if(V.tab==='rapport') html = rapportView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length;
   // Ferry: de vier kopjes voor elke dag. Aukje en Silver: een uitklapbare groep (alleen op de computer).
-  const ferryTabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['mail','mail','Mail'],['dagrapporten','camera','Dagrapport']];
+  const ferryTabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['bezoeken','door','<span class="alleen-groot">Laatste bezoek</span><span class="alleen-klein">Bezocht</span>'],['mail','mail','Mail'],['dagrapporten','camera','Dagrapport']];
   const kantoorTabs = [['plannen','route','Plannen'],['leadradar','radar','Leadradar'],['kijkje','star','Kijkje waard'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['mailbeheer','note','Mailbeheer'],['meer','menu','Meer']];
   const klein = matchMedia('(max-width:959px)').matches;
-  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&klein&&['resultaten','leadradar','kijkje','rapport','mailbeheer'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&klein) || (k==='prospect'&&V.tab==='pijplijn'&&klein)) : (k===V.terugNaar);
+  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&klein&&['resultaten','leadradar','kijkje','rapport','mailbeheer','dagrapporten'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&klein) || (k==='prospect'&&V.tab==='pijplijn'&&klein)) : (k===V.terugNaar);
   const knop = ([k,i,l], cls='') => `<button data-act="tab" data-tab="${k}" ${cls?`class="${cls}"`:''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}${k==='kijkje'&&kijkjeLeads().length?`<span class="badge num licht">${kijkjeLeads().length}</span>`:''}</button>`;
   if(V.navGroep == null){ try{ V.navGroep = localStorage.getItem(NAVGROEP_KEY) === '1'; }catch{ V.navGroep = false; } }
   const groepOpen = V.navGroep || kantoorTabs.some(([k]) => !V.detail && actief(k));
   const groepBadge = nieuweLeads().length + kijkjeLeads().length;
-  $('#tabs').innerHTML = ferryTabs.map(t => knop(t)).join('')
+  $('#tabs').innerHTML = ferryTabs.map(t => knop(t, t[0]==='dagrapporten' ? 'alleen-groot' : '')).join('')   // op de telefoon staat Dagrapport onder Meer (en op Vandaag)
     + `<button class="nav-groep-kop alleen-groot" data-act="navGroep" aria-expanded="${groepOpen}"><span class="pill">${ic('users')}</span><span>Aukje en Silver</span>${!groepOpen && groepBadge ? `<span class="badge num">${groepBadge}</span>` : ''}<span class="pijl">${ic(groepOpen ? 'down' : 'right','sm')}</span></button>`
     + `<div class="nav-groep alleen-groot" ${groepOpen ? '' : 'hidden'}>${kantoorTabs.map(t => knop(t)).join('')}</div>`
     + knop(['meer','menu','Meer'], 'alleen-klein');
@@ -2116,6 +2119,41 @@ function mailZoekResultaten(q){
       ? `<button class="btn small primary" data-act="mailen" data-id="${b.id}" data-ci="${i}" aria-label="${esc(c.naam)} mailen">${ic('mail','sm')}<span class="lbl">Mailen</span></button><button class="btn small" data-act="mail" data-id="${b.id}" data-ci="${i}" aria-label="Mail opstellen met sjabloon">${ic('note','sm')}<span class="lbl">Opstellen</span></button>`
       : `<button class="btn small" data-act="open" data-id="${b.id}">Openen</button>`}</span></div>`).join('')}</div>
     ${treffers.length > 15 ? `<p class="hint">${treffers.length - 15} meer. Typ verder om te verfijnen.</p>` : ''}`;
+}
+
+/* Laatste bezoek (Ferry): per bedrijf wanneer je er het laatst was, met wie, hoe het ging en
+   wat er is afgesproken. Nieuwste eerst of langst geleden eerst; prospects, klanten of allebei. */
+function laatsteBezoekView(){
+  if(!alleActs && !actsLaden) setTimeout(() => laadAlleActiviteiten(), 0);
+  const st = V.lb || (V.lb = {wie:'alle', volgorde:'nieuw', zoek:''});
+  const laatsteAct = new Map();
+  (alleActs || []).forEach(a => { if(a.type==='bezoek' && a.datum && (!laatsteAct.has(a.bedrijfId) || a.datum > laatsteAct.get(a.bedrijfId).datum)) laatsteAct.set(a.bedrijfId, a); });
+  const q = st.zoek.trim().toLowerCase();
+  const lijst = S.bedrijven.filter(b => b.laatsteBezoek && (st.wie==='alle' || b.kopje===st.wie) && (!q || [b.naam, b.plaats, ...(b.contacten||[]).map(c => c.naam)].join(' ').toLowerCase().includes(q)))
+    .sort((x, y) => (st.volgorde==='oud' ? x.laatsteBezoek.localeCompare(y.laatsteBezoek) : y.laatsteBezoek.localeCompare(x.laatsteBezoek)) || x.naam.localeCompare(y.naam));
+  const nooit = S.bedrijven.filter(b => !b.laatsteBezoek && (st.wie==='alle' || b.kopje===st.wie)).length;
+  const knop = (veld, w, l) => `<button type="button" class="btn small ${st[veld]===w ? 'on' : 'ghost'}" data-act="lbZet" data-veld="${veld}" data-w="${w}" aria-pressed="${st[veld]===w}">${l}</button>`;
+  return `<div class="wrap">
+    <header class="page-head"><p class="eyebrow">Bezoeken</p><h1>Laatste bezoek</h1><p class="sub">Wanneer was je er het laatst, met wie sprak je en wat is er afgesproken?</p></header>
+    <label class="search">${ic('search')}<input id="lb-zoek" type="search" placeholder="Zoek een bedrijf of naam" value="${esc(st.zoek)}" autocomplete="off" aria-label="Zoek een bedrijf"></label>
+    <div class="lb-knoppen">
+      <div class="btns">${knop('wie', 'alle', 'Alles')}${knop('wie', 'prospect', 'Prospects')}${knop('wie', 'klant', 'Klanten')}</div>
+      <div class="btns">${knop('volgorde', 'nieuw', 'Laatst bezocht eerst')}${knop('volgorde', 'oud', 'Langst geleden eerst')}</div>
+    </div>
+    ${lijst.length ? `<div class="rows">${lijst.map(b => {
+      const a = laatsteAct.get(b.id), n = diffDays(b.laatsteBezoek, today()), lang = n > 182;
+      const uit = a?.uitkomst && UITKOMST_NAAM[a.uitkomst];
+      const tekst = String(a?.tekst || '').split('\n')[0].replace(/^(Goed gesprek|Afspraak gemaakt|Offerte gevraagd|Niemand gesproken|Geen interesse):\s*/, '');
+      return `<button class="row lb-rij" data-act="open" data-id="${b.id}">
+        <span class="cal ${lang ? 'oud' : ''}"><span>${MAANDEN[parse(b.laatsteBezoek).getMonth()]}</span><b>${parse(b.laatsteBezoek).getDate()}</b></span>
+        <span class="t"><span class="row-top"><b>${esc(b.naam)}</b>${chipKopje(b.kopje)}</span>
+          <span class="meta"><b class="${lang ? 'lb-lang' : ''}">${esc(geledenTekst(b.laatsteBezoek))}</b>${a?.contactNaam ? ` · sprak ${esc(a.contactNaam)}` : ''}${b.plaats ? ` · ${esc(b.plaats)}` : ''}</span>
+          ${uit || tekst ? `<span class="meta">${uit ? `<span class="chip ${['niet','geen'].includes(a.uitkomst) ? 'warn' : ''}">${esc(uit)}</span> ` : ''}${esc(tekst.slice(0, 120))}</span>` : ''}
+          ${a?.vervolg ? `<span class="next">${ic('calendar')}<span>Afgesproken: ${esc(a.vervolg)}</span></span>` : ''}</span>${ic('right')}</button>`;
+    }).join('')}</div>` : `<div class="empty">${ic('door')}<p>${q ? 'Niets gevonden.' : 'Nog geen bezoeken.'}</p></div>`}
+    ${!alleActs ? `<p class="hint">Gesprekken en afspraken worden nog geladen…</p>` : ''}
+    ${nooit && !q ? `<p class="hint">${nooit} ${nooit===1 ? 'bedrijf heeft' : 'bedrijven hebben'} nog geen bezoekdatum. Die vind je bij ${st.wie==='klant' ? 'Klanten' : st.wie==='prospect' ? 'Prospects' : 'Prospects en Klanten'}.</p>` : ''}
+  </div>`;
 }
 
 /* Mail voor Ferry: één grote knop, wie er vandaag gemaild moet worden, wat er vanzelf gaat
@@ -4518,6 +4556,7 @@ const ACT = {
   tlSys: () => { V.tlSys = !V.tlSys; try{ localStorage.setItem('crm-tl-sys', V.tlSys ? '1' : '0'); }catch{} render(); },
   mailBlad: d => { V.mailBlad = d.b; render(); },
   msAlles: () => { V.msAlles = true; render(); },
+  lbZet: d => { V.lb[d.veld] = d.w; render(); },
   sluitDetail,
   closeSheet,
   nieuw: d => bedrijfForm(null, d.kopje || (['klant','prospect'].includes(V.tab) ? V.tab : 'prospect')),
@@ -4675,6 +4714,7 @@ document.addEventListener('submit', e => {
 }, true);
 document.addEventListener('input', e => { const f = e.target.closest?.('form'); if(f) delete f.dataset.bezig; }, true);   // iets aangepast: opnieuw versturen mag
 document.addEventListener('input', e => {
+  if(e.target.id === 'lb-zoek'){ V.lb.zoek = e.target.value; render(); return; }
   if(e.target.id === 'vd-zoek'){ V.vdZoek = e.target.value; const u = $('#vd-zoek-uit'); if(u) u.innerHTML = vdZoekLijst(V.vdZoek); return; }
   if(e.target.id === 'pijp-zoek'){ V.pijp.zoek = e.target.value; clearTimeout(V._pz); V._pz = setTimeout(() => { const pos = e.target.selectionStart; render(); const el = $('#pijp-zoek'); if(el){ el.focus(); try{ el.setSelectionRange(pos, pos); }catch{} } }, 200); return; }
   if(e.target.id === 'plan-zoek'){ planStaat().zoek = e.target.value; clearTimeout(V._pz); V._pz = setTimeout(() => { const pos = e.target.selectionStart; render(); const el = $('#plan-zoek'); if(el){ el.focus(); try{ el.setSelectionRange(pos, pos); }catch{} } }, 200); return; }
