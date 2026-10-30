@@ -351,6 +351,15 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .mail-simpel .spreekknop{margin:0 0 6px}.lb-knoppen{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0 14px}.lb-knoppen .btns{gap:6px}
 .lb-rij .meta b{color:var(--ink)}.lb-rij .meta b.lb-lang,.cal.oud b{color:var(--warn)}
 .ms-verstuurd{grid-template-columns:auto 1fr auto}.ms-mail{grid-template-columns:auto 1fr auto;padding-top:10px;padding-bottom:10px}.ms-mail .ms-vink{width:30px;height:30px}.ms-mail .ms-vink .ic{width:16px;height:16px}
+.mail-agenda .ma-kop{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.ma-kop b{font-size:1.05rem;text-transform:capitalize}
+.ma-grid button{justify-content:flex-start;gap:3px}
+.ma-tel{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.ma-tel i,.ma-legenda i{font-style:normal;font-size:.68rem;font-weight:800;min-width:17px;height:17px;padding:0 4px;border-radius:999px;display:inline-grid;place-items:center;line-height:1}
+.ma-tel i.v,.ma-legenda i.v{background:var(--accent);color:#fff}.ma-tel i.g,.ma-legenda i.g{background:var(--sunk);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}.ma-tel i.r,.ma-legenda i.r{background:var(--mail,#2b6cb0);color:#fff}
+.maand button.on .ma-tel i{box-shadow:0 0 0 1px var(--surface)}
+.ma-legenda{display:flex;gap:14px;font-size:.8rem;color:var(--muted);margin:8px 0 4px}.ma-legenda span{display:flex;gap:5px;align-items:center}.ma-legenda i{min-width:12px;height:12px;padding:0}
+.ma-dag{font-size:1.05rem;margin:12px 0 2px}
+.ms-vink.gepland{background:var(--sunk);color:var(--muted)}.ms-vink.in{background:var(--mail,#2b6cb0)}
 .ms-status{font-size:.8rem;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}.ms-status.ok{background:var(--accent-soft);color:var(--accent)}.ms-status.late{background:var(--warn-soft,#fdecd8);color:var(--warn)}
 .mail-dag span{font-weight:600;text-transform:none;letter-spacing:0}.ms-vink{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff}.ms-vink .ic{width:20px;height:20px}
 .ms-verstuurd .meta b{color:var(--ink)}.chip.ok{background:var(--accent-soft);color:var(--accent);border-color:transparent}.next.ok{color:var(--accent)}
@@ -726,7 +735,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.17';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.18';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -2168,6 +2177,41 @@ function laatsteBezoekView(){
   </div>`;
 }
 
+/* Mail-agenda: een maand met per dag hoeveel mails er zijn verstuurd (groen), ingepland (grijs)
+   en binnengekomen; tik op een dag en je ziet die mails, tik op een mail en je leest hem. */
+function mailAgenda(){
+  const st = V.mAg || (V.mAg = {maand:today().slice(0, 7), dag:today()});
+  const perDag = new Map(), zet = (d, soort, m) => { if(!perDag.has(d)) perDag.set(d, {verstuurd:[], gepland:[], ontvangen:[]}); perDag.get(d)[soort].push(m); };
+  S.mails.forEach(m => {
+    if(m.status==='verstuurd') zet(mailDag(m), 'verstuurd', m);
+    else if(m.status==='gepland') zet(m.datum, 'gepland', m);
+    else if(m.status==='ontvangen') zet(mailDag(m), 'ontvangen', m);
+  });
+  const [j, mnd] = st.maand.split('-').map(Number), eerste = `${st.maand}-01`;
+  const start = maandagVan(eerste), cellen = Array.from({length:42}, (_, i) => addDays(start, i));
+  const laatsteWeek = cellen.findIndex((d, i) => i % 7 === 0 && d.slice(0, 7) > st.maand);
+  const zicht = laatsteWeek > 0 ? cellen.slice(0, laatsteWeek) : cellen;
+  const vorige = ds(new Date(j, mnd - 2, 1)).slice(0, 7), volgende = ds(new Date(j, mnd, 1)).slice(0, 7);
+  const MAANDNAAM = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  const d = perDag.get(st.dag) || {verstuurd:[], gepland:[], ontvangen:[]};
+  const rij = (m, act) => `<button class="row ms-mail" data-act="${act}" data-mail="${m.id}">
+    <span class="ms-vink ${act==='geplandeMail' ? 'gepland' : m.status==='ontvangen' ? 'in' : ''}" aria-hidden="true">${ic(act==='geplandeMail' ? 'clock' : m.status==='ontvangen' ? 'inbox' : 'check')}</span>
+    <span class="t"><b>${esc(m.bedrijf)}</b><span class="meta">${m.status==='ontvangen' ? 'Van' : 'Aan'} ${esc(m.aan || '')}${m.tijd && act==='geplandeMail' ? ' · ' + esc(m.tijd) : ''}</span><span class="meta">"${esc(m.onderwerp || '')}"</span></span>${ic('right')}</button>`;
+  return `<div class="mail-agenda">
+    <div class="ma-kop"><button class="btn small ghost" data-act="mAgMaand" data-m="${vorige}" aria-label="Vorige maand">${ic('left','sm')}</button><b>${MAANDNAAM[mnd - 1]} ${j}</b><button class="btn small ghost" data-act="mAgMaand" data-m="${volgende}" aria-label="Volgende maand">${ic('right','sm')}</button></div>
+    <div class="maand ma-grid" role="grid">${['ma','di','wo','do','vr','za','zo'].map(x => `<span class="wd">${x}</span>`).join('')}${zicht.map(x => { const p = perDag.get(x);
+      return `<button class="${x.slice(0, 7)!==st.maand ? 'buiten' : ''} ${x===today() ? 'nu' : ''} ${x===st.dag ? 'on' : ''}" data-act="mAgDag" data-d="${x}" aria-label="${esc(fmtDag(x))}: ${p ? `${p.verstuurd.length} verstuurd, ${p.gepland.length} ingepland` : 'geen mails'}"><span>${parse(x).getDate()}</span>
+        <span class="ma-tel">${p?.verstuurd.length ? `<i class="v">${p.verstuurd.length}</i>` : ''}${p?.gepland.length ? `<i class="g">${p.gepland.length}</i>` : ''}${p?.ontvangen.length ? `<i class="r">${p.ontvangen.length}</i>` : ''}</span></button>`; }).join('')}</div>
+    <p class="ma-legenda"><span><i class="v"></i>verstuurd</span><span><i class="g"></i>ingepland</span><span><i class="r"></i>reactie</span></p>
+    <h3 class="ma-dag">${esc(st.dag===today() ? 'Vandaag' : fmtDag(st.dag))}</h3>
+    ${d.verstuurd.length + d.gepland.length + d.ontvangen.length ? `
+      ${d.verstuurd.length ? `<p class="mail-dag">Verstuurd · ${d.verstuurd.length}</p><div class="rows">${d.verstuurd.map(m => rij(m, 'mailDetail')).join('')}</div>` : ''}
+      ${d.ontvangen.length ? `<p class="mail-dag">Reactie gekregen · ${d.ontvangen.length}</p><div class="rows">${d.ontvangen.map(m => rij(m, 'mailDetail')).join('')}</div>` : ''}
+      ${d.gepland.length ? `<p class="mail-dag">Ingepland, nog niet verstuurd · ${d.gepland.length}</p><div class="rows">${d.gepland.map(m => rij(m, 'geplandeMail')).join('')}</div>` : ''}`
+      : `<p class="sub">Geen mails op deze dag.</p>`}
+  </div>`;
+}
+
 /* Mail voor Ferry: één grote knop, wie er vandaag gemaild moet worden, wat er vanzelf gaat
    en wie er laatst gemaild is. De uitgebreide versie (sjablonen, reeksen) staat onder Mailbeheer. */
 function mailSimpelView(){
@@ -2214,8 +2258,8 @@ function mailSimpelView(){
     </section>` : ''}
 
     <section class="section">
-      <div class="section-title"><h2>${ic('check')} Al verstuurd</h2></div>
-      ${alVerstuurd.length ? groepDag(alVerstuurd.filter(m => V.msAlles || diffDays(mailDag(m), today()) <= 14)).map(g => `<p class="mail-dag">${esc(g.k)} <span>· ${g.items.length} ${g.items.length===1 ? 'mail' : 'mails'}</span></p>
+      <div class="section-title"><h2>${ic('check')} Al verstuurd</h2><span class="btns">${[['agenda','calendar','Agenda'],['lijst','menu','Lijst']].map(([k, i, l]) => `<button type="button" class="btn small ${(V.msWeergave || 'agenda')===k ? 'on' : 'ghost'}" data-act="msWeergave" data-w="${k}" aria-pressed="${(V.msWeergave || 'agenda')===k}">${ic(i, 'sm')}${l}</button>`).join('')}</span></div>
+      ${(V.msWeergave || 'agenda')==='agenda' ? mailAgenda() : alVerstuurd.length ? groepDag(alVerstuurd.filter(m => V.msAlles || diffDays(mailDag(m), today()) <= 14)).map(g => `<p class="mail-dag">${esc(g.k)} <span>· ${g.items.length} ${g.items.length===1 ? 'mail' : 'mails'}</span></p>
         <div class="rows ms-lijst">${g.items.map(m => { const st = statusVan(m); return `<button class="row ms-mail" data-act="open" data-id="${m.bedrijfId}">
           <span class="ms-vink" aria-hidden="true">${ic('check')}</span>
           <span class="t"><b>${esc(m.bedrijf)}</b><span class="meta">${esc(m.aan || '')} · ${m.reeks ? `mail ${m.stap + 1}` : 'losse mail'}</span></span>
@@ -2275,6 +2319,7 @@ function mailView(){
   const gemaild = S.bedrijven.map(b => ({b, m:mailStand(b)})).filter(x => x.m.laatste).sort((x, y) => y.m.op.localeCompare(x.m.op) || x.b.naam.localeCompare(y.b.naam));
   const STATUS_WOORD = {verstuurd:['Verstuurd aan', ''], ontvangen:['Reactie van', 'k-klant'], geannuleerd:['Niet verstuurd aan', 'warn']};
   const verstuurdBlad = `
+    <section class="section"><div class="section-title"><h2>Mail-agenda</h2></div>${mailAgenda()}</section>
     <section class="section">
       <div class="section-title"><h2>Wie is gemaild</h2><span class="count num">${gemaild.length}</span></div>
       <p class="hint">Per bedrijf: wanneer de laatste mail ging, hoeveel mails er zijn gestuurd en wat er nog klaarstaat.</p>
@@ -4572,6 +4617,9 @@ const ACT = {
   mailBlad: d => { V.mailBlad = d.b; render(); },
   msAlles: () => { V.msAlles = true; render(); },
   lbZet: d => { V.lb[d.veld] = d.w; render(); },
+  mAgMaand: d => { V.mAg.maand = d.m; V.mAg.dag = d.m===today().slice(0, 7) ? today() : d.m + '-01'; render(); },
+  mAgDag: d => { V.mAg.dag = d.d; if(d.d.slice(0, 7) !== V.mAg.maand) V.mAg.maand = d.d.slice(0, 7); render(); },
+  msWeergave: d => { V.msWeergave = d.w; render(); },
   sluitDetail,
   closeSheet,
   nieuw: d => bedrijfForm(null, d.kopje || (['klant','prospect'].includes(V.tab) ? V.tab : 'prospect')),
