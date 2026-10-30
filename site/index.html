@@ -348,6 +348,8 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .vd-zoek-leeg{margin:0;background:var(--surface);color:var(--muted);border-radius:var(--r);padding:12px 14px}.linkknop{all:unset;cursor:pointer;color:var(--accent);font-weight:650;text-decoration:underline}
 .task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .gesproken-kies .seg{flex-wrap:wrap}
+.mail-simpel .spreekknop{margin:0 0 6px}.ms-rij.static{grid-template-columns:auto 1fr auto}
+@media (max-width:420px){nav.tabs:not(.x) button{font-size:.6rem;letter-spacing:-.01em}}.ms-rij .t b{font-size:1.02rem}.ms-rij .meta{font-size:.9rem}
 .mail-tegels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 14px}
 .mail-tegel{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:12px 14px;font:inherit;color:var(--ink);cursor:pointer}
 .mail-tegel b{font-size:1.6rem;line-height:1}.mail-tegel span{font-weight:700;font-size:.92rem}.mail-tegel small{color:var(--muted);font-size:.78rem}
@@ -553,7 +555,7 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 
 /* nav: bottom bar on phone, sidebar on desktop */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
+nav.tabs .in{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr)}
 nav.tabs .side-brand,nav.tabs .side-foot{display:none}
 nav.tabs button{border:0;background:transparent;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.7rem;font-weight:650;color:var(--faint);cursor:pointer;position:relative}
 nav.tabs button .pill{display:grid;place-items:center;width:44px;max-width:100%;height:28px;border-radius:999px;transition:background .15s}
@@ -716,7 +718,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.12';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.13';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1364,7 +1366,7 @@ function meerView(){
   }));
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Instellingen en overzicht</p><h1>Meer</h1></header>
-    <div class="btns"><button class="btn alleen-klein" data-act="tab" data-tab="mail">${ic('mail','sm')}Mail</button><button class="btn" data-act="tab" data-tab="dagrapporten">${ic('camera','sm')}Dagrapporten</button><button class="btn" data-act="leegDagrapport">${ic('print','sm')}Leeg dagrapport printen</button><button class="btn primary" data-act="tab" data-tab="rapport">${ic('note','sm')}Resultaten: weekrapport</button><button class="btn" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
+    <div class="btns"><button class="btn alleen-klein" data-act="tab" data-tab="mailbeheer">${ic('note','sm')}Mailbeheer (sjablonen, reeksen)</button><button class="btn" data-act="tab" data-tab="dagrapporten">${ic('camera','sm')}Dagrapporten</button><button class="btn" data-act="leegDagrapport">${ic('print','sm')}Leeg dagrapport printen</button><button class="btn primary" data-act="tab" data-tab="rapport">${ic('note','sm')}Resultaten: weekrapport</button><button class="btn" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
     <section class="section"><div class="section-title"><h2>Conversie per tag</h2></div>
       ${perTag.size ? `<div class="card scroll-x"><table class="mini"><thead><tr><th>Tag</th><th class="r">Prospects</th><th class="r">Klant geworden</th><th class="r">Conversie</th></tr></thead><tbody>
       ${[...perTag.entries()].sort((a,b)=>b[1].tot-a[1].tot).map(([tag,r])=>`<tr><td>${esc(tag)}</td><td class="r">${r.tot}</td><td class="r">${r.klant}</td><td class="r">${Math.round(r.klant/r.tot*100)}%</td></tr>`).join('')}
@@ -1405,7 +1407,8 @@ function render(){
   else if(V.detail) html = detailView(bedrijf(V.detail));
   else if(V.tab==='vandaag') html = vandaagView();
   else if(V.tab==='meer') html = meerView();
-  else if(V.tab==='mail') html = mailView();
+  else if(V.tab==='mail') html = mailSimpelView();
+  else if(V.tab==='mailbeheer') html = mailView();
   else if(V.tab==='cijfers') html = cijfersView();
   else if(V.tab==='buurt') html = buurtView();
   else if(V.tab==='agenda') html = agendaView();
@@ -1421,10 +1424,10 @@ function render(){
   if(V.tab==='plannen' && !V.detail) plaatsPlanKaart();
   const nuAantal = S.bedrijven.filter(b => opvolgStatus(b)?.due).length;
   // Ferry: de vier kopjes voor elke dag. Aukje en Silver: een uitklapbare groep (alleen op de computer).
-  const ferryTabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['dagrapporten','camera','Dagrapport']];
-  const kantoorTabs = [['plannen','route','Plannen'],['leadradar','radar','Leadradar'],['kijkje','star','Kijkje waard'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['mail','mail','Mail'],['meer','menu','Meer']];
+  const ferryTabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten'],['mail','mail','Mail'],['dagrapporten','camera','Dagrapport']];
+  const kantoorTabs = [['plannen','route','Plannen'],['leadradar','radar','Leadradar'],['kijkje','star','Kijkje waard'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['mailbeheer','note','Mailbeheer'],['meer','menu','Meer']];
   const klein = matchMedia('(max-width:959px)').matches;
-  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&klein&&['resultaten','leadradar','kijkje','rapport','mail'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&klein) || (k==='prospect'&&V.tab==='pijplijn'&&klein)) : (k===V.terugNaar);
+  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&klein&&['resultaten','leadradar','kijkje','rapport','mailbeheer'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&klein) || (k==='prospect'&&V.tab==='pijplijn'&&klein)) : (k===V.terugNaar);
   const knop = ([k,i,l], cls='') => `<button data-act="tab" data-tab="${k}" ${cls?`class="${cls}"`:''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}${k==='kijkje'&&kijkjeLeads().length?`<span class="badge num licht">${kijkjeLeads().length}</span>`:''}</button>`;
   if(V.navGroep == null){ try{ V.navGroep = localStorage.getItem(NAVGROEP_KEY) === '1'; }catch{ V.navGroep = false; } }
   const groepOpen = V.navGroep || kantoorTabs.some(([k]) => !V.detail && actief(k));
@@ -2112,7 +2115,49 @@ function mailZoekResultaten(q){
     ${treffers.length > 15 ? `<p class="hint">${treffers.length - 15} meer. Typ verder om te verfijnen.</p>` : ''}`;
 }
 
-/* Mail: drie bladen (Te sturen, Verstuurd, Sjablonen) met bovenaan wat er nu speelt
+/* Mail voor Ferry: één grote knop, wie er vandaag gemaild moet worden, wat er vanzelf gaat
+   en wie er laatst gemaild is. De uitgebreide versie (sjablonen, reeksen) staat onder Mailbeheer. */
+function mailSimpelView(){
+  const auto = robotActief();
+  const gepland = S.mails.filter(m => m.status==='gepland').sort((a,b) => (a.datum+(a.tijd||'')).localeCompare(b.datum+(b.tijd||'')));
+  const nu = S.bedrijven.map(b => ({b, s:opvolgStatus(b), c:contactVan(b, b.opvolging?.contact)}))
+    .filter(x => x.s?.due && !x.s.gepauzeerd && x.c?.email && (!geplandeMail(x.b) || (!auto && geplandeMail(x.b).datum <= today())))
+    .sort((a,b) => a.b.naam.localeCompare(b.b.naam));
+  const straks = gepland.filter(m => !nu.some(x => x.b.id===m.bedrijfId)).slice(0, 15);
+  const laatst = S.mails.filter(m => m.status==='verstuurd').sort((a,b) => mailDag(b).localeCompare(mailDag(a)) || String(b.verstuurdOp||'').localeCompare(String(a.verstuurdOp||''))).slice(0, 10);
+  const dag = d => { const n = diffDays(d, today()); return n===0 ? 'Vandaag' : n===1 ? 'Gisteren' : n===-1 ? 'Morgen' : fmtDag(d); };
+  return `<div class="wrap mail-simpel">
+    <header class="page-head"><p class="eyebrow">Mail</p><h1>Mail</h1></header>
+    <button class="spreekknop" data-act="mail">${ic('mail')}<span><b>Een mail sturen</b><small>Kies het bedrijf, de soort mail en verstuur</small></span></button>
+
+    <section class="section">
+      <div class="section-title"><h2>Vandaag mailen</h2><span class="count num">${nu.length}</span></div>
+      ${nu.length ? `<div class="rows">${nu.map(({b, c}) => `<div class="row static ms-rij">
+        ${mono(b)}<span class="t"><b>${esc(b.naam)}</b><span class="meta">${esc(c.naam)}</span></span>
+        <button class="btn primary" data-act="mailen" data-id="${b.id}" data-ci="${b.opvolging?.contact ?? 0}" ${geplandeMail(b) ? `data-mail="${geplandeMail(b).id}"` : ''}>${ic('mail','sm')}Mailen</button></div>`).join('')}</div>`
+        : `<div class="empty">${ic('check')}<p>Vandaag hoef je niemand te mailen.</p></div>`}
+    </section>
+
+    ${straks.length ? `<section class="section">
+      <div class="section-title"><h2>${auto ? 'Gaat vanzelf' : 'Staat klaar'}</h2><span class="count num">${gepland.length - nu.filter(x => geplandeMail(x.b)).length}</span></div>
+      <p class="hint">${auto ? 'Deze mails gaan vanzelf. Je hoeft niets te doen.' : 'Deze mails staan klaar voor later.'} Tik erop om ze te lezen.</p>
+      <div class="rows">${straks.map(m => `<button class="row ms-rij" data-act="geplandeMail" data-mail="${m.id}">
+        <span class="cal"><span>${DAGEN[parse(m.datum).getDay()]}</span><b>${parse(m.datum).getDate()}</b></span>
+        <span class="t"><b>${esc(m.bedrijf)}</b><span class="meta">Aan ${esc(m.aan)} · ${esc(dag(m.datum))}${m.tijd ? ' om ' + esc(m.tijd) : ''}</span></span>${ic('right')}</button>`).join('')}</div>
+    </section>` : ''}
+
+    <section class="section">
+      <div class="section-title"><h2>Laatst gemaild</h2></div>
+      ${laatst.length ? `<div class="rows">${laatst.map(m => `<button class="row ms-rij" data-act="mailDetail" data-mail="${m.id}">
+        <span class="cal"><span>${MAANDEN[parse(mailDag(m)).getMonth()]}</span><b>${parse(mailDag(m)).getDate()}</b></span>
+        <span class="t"><b>${esc(m.bedrijf)}</b><span class="meta">Aan ${esc(m.aan)} · ${esc(dag(mailDag(m)))}</span></span>${ic('right')}</button>`).join('')}</div>`
+        : `<div class="empty">${ic('mail')}<p>Nog niemand gemaild.</p></div>`}
+    </section>
+    <p class="hint">Mail gestuurd vanuit Outlook? <a href="#" data-act="mailHandmatig" data-richting="uit">Zet hem hier in het CRM</a>.</p>
+  </div>`;
+}
+
+/* Mailbeheer (Aukje en Silver): drie bladen (Te sturen, Verstuurd, Sjablonen) met bovenaan wat er nu speelt
    en een korte uitleg hoe mailen in het CRM werkt. */
 function mailView(){
   const zoek = V.zoek.mail || '', auto = robotActief(), blad = V.mailBlad || 'sturen';
@@ -2200,7 +2245,7 @@ function mailView(){
     </section>`;
 
   return `<div class="wrap">
-    <header class="page-head"><p class="eyebrow">Mail</p><h1>Mail</h1></header>
+    <header class="page-head"><p class="eyebrow">Aukje en Silver</p><h1>Mailbeheer</h1></header>
     <details class="card mail-uitleg" ${V.mailUitleg ? 'open' : ''}><summary>${ic('bolt','sm')}<b>Hoe werkt mailen in het CRM?</b></summary>
       <ol>
         <li><b>Bezoek vastleggen.</b> Heeft een prospect de tag #deuren intrappen of #netwerk? Dan kies je welke mail er gaat: "ik sprak de persoon zelf" of "via een collega of de receptie".</li>
