@@ -197,7 +197,22 @@ function makeDb({repo, token, branch = 'main', gebruiker = 'onbekend'}){
     };
   }
 
+  /* Losse bestanden (bijv. een foto van een dagrapport): base64 erin, base64 eruit. */
+  async function bestand(pad, base64, bericht){
+    const r = await gh(`/repos/${repo}/contents/${pad}`, {method:'PUT', body:JSON.stringify({message:bericht || `${gebruiker}: ${pad}`, content:base64, branch})});
+    if(!r.ok) throw new Error(`Opslaan lukte niet (${r.status})`);
+    return pad;
+  }
+  async function leesBestand(pad){
+    const r = await gh(`/repos/${repo}/contents/${pad}?ref=${branch}`);
+    if(!r.ok) throw new Error(`Niet gevonden (${r.status})`);
+    const j = await r.json();
+    if(j.content) return j.content.replace(/\n/g, '');
+    const raw = await gh(`/repos/${repo}/git/blobs/${j.sha}`); return (await raw.json()).content.replace(/\n/g, '');   // groter dan 1 MB
+  }
+
   return {
+    bestand, leesBestand,
     status:f => { statusLuisteraars.add(f); f({open:openstaand(), fout:laatsteFout}); return () => statusLuisteraars.delete(f); },
     collection:naam => query(naam),
     doc:pad => { const [c, id] = pad.split('/'); return docRef(c, id); }

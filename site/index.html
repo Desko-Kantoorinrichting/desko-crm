@@ -348,6 +348,7 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .vd-zoek-leeg{margin:0;background:var(--surface);color:var(--muted);border-radius:var(--r);padding:12px 14px}.linkknop{all:unset;cursor:pointer;color:var(--accent);font-weight:650;text-decoration:underline}
 .task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .gesproken-kies .seg{flex-wrap:wrap}
+.dr-lijst{display:grid;gap:14px}.dr-kaart .rows{margin-top:4px}
 .vd-teller{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 14px}
 .vd-tel{all:unset;cursor:pointer;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;color:#fff;background:rgba(255,255,255,.06)}
 .vd-tel b{font-size:1.7rem;line-height:1}.vd-tel span{font-size:.82rem;opacity:.8}.vd-tel.on{background:#fff;color:#000;border-color:#fff}.vd-tel:focus-visible{outline:2px solid #51C26F}
@@ -680,7 +681,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.2';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.3';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1045,7 +1046,7 @@ function vandaagView(){
         <button class="vd-tel ${blad==='gedaan'?'on':''}" data-act="vblad" data-b="gedaan"><b class="num">${gd.aantal}</b><span>Gedaan deze week</span></button>
       </div>
       <button class="spreekknop" data-act="inspreken">${ic('mic')}<span><b>Inspreken</b><small>Bijv. "Hoek Advocaten gebeld, volgende week dinsdag terugbellen"</small></span></button>
-      <div class="snelrij" role="group" aria-label="Snel naar"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="rapport">${ic('note','sm')}Weekrapport</button><button class="btn heroknop" data-act="leegDagrapport">${ic('print','sm')}Leeg dagrapport</button><button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button><button class="btn heroknop" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar${nieuweLeads().length ? ` (${nieuweLeads().length})` : ''}</button></div>
+      <div class="snelrij" role="group" aria-label="Snel naar"><button class="btn heroknop" data-act="tab" data-tab="agenda">${ic('calendar','sm')}Agenda</button><button class="btn heroknop" data-act="tab" data-tab="plannen">${ic('route','sm')}Plannen</button><button class="btn heroknop" data-act="tab" data-tab="buurt">${ic('pin','sm')}In de buurt</button><button class="btn heroknop" data-act="scan">${ic('camera','sm')}Kaartje scannen</button><button class="btn heroknop" data-act="tab" data-tab="rapport">${ic('note','sm')}Weekrapport</button><button class="btn heroknop" data-act="dagrapportInsturen">${ic('camera','sm')}Dagrapport insturen</button><button class="btn heroknop" data-act="leegDagrapport">${ic('print','sm')}Leeg dagrapport</button><button class="btn heroknop" data-act="tab" data-tab="resultaten">${ic('bars','sm')}Resultaten</button><button class="btn heroknop" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar${nieuweLeads().length ? ` (${nieuweLeads().length})` : ''}</button></div>
       </div></div>
     <div class="vd-grid" data-blad="${blad}">
       <section class="vd-kol vd-todo">
@@ -1267,7 +1268,7 @@ function meerView(){
   }));
   return `<div class="wrap">
     <header class="page-head"><p class="eyebrow">Instellingen en overzicht</p><h1>Meer</h1></header>
-    <div class="btns"><button class="btn alleen-klein" data-act="tab" data-tab="mail">${ic('mail','sm')}Mail</button><button class="btn" data-act="leegDagrapport">${ic('print','sm')}Leeg dagrapport printen</button><button class="btn primary" data-act="tab" data-tab="rapport">${ic('note','sm')}Resultaten: weekrapport</button><button class="btn" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
+    <div class="btns"><button class="btn alleen-klein" data-act="tab" data-tab="mail">${ic('mail','sm')}Mail</button><button class="btn" data-act="tab" data-tab="dagrapporten">${ic('camera','sm')}Dagrapporten</button><button class="btn" data-act="leegDagrapport">${ic('print','sm')}Leeg dagrapport printen</button><button class="btn primary" data-act="tab" data-tab="rapport">${ic('note','sm')}Resultaten: weekrapport</button><button class="btn" data-act="tab" data-tab="resultaten">${ic('star','sm')}Resultaten: wat werkt</button><button class="btn" data-act="tab" data-tab="leadradar">${ic('radar','sm')}Leadradar</button><button class="btn" data-act="tab" data-tab="kijkje">${ic('star','sm')}Kijkje waard${kijkjeLeads().length ? ` (${kijkjeLeads().length})` : ''}</button><button class="btn" data-act="tab" data-tab="cijfers">${ic('bars','sm')}Cijfers en grafieken</button><button class="btn" data-act="tab" data-tab="alle">${ic('search','sm')}Zoeken in alle kopjes</button></div>
     <section class="section"><div class="section-title"><h2>Conversie per tag</h2></div>
       ${perTag.size ? `<div class="card scroll-x"><table class="mini"><thead><tr><th>Tag</th><th class="r">Prospects</th><th class="r">Klant geworden</th><th class="r">Conversie</th></tr></thead><tbody>
       ${[...perTag.entries()].sort((a,b)=>b[1].tot-a[1].tot).map(([tag,r])=>`<tr><td>${esc(tag)}</td><td class="r">${r.tot}</td><td class="r">${r.klant}</td><td class="r">${Math.round(r.klant/r.tot*100)}%</td></tr>`).join('')}
@@ -1317,6 +1318,7 @@ function render(){
   else if(V.tab==='resultaten') html = resultatenView();
   else if(V.tab==='leadradar') html = leadradarView();
   else if(V.tab==='kijkje') html = kijkjeView();
+  else if(V.tab==='dagrapporten') html = dagrapportenView();
   else if(V.tab==='rapport') html = rapportView();
   else html = lijstView(V.tab);
   $('#app').innerHTML = html;
@@ -1326,7 +1328,7 @@ function render(){
   const ferryTabs = [['vandaag','sun','Vandaag'],['agenda','calendar','Agenda'],['prospect','target','Prospects'],['klant','building','Klanten']];
   const kantoorTabs = [['plannen','route','Plannen'],['leadradar','radar','Leadradar'],['kijkje','star','Kijkje waard'],['pijplijn','kolom','Pijplijn'],['resultaten','bars','Resultaten'],['mail','mail','Mail'],['meer','menu','Meer']];
   const klein = matchMedia('(max-width:959px)').matches;
-  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&klein&&['resultaten','leadradar','kijkje','rapport','mail'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&klein) || (k==='prospect'&&V.tab==='pijplijn'&&klein)) : (k===V.terugNaar);
+  const actief = k => !V.detail ? (V.tab===k || (k==='resultaten'&&V.tab==='rapport') || (k==='meer'&&['alle','cijfers'].includes(V.tab)) || (k==='meer'&&klein&&['resultaten','leadradar','kijkje','rapport','mail','dagrapporten'].includes(V.tab)) || (k==='vandaag'&&V.tab==='buurt') || (k==='agenda'&&V.tab==='plannen'&&klein) || (k==='prospect'&&V.tab==='pijplijn'&&klein)) : (k===V.terugNaar);
   const knop = ([k,i,l], cls='') => `<button data-act="tab" data-tab="${k}" ${cls?`class="${cls}"`:''} ${actief(k)?'aria-current="page"':''}><span class="pill">${ic(i)}</span><span>${l}</span>${k==='vandaag'&&nuAantal?`<span class="badge num">${nuAantal}</span>`:''}${k==='leadradar'&&nieuweLeads().length?`<span class="badge num">${nieuweLeads().length}</span>`:''}${k==='kijkje'&&kijkjeLeads().length?`<span class="badge num licht">${kijkjeLeads().length}</span>`:''}</button>`;
   if(V.navGroep == null){ try{ V.navGroep = localStorage.getItem(NAVGROEP_KEY) === '1'; }catch{ V.navGroep = false; } }
   const groepOpen = V.navGroep || kantoorTabs.some(([k]) => !V.detail && actief(k));
@@ -3197,6 +3199,70 @@ function printRoute(r){
   const img = $('#print img'), go = () => { window.print(); };
   if(img && !img.complete){ img.onload = img.onerror = go; setTimeout(go, 1500); } else go();
 }
+/* ---------- dagrapport insturen ----------
+   Ferry maakt een foto van zijn ingevulde dagrapport. De foto gaat verkleind naar de privé
+   gegevensopslag (data/dagrapporten/<id>.jpg). Op werkdagen 's avonds leest Claude het
+   handschrift en maakt de bedrijven, contactpersonen en bezoeken aan (zie tools/ in de
+   gegevensrepository). Het resultaat staat daarna bij het dagrapport. */
+async function fotoJpeg(f, max = 1800){
+  const img = await createImageBitmap(f);
+  const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.82);
+}
+function dagrapportInsturen(){
+  let foto = null;
+  openSheet('Dagrapport insturen', `<form id="dri" class="section">
+    <p class="sub">Maak een foto van je ingevulde dagrapport. Vanavond maak ik de bedrijven, contactpersonen en bezoeken aan.</p>
+    <label class="f"><span>Datum van het rapport</span><input type="date" name="datum" id="dri-datum" value="${today()}" max="${today()}" required></label>
+    <div class="f"><span>Foto</span><label class="btn" style="justify-content:center">${ic('camera','sm')}<span id="dri-knop">Foto maken of kiezen</span><input type="file" id="dri-foto" accept="image/*" capture="environment" hidden></label>
+      <img id="dri-voorbeeld" alt="Voorbeeld van de foto" hidden style="max-width:100%;border-radius:12px;border:1px solid var(--line);margin-top:8px"></div>
+    <p class="hint">Tip: leg het formulier plat, met goed licht, en zorg dat het hele formulier in beeld is.</p>
+    <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit" id="dri-stuur" disabled>${ic('check','sm')}Insturen</button></div>
+  </form>`, s => {
+    const inp = s.querySelector('#dri-foto'), vb = s.querySelector('#dri-voorbeeld'), knop = s.querySelector('#dri-stuur');
+    inp.onchange = async () => { const f = inp.files?.[0]; if(!f) return;
+      try{ foto = await fotoJpeg(f); vb.src = foto; vb.hidden = false; knop.disabled = false; s.querySelector('#dri-knop').textContent = 'Andere foto'; }
+      catch{ toast('Deze foto kan ik niet openen. Probeer een andere.'); } };
+    s.querySelector('#dri').onsubmit = async e => {
+      e.preventDefault(); if(!foto) return; const d = formData(e.target); knop.disabled = true; knop.textContent = 'Bezig met insturen…';
+      const id = `${d.datum}-${Date.now().toString(36)}`, pad = `data/dagrapporten/${id}.jpg`;
+      try{
+        await db.bestand(pad, foto.split(',')[1], `${S.gebruiker?.naam || 'Iemand'}: dagrapport ${d.datum}`);
+        await db.collection('dagrapporten').doc(id).set({datum:d.datum, foto:pad, door:S.gebruiker?.naam || '', ingestuurd:new Date().toISOString(), status:'nieuw'});
+        closeSheet(); toast('Dagrapport ingestuurd. Vanavond worden de bedrijven aangemaakt.');
+      }catch(err){ knop.disabled = false; knop.textContent = 'Insturen'; toast('Insturen lukte niet. Controleer je internet en probeer het opnieuw.'); }
+    };
+  });
+}
+const DR_STATUS = {nieuw:['Wacht op verwerking', ''], verwerkt:['Verwerkt', 'k-klant'], mislukt:['Niet gelukt', 'warn']};
+function dagrapportenView(){
+  const lijst = [...(S.dagrapporten || [])].sort((a, b) => (b.ingestuurd || '').localeCompare(a.ingestuurd || ''));
+  return `<div class="wrap">
+    <header class="page-head"><p class="eyebrow">Ferry</p><h1>Dagrapporten</h1>
+      <p class="sub">Foto's van ingevulde dagrapporten. Op werkdagen om 17:30, 19:30 en 21:30 worden nieuwe rapporten verwerkt: bestaande bedrijven krijgen een bezoek erbij, nieuwe worden aangemaakt als prospect (met #dagrapport).</p>
+      <div class="btns"><button class="btn primary" data-act="dagrapportInsturen">${ic('camera','sm')}Dagrapport insturen</button><button class="btn" data-act="leegDagrapport">${ic('print','sm')}Leeg formulier printen</button></div></header>
+    ${lijst.length ? `<div class="dr-lijst">${lijst.map(r => { const [st, cls] = DR_STATUS[r.status] || [r.status, ''];
+      return `<article class="card dr-kaart"><div class="section-title"><h2>${esc(dagNaamLang(r.datum))}</h2><span class="chip ${cls}">${esc(st)}</span></div>
+        <p class="sub">Ingestuurd ${esc(fmtTijd(r.ingestuurd))}${r.door ? ' door ' + esc(r.door) : ''}${r.verwerkt ? ` · verwerkt ${esc(fmtTijd(r.verwerkt))}` : ''}</p>
+        ${(r.resultaat || []).length ? `<div class="rows">${r.resultaat.map(x => { const b = x.bedrijfId && bedrijf(x.bedrijfId);
+          return `<${b ? `button class="row" data-act="open" data-id="${b.id}"` : 'div class="row static"'}>${b ? mono(b) : ''}<span class="t"><span class="row-top"><b>${esc(x.bedrijf)}</b><span class="chip ${x.nieuw ? '' : 'k-klant'}">${x.nieuw ? 'Nieuw aangemaakt' : 'Bezoek toegevoegd'}</span></span>
+            <span class="meta">${esc([x.contactpersoon, x.plaats, x.opmerkingen].filter(Boolean).join(' · '))}</span></span>${b ? ic('right') : ''}</${b ? 'button' : 'div'}>`; }).join('')}</div>` : ''}
+        ${(r.onleesbaar || []).length ? `<p class="note">Niet goed te lezen, controleer zelf: ${esc(r.onleesbaar.join('; '))}</p>` : ''}
+        ${r.opmerking ? `<p class="hint">${esc(r.opmerking)}</p>` : ''}
+        <div class="btns"><button class="btn small ghost" data-act="dagrapportFoto" data-id="${esc(r.id)}">${ic('camera','sm')}Foto bekijken</button></div>
+        <div class="dr-foto" id="drf-${esc(r.id)}"></div></article>`; }).join('')}</div>`
+      : `<div class="empty">${ic('camera')}<p>Nog geen dagrapporten ingestuurd.</p></div>`}
+  </div>`;
+}
+async function dagrapportFoto(id){
+  const r = (S.dagrapporten || []).find(x => x.id === id), el = document.getElementById('drf-' + id); if(!r || !el) return;
+  if(el.innerHTML){ el.innerHTML = ''; return; }
+  el.innerHTML = '<p class="hint">Foto laden…</p>';
+  try{ const b64 = await db.leesBestand(r.foto); el.innerHTML = `<img src="data:image/jpeg;base64,${b64}" alt="Dagrapport ${esc(r.datum)}" style="max-width:100%;border-radius:12px;border:1px solid var(--line)">`; }
+  catch{ el.innerHTML = '<p class="hint">De foto kan niet worden geladen.</p>'; }
+}
 /* Leeg dagrapport om op papier in te vullen: datum en per regel bedrijf, contact, plaats, opmerkingen. */
 function printLeegDagrapport(){
   const regels = 14;
@@ -4220,6 +4286,8 @@ const ACT = {
   planPrint: () => printRoute(planRoute(planStaat())),
   rapportPrint: () => printRapport(),
   leegDagrapport: () => printLeegDagrapport(),
+  dagrapportInsturen: () => dagrapportInsturen(),
+  dagrapportFoto: d => dagrapportFoto(d.id),
   rapportAlleP: () => { V.rapportAlleP = true; render(); },
   routePrint: () => printRoute(route()),
   planWis: () => bevestig('Route wissen', 'Alle stops van deze dag worden verwijderd.', 'Wissen', () => planStops([])),
@@ -4344,6 +4412,7 @@ function start(sessie){
   db.collection('mails').onSnapshot(s => { S.mails = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.collection('routes').onSnapshot(s => { S.routes = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.collection('leads').onSnapshot(s => { S.leads = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
+  db.collection('dagrapporten').onSnapshot(s => { S.dagrapporten = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.collection('exportlog').orderBy('datum','desc').limit(50).onSnapshot(s => { S.exportlog = s.docs.map(d => ({id:d.id, ...d.data()})); render(); }, () => {});
   db.doc('instellingen/algemeen').onSnapshot(s => { S.inst = REEKS.instellingen(s.exists ? s.data() : {}); render(); }, () => {});
   db.doc('robot/status').onSnapshot(s => { S.robot = s.exists ? s.data() : null; render(); }, () => {});
