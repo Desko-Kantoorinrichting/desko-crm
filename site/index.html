@@ -348,6 +348,16 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .vd-zoek-leeg{margin:0;background:var(--surface);color:var(--muted);border-radius:var(--r);padding:12px 14px}.linkknop{all:unset;cursor:pointer;color:var(--accent);font-weight:650;text-decoration:underline}
 .task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .gesproken-kies .seg{flex-wrap:wrap}
+.mailopties{display:grid;gap:8px}
+.mailoptie{display:block;cursor:pointer}
+.mailoptie input{position:absolute;opacity:0;pointer-events:none}
+.mailoptie>span{display:flex;flex-direction:column;gap:3px;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px 12px 42px;background:var(--bg);position:relative}
+.mailoptie>span::before{content:'';position:absolute;left:14px;top:14px;width:18px;height:18px;border-radius:50%;border:2px solid var(--line);background:var(--surface)}
+.mailoptie input:checked+span{border-color:var(--accent);background:var(--accent-soft)}
+.mailoptie input:checked+span::before{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 3px var(--surface)}
+.mailoptie input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.mailoptie b{font-weight:700}.mailoptie small{font-weight:600;color:var(--ink)}.mailoptie em{font-style:normal;color:var(--muted);font-size:.9rem;line-height:1.4}
+.mailopties.fout .mailoptie>span{border-color:var(--danger,#c0392b)}
 .dr-lijst{display:grid;gap:14px}.dr-kaart .rows{margin-top:4px}
 .vd-teller{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 14px}
 .vd-tel{all:unset;cursor:pointer;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;color:#fff;background:rgba(255,255,255,.06)}
@@ -684,7 +694,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.5';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.6';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1595,13 +1605,28 @@ function actForm(b, type, ci){
       : type==='afspraak' ? '' : `<details><summary class="sub" style="cursor:pointer">Was het eerder? Datum aanpassen</summary><label class="f" style="padding-top:8px"><span>Wanneer</span><input id="af-wanneer" name="wanneer" type="datetime-local" value="${localDT()}" max="${localDT()}"></label></details>`}
     ${type==='bezoek' ? tagField(b.tags||[]) : ''}
     ${type==='bezoek' ? reeksKeuze(b, 'af') : planVelden({id:'af', metGeen:true, titel:'Volgende stap'})}
-    ${reeksMogelijk ? `<label class="check"><input type="checkbox" id="af-reeks" name="reeks" checked><span>Opvolging starten</span></label><div class="f gesproken-kies" id="af-gespr"><span>Met wie heb je gesproken?</span><div class="seg"><label><input type="radio" name="gesproken" value="1" ><span>Met de contactpersoon zelf</span></label><label><input type="radio" name="gesproken" value="" checked><span>Via een collega of de receptie</span></label></div><span class="hint">Bepaalt welke versie van de mail er gaat.</span></div>` : ''}
+    ${reeksMogelijk ? `<label class="check"><input type="checkbox" id="af-reeks" name="reeks" checked><span>Opvolging starten</span></label><div class="f" id="af-gespr">${mailKies(b, ci ?? b.opvolging?.contact ?? 0, REEKS.reeksVoor(b, S.inst), null)}</div>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Annuleren</button><button class="btn primary" type="submit">Opslaan</button></div>
   </form>`, s => {
     if(type==='bezoek') mountTags(s); else mountPlan(s, 'af');
     if(type==='afspraak') mountAfspraak(s, 'af-op');
+    const gespr = s.querySelector('#af-gespr');
+    if(gespr){   // mailkaartjes volgen de gekozen contactpersoon, mailreeks en het vinkje
+      const reeksNu = () => { const r = s.querySelector('input[name="mailreeks"]:checked'); return r ? (S.inst.mailreeksen || []).find(x => x.id===r.value) || null : REEKS.reeksVoor(b, S.inst); };
+      const teken = () => {
+        const nieuw = s.querySelector('#af-cnaam')?.value.trim(), ci0 = Number(s.querySelector('#ci')?.value || 0);
+        const bb = nieuw ? {...b, contacten:[...(b.contacten || []), {naam:nieuw}]} : b;
+        const was = gespr.querySelector('input[name="gesproken"]:checked')?.value ?? null;
+        gespr.innerHTML = mailKies(bb, nieuw ? bb.contacten.length - 1 : ci0, reeksNu(), was);
+        gespr.hidden = !s.querySelector('#af-reeks')?.checked || !gespr.innerHTML;
+      };
+      s.querySelectorAll('input[name="mailreeks"], #ci, #af-reeks').forEach(x => x.addEventListener('change', teken));
+      s.querySelector('#af-cnaam')?.addEventListener('input', teken);
+      teken();
+    }
     s.querySelector('#af').onsubmit = async e => {
       e.preventDefault(); const d = formData(e.target);
+      if(d.reeks && !mailGekozen(s)) return;
       let afspraak = null;
       const ok = await veilig(async () => {
         let bb = b, idx = d.ci!=null ? Number(d.ci) : 0;
@@ -1815,7 +1840,15 @@ function geplandeMailSheet(m){
     <p class="sub">${esc(b.naam)} · ${esc(m.aan)} · ${esc(m.email)}</p>
     <div class="grid2"><label class="f"><span>Verzenddatum</span><input id="gm-datum" name="datum" type="date" value="${esc(m.datum)}" min="${today()}"></label>
       <label class="f"><span>Tijd</span><input id="gm-tijd" name="tijd" type="time" value="${esc(m.tijd||'09:30')}"></label></div>
-    ${(() => { const sj = (S.inst.sjablonen || []).find(t => t.id===m.sjabloon); return sj?.tekstGesproken ? `<div class="f gesproken-kies"><span>Welke versie?</span><div class="seg"><label><input type="radio" name="gm-versie" value="1" ${m.gesproken ? 'checked' : ''}><span>Ik sprak ${esc(voornaam({naam:m.aan}) || 'de persoon')} zelf</span></label><label><input type="radio" name="gm-versie" value="" ${m.gesproken ? '' : 'checked'}><span>Via een collega of de receptie</span></label></div><span class="hint">Wisselen zet de standaardtekst van die versie terug in het bericht.</span></div>` : ''; })()}
+    ${(() => {
+      const c = contactVan(b, m.contact) || {naam:m.aan}, sjs = S.inst.sjablonen || [], eigen = sjs.find(t => t.id===m.sjabloon);
+      const opties = sj => (sj.tekstGesproken ? [true, false] : [false]).map(g => ({...mailOptie(sj, g, b, c, sj.tekstGesproken ? versieTitel(g, c) : sj.naam || 'Mail'), waarde:`${sj.id}|${g ? 1 : 0}`}));
+      const nu = m.sjabloon ? `${m.sjabloon}|${m.gesproken && eigen?.tekstGesproken ? 1 : 0}` : null;
+      const anders = sjs.filter(t => t !== eigen).flatMap(t => opties(t).map(o => ({...o, titel:t.tekstGesproken ? `${t.naam} · ${o.titel[0].toLowerCase()}${o.titel.slice(1)}` : o.titel})));
+      return `<div class="f"><span>Welke mail?</span>${eigen ? mailKaarten('gm-mail', opties(eigen), nu) : ''}
+        ${anders.length ? `<details ${eigen ? '' : 'open'}><summary class="sub" style="cursor:pointer;padding:6px 0">Andere mail kiezen</summary>${mailKaarten('gm-mail', anders, nu)}</details>` : ''}
+        <span class="hint">Een mail aantikken zet die tekst hieronder neer. Daarna kun je hem nog aanpassen.</span></div>`;
+    })()}
     <label class="f"><span>Onderwerp</span><input id="gm-ond" name="onderwerp" required value="${esc(m.onderwerp)}" autocomplete="off"></label>
     <label class="f"><span>Bericht</span><textarea id="gm-tekst" name="tekst" required style="min-height:300px">${esc(m.tekst)}</textarea></label>
     <div class="sheet-actions">
@@ -1829,12 +1862,14 @@ function geplandeMailSheet(m){
     if(open) open.onclick = e => { e.preventDefault(); const w = wijzig(); closeSheet(); mailen(bedrijf(m.bedrijfId), m.contact, {...m, ...w}); };
     const link = () => { const a = $s('#gm-open'); if(a) a.href = `mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent(ond.value)}&body=${encodeURIComponent(tekst.value)}`; };
     ond.oninput = tekst.oninput = link; link();
-    let gesproken = !!m.gesproken;
-    s.querySelectorAll('input[name="gm-versie"]').forEach(r => r.onchange = () => {
-      gesproken = r.value === '1'; const sj = (S.inst.sjablonen || []).find(t => t.id===m.sjabloon), c = contactVan(b, m.contact); if(!sj) return;
+    let gesproken = !!m.gesproken, sjabloon = m.sjabloon;
+    s.querySelectorAll('input[name="gm-mail"]').forEach(r => r.onchange = () => {
+      const [id, g] = r.value.split('|'), sj = (S.inst.sjablonen || []).find(t => t.id===id), c = contactVan(b, m.contact) || {naam:m.aan}; if(!sj) return;
+      sjabloon = id; gesproken = g === '1';
       const v = REEKS.versie(sj, gesproken); ond.value = REEKS.vul(v.onderwerp, b, c, m.afzender || S.gebruiker?.naam); tekst.value = REEKS.vul(v.tekst, b, c, m.afzender || S.gebruiker?.naam); link();
+      ond.closest('.f').scrollIntoView({block:'nearest', behavior:'smooth'});
     });
-    const wijzig = () => ({onderwerp:ond.value, tekst:tekst.value, gesproken, datum:$s('#gm-datum').value || m.datum, tijd:$s('#gm-tijd').value || m.tijd});
+    const wijzig = () => ({onderwerp:ond.value, tekst:tekst.value, gesproken, ...(sjabloon ? {sjabloon} : {}), datum:$s('#gm-datum').value || m.datum, tijd:$s('#gm-tijd').value || m.tijd});
     $s('#gm').onsubmit = async e => {
       e.preventDefault(); const w = wijzig();
       if(await veilig(async () => {
@@ -2963,8 +2998,35 @@ async function mailsBijTags(oud, b, {vraag = true} = {}){
   reeksVraag([bedrijf(b.id) || b], wordt);
   return null;
 }
+/* Mail kiezen: de mails zelf als kaartjes (titel, onderwerp en het begin van de tekst),
+   zodat je ziet wat er straks gaat in plaats van een vraag te beantwoorden. */
+const voorproef = t => { const r = String(t || '').split('\n').map(x => x.trim()).filter(Boolean).slice(1, 3).join(' '); return r.length > 170 ? r.slice(0, 170).replace(/\s+\S*$/, '') + '…' : r; };
+function mailOptie(sj, gesproken, b, c, titel){
+  const v = REEKS.versie(sj, gesproken), van = S.gebruiker?.naam;
+  return {waarde:gesproken ? '1' : '', sjabloon:sj.id, gesproken:!!gesproken, titel, onderwerp:REEKS.vul(v.onderwerp, b, c, van), tekst:REEKS.vul(v.tekst, b, c, van)};
+}
+const versieTitel = (gesproken, c) => gesproken ? `Ik sprak ${voornaam(c) || 'de contactpersoon'} zelf` : 'Ik sprak een collega of de receptie';
+/* De versies van mail 1 van een reeks. */
+function startOpties(b, ci, reeks){
+  const sj = (S.inst.sjablonen || []).find(t => t.id===reeks?.stappen?.[0]?.sjabloon); if(!sj) return [];
+  const c = contactVan(b, ci) || {naam:''};
+  return sj.tekstGesproken ? [mailOptie(sj, true, b, c, versieTitel(true, c)), mailOptie(sj, false, b, c, versieTitel(false, c))] : [mailOptie(sj, false, b, c, sj.naam || 'Mail 1')];
+}
+const mailKaarten = (naam, opties, gekozen) => `<div class="mailopties" role="radiogroup">${opties.map((o, i) => `<label class="mailoptie"><input type="radio" name="${naam}" value="${esc(o.waarde ?? String(i))}" ${gekozen != null && gekozen===(o.waarde ?? String(i)) ? 'checked' : ''}><span><b>${esc(o.titel)}</b><small>Onderwerp: ${esc(o.onderwerp)}</small><em>${esc(voorproef(o.tekst))}</em></span></label>`).join('')}</div>`;
+/* Blok "Welke mail gaat er?" voor het starten van een reeks; leeg als de reeks geen mail heeft. */
+function mailKies(b, ci, reeks, gekozen, naam = 'gesproken'){
+  const o = startOpties(b, ci, reeks); if(!o.length) return '';
+  return `<span>Welke mail gaat er?</span>${mailKaarten(naam, o, o.length > 1 ? gekozen : '')}<span class="hint">${o.length > 1 ? 'Tik de mail aan die past. ' : ''}Je kunt hem daarna nog aanpassen onder Mail.</span>`;
+}
+/* Geen mail aangetikt terwijl er een keuze is: melden en ernaartoe scrollen. */
+function mailGekozen(s, naam = 'gesproken'){
+  const box = s.querySelector(`input[name="${naam}"]`)?.closest('.mailopties');
+  if(!box || box.closest('[hidden]') || box.querySelectorAll('input').length < 2 || box.querySelector('input:checked')) return true;
+  box.classList.add('fout'); box.scrollIntoView({block:'center', behavior:'smooth'}); toast('Kies eerst welke mail er gaat.');
+  box.querySelectorAll('input').forEach(r => r.addEventListener('change', () => box.classList.remove('fout'), {once:true}));
+  return false;
+}
 /* Nieuwe tag van een mailreeks: vragen of de mails moeten starten, met een voorbeeld. */
-const heeftVersies = reeks => (reeks?.stappen || []).some(st => (S.inst.sjablonen || []).find(t => t.id===st.sjabloon)?.tekstGesproken);
 function reeksVraag(lijst, reeks){
   const met = lijst.filter(b => b.kopje==='prospect' && (b.contacten||[]).some(c => c.email));
   if(!met.length) return;
@@ -2972,13 +3034,13 @@ function reeksVraag(lijst, reeks){
   const m = REEKS.planMail(b, reeks, 0, today(), S.inst, S.gebruiker?.naam, ci);
   openSheet('Mailreeks starten?', `<div class="section">
     <p>${met.length > 1 ? `${met.length} prospects hebben` : `<b>${esc(b.naam)}</b> heeft`} nu de tag <b>#${esc(reeks.tag)}</b>. Wil je de mails van "${esc(reeks.naam)}" inplannen?</p>
-    ${heeftVersies(reeks) ? `<div class="f gesproken-kies"><span>Met wie heb je gesproken?</span><div class="seg"><label><input type="radio" name="rv-gespr" value="1"><span>Met de contactpersoon zelf</span></label><label><input type="radio" name="rv-gespr" value="" checked><span>Via een collega of de receptie</span></label></div></div>` : ''}
-    ${m ? `<div class="begrepen"><span>${ic('mail','sm')}<span>Mail 1 aan ${esc(m.aan)}: <b id="rv-ond">"${esc(m.onderwerp)}"</b></span></span><span>${ic('calendar','sm')}${esc(fmtDag(m.datum))} om ${esc(m.tijd)}${reeks.stappen.length > 1 ? ` · daarna nog ${reeks.stappen.length - 1} mail${reeks.stappen.length > 2 ? 's' : ''} als er geen reactie komt` : ''}</span></div>` : ''}
+    ${m ? `<div class="f">${mailKies(b, ci, reeks, null, 'rv-gespr')}</div>` : ''}
+    ${m ? `<div class="begrepen"><span>${ic('mail','sm')}<span>Mail 1 aan ${esc(m.aan)}${met.length > 1 ? ` (en ${met.length - 1} andere${met.length > 2 ? 'n' : ''})` : ''}</span></span><span>${ic('calendar','sm')}${esc(fmtDag(m.datum))} om ${esc(m.tijd)}${reeks.stappen.length > 1 ? ` · daarna nog ${reeks.stappen.length - 1} mail${reeks.stappen.length > 2 ? 's' : ''} als er geen reactie komt` : ''}</span></div>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">Nee, alleen de tag</button><button type="button" class="btn primary" id="rv-ja">${ic('mail','sm')}Ja, inplannen</button></div></div>`,
     s => {
       const gespr = () => s.querySelector('input[name="rv-gespr"]:checked')?.value === '1';
-      s.querySelectorAll('input[name="rv-gespr"]').forEach(r => r.onchange = () => { const x = REEKS.planMail(b, reeks, 0, today(), S.inst, S.gebruiker?.naam, ci, gespr()), o = s.querySelector('#rv-ond'); if(x && o) o.textContent = `"${x.onderwerp}"`; });
       s.querySelector('#rv-ja').onclick = async () => {
+        if(!mailGekozen(s, 'rv-gespr')) return;
         if(await veilig(async () => { for(const x of met){ const y = bedrijf(x.id) || x; await startReeks(y, Math.max(0, y.contacten.findIndex(c => c.email)), gespr()); } }, met.length > 1 ? `Mails ingepland voor ${met.length} prospects` : 'Mail 1 ingepland')) closeSheet();
       };
     });
@@ -3936,10 +3998,15 @@ function naBezoek(b, {afspraak = null} = {}){
       <label class="f"><span>Wanneer nodig?</span><input name="nodig" value="${esc(be.wanneer||'')}" placeholder="Bijv. verhuizing maart 2027" autocomplete="off"></label></div>
     <label class="f"><span>Wanneer was het bezoek?</span><input name="datum" type="datetime-local" value="${localDT(wanneer)}" max="${localDT(new Date(Date.now()+3600000))}"></label>
     ${planVelden({id:'nb', wat:'Bellen', titel:'Wanneer volg je op?'})}
-    ${reeks ? `<div id="nb-reekslbl"><label class="check"><input type="checkbox" name="reeks" id="nb-reeks"><span>In plaats daarvan mailreeks "${esc(reeks.naam)}" starten</span></label><div class="f gesproken-kies" id="nb-gespr"><span>Met wie heb je gesproken?</span><div class="seg"><label><input type="radio" name="gesproken" value="1" checked><span>Met de contactpersoon zelf</span></label><label><input type="radio" name="gesproken" value="" ><span>Via een collega of de receptie</span></label></div><span class="hint">Bepaalt welke versie van de mail er gaat.</span></div></div>` : ''}
+    ${reeks ? `<div id="nb-reekslbl"><label class="check"><input type="checkbox" name="reeks" id="nb-reeks"><span>In plaats daarvan mailreeks "${esc(reeks.naam)}" starten</span></label><div class="f" id="nb-gespr" hidden>${mailKies(b, ci, reeks, '1')}</div></div>` : ''}
     <div class="sheet-actions"><button type="button" class="btn" data-act="closeSheet">${inRoute ? 'Nog niet geweest' : 'Annuleren'}</button><button class="btn primary" type="submit">Opslaan${volgende ? ' en verder' : ''}</button></div>
   </form>`, s => {
     mountPlan(s, 'nb'); mountAfspraak(s, 'nb-op');
+    const nbg = s.querySelector('#nb-gespr'), nbr = s.querySelector('#nb-reeks');
+    if(nbg && nbr){   // mailkaartjes alleen als de reeks gestart wordt; ze volgen de contactpersoon
+      const teken = () => { const was = nbg.querySelector('input:checked')?.value ?? null; nbg.innerHTML = mailKies(b, Number(s.querySelector('#ci')?.value || 0), reeks, was); nbg.hidden = !nbr.checked; };
+      nbr.addEventListener('change', teken); s.querySelector('#ci')?.addEventListener('change', teken);
+    }
     const box = s.querySelector('[data-plan="nb"]'), datum = s.querySelector('#nb-datum'), actie = s.querySelector('#nb-actie'), tekst = s.querySelector('#nb-tekst');
     const kies = (wat, dag) => { box.querySelector(`[data-wat="${wat}"]`)?.click(); box.querySelectorAll('[data-dag]')[dag]?.click(); };
     s.querySelectorAll('[data-uit]').forEach(k => k.onclick = () => {
@@ -3983,6 +4050,7 @@ function naBezoek(b, {afspraak = null} = {}){
       const interesse = [...s.querySelectorAll('[data-int].on')].map(x => x.dataset.int);
       const werkplekken = d.werkplekken.trim(), nodig = d.nodig.trim();
       const metReeks = !!d.reeks && !!c && !['afspraak','offerte','geen'].includes(d.uitkomst);
+      if(metReeks && !mailGekozen(s)) return;
       const op = d.datum ? new Date(d.datum) : new Date();
       const regels = [[uit, d.tekst.trim()].filter(Boolean).join(': '), interesse.length && 'Interesse: ' + interesse.join(', '), werkplekken && 'Werkplekken: ' + werkplekken, nodig && 'Nodig: ' + nodig].filter(Boolean);
       let nieuweAfspraak = null;
