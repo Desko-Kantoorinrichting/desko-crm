@@ -529,6 +529,17 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .ev-edit{border:0;background:none;color:var(--accent);font:inherit;font-size:.8rem;font-weight:650;cursor:pointer;padding:4px 0 4px 10px;text-decoration:underline;text-underline-offset:2px}
 .ev .bewerkt{color:var(--faint);font-size:.75rem}
 .ev.sys p{color:var(--muted);font-size:.86rem}
+.tl-filters{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 14px}
+.tl-dag{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:2px 0 10px 46px}
+.tl-dag:not(:first-child){padding-top:8px;border-top:1px solid var(--line)}
+.ev .head{align-items:center;justify-content:flex-start;font-size:.97rem}
+.ev .head b{font-weight:700}
+.ev-meta{display:flex;align-items:center;flex-wrap:wrap;color:var(--faint);font-size:.8rem}
+.ev-ond{font-weight:600}
+.ev-mail summary{cursor:pointer;color:var(--accent);font-size:.85rem;font-weight:650;padding:2px 0}
+.ev-mail p{margin-top:6px;padding:10px 12px;background:var(--sunk);border-radius:10px;font-size:.88rem}
+.ev-vervolg{display:flex;gap:6px;align-items:flex-start;font-size:.9rem}.ev-vervolg .ic{flex:none;margin-top:2px}
+.tl-sys{margin-top:4px;align-self:flex-start}
 .detail-cols{display:grid;grid-template-columns:1fr;gap:22px}
 .detail-cols > div{display:flex;flex-direction:column;gap:22px;min-width:0}
 
@@ -697,7 +708,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.10';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.11';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1276,17 +1287,47 @@ function detailView(b){
       <div class="btns"><button class="btn small" data-act="verplaats" data-id="${b.id}">Verplaatsen naar ander kopje</button><button class="btn small danger" data-act="verwijder" data-id="${b.id}">Verwijderen</button></div>
     </section>`;
   const ACT_ICON = {bezoek:'door', bel:'phone', mail_uit:'mail', mail_in:'inbox', afspraak:'calendar', bestelling:'pakket', notitie:'note', systeem:'dot'};
+  /* Tijdlijn: per dag, met een duidelijke kop per moment ("Bezoek bij …", "Mail gestuurd aan …").
+     Automatische meldingen staan standaard uit; mails tonen het onderwerp en klappen open. */
+  if(V.tlSys === undefined) try{ V.tlSys = localStorage.getItem('crm-tl-sys') === '1'; }catch{ V.tlSys = false; }   // keuze onthouden per apparaat
+  const tlSoort = V.tl || 'alles', tlSys = !!V.tlSys;
+  const TL_FILTERS = [['alles','Alles'], ['bezoek','Bezoeken'], ['bel','Telefoon'], ['mail','Mails'], ['notitie','Notities']];
+  const pastFilter = a => tlSoort==='alles' || (tlSoort==='mail' ? ['mail_uit','mail_in'].includes(a.type) : tlSoort==='notitie' ? ['notitie','afspraak','bestelling'].includes(a.type) : a.type===tlSoort);
+  const autom = acts.filter(a => a.type==='systeem').length;
+  const zichtbaar = acts.filter(a => (a.type!=='systeem' || (tlSys && tlSoort==='alles')) && pastFilter(a));
+  const dagKop = iso => { const d = localDT(new Date(iso)).slice(0, 10), n = diffDays(d, today()); return n===0 ? 'Vandaag' : n===1 ? 'Gisteren' : `${fmtDag(d)}${d.slice(0, 4)!==today().slice(0, 4) ? ' ' + d.slice(0, 4) : ''}`; };
+  const uur = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const evKop = a => {
+    const wie = a.contactNaam ? esc(a.contactNaam) : '';
+    if(a.type==='bezoek') return [`Bezoek${wie ? ' bij ' + wie : ''}`, a.uitkomst && UITKOMST_NAAM[a.uitkomst] ? [UITKOMST_NAAM[a.uitkomst], a.uitkomst==='niet' || a.uitkomst==='geen' ? 'warn' : ''] : null];
+    if(a.type==='bel') return [`Gebeld${wie ? ' met ' + wie : ''}`, a.uitkomst ? [a.uitkomst, a.uitkomst==='gesproken' ? '' : 'warn'] : null];
+    if(a.type==='mail_uit') return [`Mail gestuurd${wie ? ' aan ' + wie : ''}`, null];
+    if(a.type==='mail_in') return [`Reactie ontvangen${wie ? ' van ' + wie : ''}`, null];
+    if(a.type==='afspraak') return [`Afspraak${wie ? ' met ' + wie : ''}`, null];
+    return [esc((ACT_TYPES[a.type] || ACT_TYPES.notitie).naam) + (wie ? ' · ' + wie : ''), null];
+  };
+  const evBody = a => {
+    if(a.type==='mail_uit' || a.type==='mail_in'){
+      const m = String(a.tekst || '').match(/^Onderwerp: (.*)\n\n?([\s\S]*)$/), ond = a.onderwerp || m?.[1] || '', tekst = m ? m[2] : a.tekst || '';
+      return `${ond ? `<p class="ev-ond">${esc(ond)}</p>` : ''}${tekst.trim() ? `<details class="ev-mail"><summary>Hele mail lezen</summary><p>${esc(tekst.trim())}</p></details>` : ''}`;
+    }
+    return a.tekst ? `<p>${esc(a.tekst)}</p>` : '';
+  };
+  let vorigeDag = '';
   const rechts = `<section class="card">
-      <div class="section-title"><h2>Tijdlijn</h2><span class="count num">${acts.length}</span></div>
-      ${acts.length ? `<div class="timeline">${acts.map(a => {
-        const t = ACT_TYPES[a.type] || ACT_TYPES.notitie;
-        const kop = a.type==='bel' ? `Telefoon · ${a.uitkomst||''}` : t.naam;
-        if(a.type==='systeem') return `<div class="ev t-systeem sys mini"><span class="ico">${ic('dot')}</span><div class="body"><p>${esc(a.tekst||'')} <small>${esc(fmtTijd(a.datum))}</small></p></div></div>`;
-        return `<div class="ev t-${esc(a.type)}"><span class="ico">${ic(ACT_ICON[a.type]||'note')}</span><div class="body">
-          <div class="head"><b>${esc(kop)}${a.contactNaam?' · '+esc(a.contactNaam):''}</b><span>${esc(fmtTijd(a.datum))}<button class="ev-edit" data-act="actBewerk" data-akt="${a.id}" aria-label="${esc(kop)} aanpassen">Aanpassen</button></span></div>
-          ${a.tekst?`<p>${esc(a.tekst)}</p>`:''}${a.afspraakOp?`<p>Gepland: ${esc(fmtTijd(a.afspraakOp))}</p><span class="btns"><button class="btn small" data-act="ics" data-id="${b.id}" data-akt="${a.id}">${ic('calendar','sm')}Zet in agenda</button></span>`:''}
+      <div class="section-title"><h2>Tijdlijn</h2><span class="count num">${acts.length - autom}</span></div>
+      ${acts.length ? `<div class="tl-filters" role="toolbar" aria-label="Tijdlijn filteren">${TL_FILTERS.map(([k, l]) => `<button type="button" class="btn small ${tlSoort===k ? 'on' : 'ghost'}" data-act="tlFilter" data-f="${k}" aria-pressed="${tlSoort===k}" aria-label="Tijdlijn: ${k==='alles' ? 'alles tonen' : 'alleen ' + l.toLowerCase()}">${l}</button>`).join('')}</div>` : ''}
+      ${zichtbaar.length ? `<div class="timeline">${zichtbaar.map(a => {
+        const dag = dagKop(a.datum), kopDag = dag !== vorigeDag ? `<div class="tl-dag">${esc(dag)}</div>` : ''; vorigeDag = dag;
+        if(a.type==='systeem') return `${kopDag}<div class="ev t-systeem sys mini"><span class="ico">${ic('dot')}</span><div class="body"><p>${esc(a.tekst||'')} <small>${esc(uur(a.datum))}</small></p></div></div>`;
+        const [kop, chip] = evKop(a);
+        return `${kopDag}<div class="ev t-${esc(a.type)}"><span class="ico">${ic(ACT_ICON[a.type]||'note')}</span><div class="body">
+          <div class="head"><b>${kop}</b>${chip ? `<span class="chip ${chip[1]}">${esc(chip[0])}</span>` : ''}</div>
+          <div class="ev-meta">${esc(uur(a.datum))}${a.door ? ` · ${esc(a.door)}` : ''}${a.bron==='dagrapport' ? ' · uit dagrapport' : ''}<button class="ev-edit" data-act="actBewerk" data-akt="${a.id}" aria-label="${esc((ACT_TYPES[a.type]||ACT_TYPES.notitie).naam)} aanpassen">Aanpassen</button></div>
+          ${evBody(a)}${a.vervolg ? `<p class="ev-vervolg">${ic('calendar','sm')}<span><b>Afgesproken:</b> ${esc(a.vervolg)}</span></p>` : ''}${a.afspraakOp ? `<p class="ev-vervolg">${ic('calendar','sm')}<span><b>Gepland:</b> ${esc(fmtTijd(a.afspraakOp))}</span></p><span class="btns"><button class="btn small" data-act="ics" data-id="${b.id}" data-akt="${a.id}">${ic('calendar','sm')}Zet in agenda</button></span>` : ''}
           ${a.bewerkt?`<small class="bewerkt">Aangepast${a.bewerktDoor?' door '+esc(a.bewerktDoor):''} op ${esc(fmtTijd(a.bewerkt))}</small>`:''}</div></div>`;
-      }).join('')}</div>` : `<p class="sub">Nog niets vastgelegd. Begin met een bezoek of telefoontje.</p>`}
+      }).join('')}</div>` : `<p class="sub">${acts.length - autom ? 'Niets van deze soort.' : 'Nog niets vastgelegd. Begin met een bezoek of telefoontje.'}</p>`}
+      ${autom && tlSoort==='alles' ? `<button type="button" class="btn small ghost tl-sys" data-act="tlSys">${tlSys ? 'Automatische meldingen verbergen' : `Toon ook ${autom} automatische ${autom===1 ? 'melding' : 'meldingen'} (mails ingepland, opvolging, …)`}</button>` : ''}
     </section>`;
   return `<div class="wrap">
     <button class="btn ghost back" data-act="sluitDetail">${ic('left','sm')}${esc(V.terugNaar==='vandaag'?'Vandaag':V.terugNaar==='meer'?'Meer':(KOPJES[V.terugNaar]?.naam||'Alle bedrijven'))}</button>
@@ -4365,6 +4406,8 @@ function sluitDetail(){
 const ACT = {
   tab: d => { V.selectie = null; if(V.detail){ actUnsub && actUnsub(); actUnsub = null; V.detail = null; } V.tab = d.tab; V.filterOpen = false; navTo({tab:d.tab}); render(); window.scrollTo(0,0); },
   open: d => openDetail(d.id),
+  tlFilter: d => { V.tl = d.f; render(); },
+  tlSys: () => { V.tlSys = !V.tlSys; try{ localStorage.setItem('crm-tl-sys', V.tlSys ? '1' : '0'); }catch{} render(); },
   sluitDetail,
   closeSheet,
   nieuw: d => bedrijfForm(null, d.kopje || (['klant','prospect'].includes(V.tab) ? V.tab : 'prospect')),
