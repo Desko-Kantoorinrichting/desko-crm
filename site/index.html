@@ -348,7 +348,10 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .vd-zoek-leeg{margin:0;background:var(--surface);color:var(--muted);border-radius:var(--r);padding:12px 14px}.linkknop{all:unset;cursor:pointer;color:var(--accent);font-weight:650;text-decoration:underline}
 .task-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .gesproken-kies .seg{flex-wrap:wrap}
-.mail-simpel .spreekknop{margin:0 0 6px}.ms-rij.static{grid-template-columns:auto 1fr auto}
+.mail-simpel .spreekknop{margin:0 0 6px}.ms-verstuurd{grid-template-columns:auto 1fr auto}.ms-vink{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff}.ms-vink .ic{width:20px;height:20px}
+.ms-verstuurd .meta b{color:var(--ink)}.chip.ok{background:var(--accent-soft);color:var(--accent);border-color:transparent}.next.ok{color:var(--accent)}
+.mail-simpel h2 .ic{width:18px;height:18px;color:var(--accent);vertical-align:-3px}
+.ms-rij.static{grid-template-columns:auto 1fr auto}
 @media (max-width:420px){nav.tabs:not(.x) button{font-size:.6rem;letter-spacing:-.01em}}.ms-rij .t b{font-size:1.02rem}.ms-rij .meta{font-size:.9rem}
 .mail-tegels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 14px}
 .mail-tegel{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:12px 14px;font:inherit;color:var(--ink);cursor:pointer}
@@ -718,7 +721,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.13';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-10-30.14';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -2124,8 +2127,17 @@ function mailSimpelView(){
     .filter(x => x.s?.due && !x.s.gepauzeerd && x.c?.email && (!geplandeMail(x.b) || (!auto && geplandeMail(x.b).datum <= today())))
     .sort((a,b) => a.b.naam.localeCompare(b.b.naam));
   const straks = gepland.filter(m => !nu.some(x => x.b.id===m.bedrijfId)).slice(0, 15);
-  const laatst = S.mails.filter(m => m.status==='verstuurd').sort((a,b) => mailDag(b).localeCompare(mailDag(a)) || String(b.verstuurdOp||'').localeCompare(String(a.verstuurdOp||''))).slice(0, 10);
-  const dag = d => { const n = diffDays(d, today()); return n===0 ? 'Vandaag' : n===1 ? 'Gisteren' : n===-1 ? 'Morgen' : fmtDag(d); };
+  const dag = d => { const n = diffDays(d, today()); return n===0 ? 'Vandaag' : n===1 ? 'Gisteren' : n===-1 ? 'Morgen' : n > 1 && n < 7 ? `${fmtDag(d)} (${n} dagen geleden)` : fmtDag(d); };
+  // per bedrijf: laatste verstuurde mail en wat er nu gebeurt (reactie, volgende mail, wachten)
+  const verstuurdPer = S.bedrijven.map(b => ({b, m:mailStand(b)})).filter(x => x.m.laatste).map(x => {
+    const reactie = S.mails.some(m => m.bedrijfId===x.b.id && m.status==='ontvangen' && mailDag(m) >= x.m.op), o = x.b.opvolging;
+    const verder = reactie ? ['Heeft gereageerd', 'ok', 'inbox']
+      : x.m.gepland ? [`Volgende mail gaat ${dag(x.m.gepland.datum).toLowerCase()}`, '', 'clock']
+      : o?.actief && o.stap==='wacht' ? [`Wacht op reactie. Geen reactie? Op ${fmtDag(o.datum)} krijg je een seintje.`, '', 'clock']
+      : o?.actief && opvolgStatus(x.b)?.due ? ['Tijd om op te volgen: bellen of mailen', 'late', 'bolt']
+      : ['Klaar, niets meer ingepland', '', 'check'];
+    return {...x, verder};
+  }).sort((x, y) => y.m.op.localeCompare(x.m.op) || x.b.naam.localeCompare(y.b.naam));
   return `<div class="wrap mail-simpel">
     <header class="page-head"><p class="eyebrow">Mail</p><h1>Mail</h1></header>
     <button class="spreekknop" data-act="mail">${ic('mail')}<span><b>Een mail sturen</b><small>Kies het bedrijf, de soort mail en verstuur</small></span></button>
@@ -2139,7 +2151,7 @@ function mailSimpelView(){
     </section>
 
     ${straks.length ? `<section class="section">
-      <div class="section-title"><h2>${auto ? 'Gaat vanzelf' : 'Staat klaar'}</h2><span class="count num">${gepland.length - nu.filter(x => geplandeMail(x.b)).length}</span></div>
+      <div class="section-title"><h2>${auto ? 'Gaat vanzelf' : 'Staat klaar'} <small class="sub">(nog niet verstuurd)</small></h2><span class="count num">${gepland.length - nu.filter(x => geplandeMail(x.b)).length}</span></div>
       <p class="hint">${auto ? 'Deze mails gaan vanzelf. Je hoeft niets te doen.' : 'Deze mails staan klaar voor later.'} Tik erop om ze te lezen.</p>
       <div class="rows">${straks.map(m => `<button class="row ms-rij" data-act="geplandeMail" data-mail="${m.id}">
         <span class="cal"><span>${DAGEN[parse(m.datum).getDay()]}</span><b>${parse(m.datum).getDate()}</b></span>
@@ -2147,10 +2159,15 @@ function mailSimpelView(){
     </section>` : ''}
 
     <section class="section">
-      <div class="section-title"><h2>Laatst gemaild</h2></div>
-      ${laatst.length ? `<div class="rows">${laatst.map(m => `<button class="row ms-rij" data-act="mailDetail" data-mail="${m.id}">
-        <span class="cal"><span>${MAANDEN[parse(mailDag(m)).getMonth()]}</span><b>${parse(mailDag(m)).getDate()}</b></span>
-        <span class="t"><b>${esc(m.bedrijf)}</b><span class="meta">Aan ${esc(m.aan)} · ${esc(dag(mailDag(m)))}</span></span>${ic('right')}</button>`).join('')}</div>`
+      <div class="section-title"><h2>${ic('check')} Al verstuurd</h2><span class="count num">${verstuurdPer.length}</span></div>
+      <p class="hint">Deze bedrijven hebben al een mail van je gehad. Tik erop om alles te zien.</p>
+      ${verstuurdPer.length ? `<div class="rows">${verstuurdPer.slice(0, V.msAlles ? 999 : 12).map(({b, m, verder}) => `<button class="row ms-rij ms-verstuurd" data-act="open" data-id="${b.id}">
+        <span class="ms-vink" aria-hidden="true">${ic('check')}</span>
+        <span class="t"><span class="row-top"><b>${esc(b.naam)}</b><span class="chip ok">${m.uit.length===1 ? '1 mail' : m.uit.length + ' mails'} verstuurd</span></span>
+          <span class="meta"><b>${esc(dag(m.op))}</b> aan ${esc(m.laatste.aan || '')}</span>
+          <span class="meta">"${esc(m.laatste.onderwerp || '')}"</span>
+          <span class="next ${verder[1]}">${ic(verder[2])}<span>${esc(verder[0])}</span></span></span>${ic('right')}</button>`).join('')}</div>
+        ${verstuurdPer.length > 12 && !V.msAlles ? `<button class="btn small ghost" data-act="msAlles">Alle ${verstuurdPer.length} tonen</button>` : ''}`
         : `<div class="empty">${ic('mail')}<p>Nog niemand gemaild.</p></div>`}
     </section>
     <p class="hint">Mail gestuurd vanuit Outlook? <a href="#" data-act="mailHandmatig" data-richting="uit">Zet hem hier in het CRM</a>.</p>
@@ -4500,6 +4517,7 @@ const ACT = {
   tlFilter: d => { V.tl = d.f; render(); },
   tlSys: () => { V.tlSys = !V.tlSys; try{ localStorage.setItem('crm-tl-sys', V.tlSys ? '1' : '0'); }catch{} render(); },
   mailBlad: d => { V.mailBlad = d.b; render(); },
+  msAlles: () => { V.msAlles = true; render(); },
   sluitDetail,
   closeSheet,
   nieuw: d => bedrijfForm(null, d.kopje || (['klant','prospect'].includes(V.tab) ? V.tab : 'prospect')),
