@@ -30,7 +30,7 @@
   --accent:#1F7A3C; --accent-ink:#000000; --accent-soft:#E2F4E7;
   --klant:#1F7A3C; --klant-soft:#E2F4E7;
   --prospect:#6A6400; --prospect-soft:#FBF7BF;
-  --mail:#FFFFFF; --mail-soft:#000000;
+  --mail:#FFFFFF; --mail-soft:#000000; --reactie:#1F5FBF; --reactie-soft:#E7EFFB;
   --warn:#B23B12; --warn-soft:#FCE5DA;
   --shadow:0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(60,40,10,.06);
   --font-display:"League Spartan","Segoe UI",system-ui,sans-serif;
@@ -42,14 +42,14 @@
   --bg:#0B0B0B; --surface:#161616; --sunk:#202020; --hover:#1C1C1C; --ink:#F7F3EC; --muted:#AAA59C; --faint:#7D7972; --line:#2A2A2A;
   --accent:#6FD38A; --accent-soft:#16301E;
   --klant:#6FD38A; --klant-soft:#16301E; --prospect:#F2E901; --prospect-soft:#2E2C08;
-  --mail:#000000; --mail-soft:#FBF4E9; --warn:#FF9C76; --warn-soft:#3A1E14;
+  --mail:#000000; --mail-soft:#FBF4E9; --reactie:#8DB6F2; --reactie-soft:#16243A; --warn:#FF9C76; --warn-soft:#3A1E14;
   --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}}
 :root[data-theme="dark"]{
   --brand:#000000; --brand-2:#141414; --brand-ink:#FFFFFF;
   --bg:#0B0B0B; --surface:#161616; --sunk:#202020; --hover:#1C1C1C; --ink:#F7F3EC; --muted:#AAA59C; --faint:#7D7972; --line:#2A2A2A;
   --accent:#6FD38A; --accent-soft:#16301E;
   --klant:#6FD38A; --klant-soft:#16301E; --prospect:#F2E901; --prospect-soft:#2E2C08;
-  --mail:#000000; --mail-soft:#FBF4E9; --warn:#FF9C76; --warn-soft:#3A1E14;
+  --mail:#000000; --mail-soft:#FBF4E9; --reactie:#8DB6F2; --reactie-soft:#16243A; --warn:#FF9C76; --warn-soft:#3A1E14;
   --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -548,7 +548,16 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .ev .ico .ic{width:16px;height:16px}
 .ev.sys .ico{background:var(--sunk);color:var(--faint)}
 .ev.t-bel .ico{background:var(--prospect-soft);color:var(--prospect)}
-.ev.t-mail_in .ico,.ev.t-mail_uit .ico{background:var(--mail-soft);color:var(--mail)}
+.ev.t-mail_uit .ico{background:var(--accent-soft);color:var(--accent)}
+.ev.t-mail_in .ico{background:var(--reactie-soft);color:var(--reactie)}
+.ev-mailblok{border-radius:12px;padding:10px 12px;margin-top:4px;border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent-soft) 55%,var(--surface))}
+.ev.t-mail_in .ev-mailblok{border-left-color:var(--reactie);background:var(--reactie-soft)}
+.ev-mailblok .ev-ond{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.ev-kort{display:block;white-space:pre-wrap;color:var(--muted);font-size:.9rem}
+.ev-mail summary{list-style:none}.ev-mail summary::-webkit-details-marker{display:none}
+.ev-lees{display:inline-block;margin-top:4px;color:var(--accent);font-size:.85rem;font-weight:650;text-decoration:underline}
+.ev-mail[open] .ev-kort{display:none}.ev-mail[open] .ev-lees{display:none}
+.chip.mail-uit{background:var(--accent-soft);color:var(--accent);border-color:transparent}.chip.mail-in{background:var(--reactie-soft);color:var(--reactie);border-color:transparent}
 .ev .body{min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:6px}
 .ev .head{display:flex;justify-content:space-between;gap:8px;font-size:.88rem;flex-wrap:wrap}
 .ev .head b{font-weight:650}
@@ -564,7 +573,7 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .ev .head b{font-weight:700}
 .ev-meta{display:flex;align-items:center;flex-wrap:wrap;color:var(--faint);font-size:.8rem}
 .ev-ond{font-weight:600}
-.ev-mail summary{cursor:pointer;color:var(--accent);font-size:.85rem;font-weight:650;padding:2px 0}
+.ev-mail summary{cursor:pointer;padding:2px 0}
 .ev-mail p{margin-top:6px;padding:10px 12px;background:var(--sunk);border-radius:10px;font-size:.88rem}
 .ev-vervolg{display:flex;gap:6px;align-items:flex-start;font-size:.9rem}.ev-vervolg .ic{flex:none;margin-top:2px}
 .tl-sys{margin-top:4px;align-self:flex-start}
@@ -736,7 +745,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-11-02.1';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-11-02.2';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1308,7 +1317,7 @@ function detailView(b){
         ${b.behoefte ? `<dt>Behoefte</dt><dd>${esc([b.behoefte.werkplekken && b.behoefte.werkplekken + ' werkplekken', (b.behoefte.interesse||[]).join(', '), b.behoefte.wanneer && 'nodig: ' + b.behoefte.wanneer].filter(Boolean).join(' · ') || '—')}<br><small class="sub">uit bezoekverslag van ${esc(fmtDatum(b.behoefte.bijgewerkt))}</small></dd>` : ''}
         ${b.kopje==='klant' ? `<dt>Laatste bestelling</dt><dd>${b.laatsteBestelling ? esc(fmtDatum(b.laatsteBestelling)) : '—'}</dd>` : ''}
         <dt>Laatste bezoek</dt><dd class="dd-knop"><span>${b.laatsteBezoek ? `${esc(fmtDatum(b.laatsteBezoek))} <small class="sub">(${esc(geledenTekst(b.laatsteBezoek))})</small>` : '—'}</span><button class="btn small" data-act="bezoekDatum" data-id="${b.id}">${ic('calendar','sm')}${b.laatsteBezoek ? 'Nieuwe datum' : 'Datum invullen'}</button></dd>
-        ${(() => { const m = mailStand(b); return `<dt>Gemaild</dt><dd>${m.uit.length ? `<ul class="mailgeschiedenis">${m.uit.slice(0, 5).map(x => `<li><button type="button" class="linkknop" data-act="mailDetail" data-mail="${x.id}"><b>${esc(fmtDatum(mailDag(x)))}</b> <small class="sub">(${esc(geledenTekst(mailDag(x)))})</small> · ${esc(x.aan || '')}<br><small class="sub">${esc(x.onderwerp || '(geen onderwerp)')}</small></button></li>`).join('')}</ul>${m.uit.length > 5 ? `<small class="sub">en nog ${m.uit.length - 5} eerder</small>` : ''}` : 'Nog niet gemaild'}<div style="margin-top:6px"><button class="btn small" data-act="mailEerder" data-id="${b.id}">${ic('plus','sm')}Eerdere mail toevoegen</button></div>${m.gepland ? `<div class="sub" style="margin-top:4px">${ic('clock','sm')} Volgende mail: ${esc(fmtDag(m.gepland.datum))} om ${esc(m.gepland.tijd || '09:30')} aan ${esc(m.gepland.aan)}</div>` : ''}</dd>`; })()}
+        ${(() => { const m = mailStand(b); return `<dt>Gemaild</dt><dd>${m.uit.length ? `<ul class="mailgeschiedenis">${m.uit.slice(0, 5).map(x => `<li><button type="button" class="linkknop" data-act="mailDetail" data-mail="${x.id}"><b>${esc(fmtDatum(mailDag(x)))}</b> <small class="sub">(${esc(geledenTekst(mailDag(x)))})</small> · ${esc(x.aan || '')}<br><small class="sub">${esc(x.onderwerp || '(geen onderwerp)')}</small></button></li>`).join('')}</ul>${m.uit.length > 5 ? `<small class="sub">en nog ${m.uit.length - 5} eerder</small>` : ''}` : 'Nog niet gemaild'}<div style="margin-top:6px"><span class="btns"><button class="btn small" data-act="mailEerder" data-id="${b.id}">${ic('plus','sm')}Onze mail toevoegen</button><button class="btn small" data-act="mailHandmatig" data-richting="in" data-id="${b.id}">${ic('inbox','sm')}Reactie klant toevoegen</button></span></div>${m.gepland ? `<div class="sub" style="margin-top:4px">${ic('clock','sm')} Volgende mail: ${esc(fmtDag(m.gepland.datum))} om ${esc(m.gepland.tijd || '09:30')} aan ${esc(m.gepland.aan)}</div>` : ''}</dd>`; })()}
         <dt>Laatste contact</dt><dd>${b.laatsteContact?esc(fmtDatum(b.laatsteContact)):'—'}</dd>
         <dt>Aangemaakt</dt><dd>${b.aangemaakt?esc(fmtTijd(b.aangemaakt)):'—'}</dd>
       </dl>
@@ -1329,15 +1338,16 @@ function detailView(b){
     const wie = a.contactNaam ? esc(a.contactNaam) : '';
     if(a.type==='bezoek') return [`Bezoek${wie ? ' bij ' + wie : ''}`, a.uitkomst && UITKOMST_NAAM[a.uitkomst] ? [UITKOMST_NAAM[a.uitkomst], a.uitkomst==='niet' || a.uitkomst==='geen' ? 'warn' : ''] : null];
     if(a.type==='bel') return [`Gebeld${wie ? ' met ' + wie : ''}`, a.uitkomst ? [a.uitkomst, a.uitkomst==='gesproken' ? '' : 'warn'] : null];
-    if(a.type==='mail_uit') return [`Mail gestuurd${wie ? ' aan ' + wie : ''}`, null];
-    if(a.type==='mail_in') return [`Reactie ontvangen${wie ? ' van ' + wie : ''}`, null];
+    if(a.type==='mail_uit') return [`Onze mail${wie ? ' aan ' + wie : ''}`, ['Verstuurd', 'mail-uit']];
+    if(a.type==='mail_in') return [`Reactie van ${wie || 'de klant'}`, ['Reactie klant', 'mail-in']];
     if(a.type==='afspraak') return [`Afspraak${wie ? ' met ' + wie : ''}`, null];
     return [esc((ACT_TYPES[a.type] || ACT_TYPES.notitie).naam) + (wie ? ' · ' + wie : ''), null];
   };
   const evBody = a => {
     if(a.type==='mail_uit' || a.type==='mail_in'){
-      const m = String(a.tekst || '').match(/^Onderwerp: (.*)\n\n?([\s\S]*)$/), ond = a.onderwerp || m?.[1] || '', tekst = m ? m[2] : a.tekst || '';
-      return `${ond ? `<p class="ev-ond">${esc(ond)}</p>` : ''}${tekst.trim() ? `<details class="ev-mail"><summary>Hele mail lezen</summary><p>${esc(tekst.trim())}</p></details>` : ''}`;
+      const m = String(a.tekst || '').match(/^Onderwerp: (.*)\n\n?([\s\S]*)$/), ond = a.onderwerp || m?.[1] || '', tekst = (m ? m[2] : a.tekst || '').trim();
+      const regels = tekst.split('\n').filter(x => x.trim()), kort = regels.slice(0, 3).join('\n'), meer = regels.length > 3;
+      return `<div class="ev-mailblok">${ond ? `<p class="ev-ond">${ic('mail','sm')}${esc(ond)}</p>` : ''}${tekst ? (meer ? `<details class="ev-mail"><summary><span class="ev-kort">${esc(kort)}</span><span class="ev-lees">Hele mail lezen</span></summary><p>${esc(tekst)}</p></details>` : `<p class="ev-kort">${esc(tekst)}</p>`) : ''}</div>`;
     }
     return a.tekst ? `<p>${esc(a.tekst)}</p>` : '';
   };
@@ -1351,7 +1361,7 @@ function detailView(b){
         const [kop, chip] = evKop(a);
         return `${kopDag}<div class="ev t-${esc(a.type)}"><span class="ico">${ic(ACT_ICON[a.type]||'note')}</span><div class="body">
           <div class="head"><b>${kop}</b>${chip ? `<span class="chip ${chip[1]}">${esc(chip[0])}</span>` : ''}</div>
-          <div class="ev-meta">${esc(uur(a.datum))}${a.door ? ` · ${esc(a.door)}` : ''}${a.bron==='dagrapport' ? ' · uit dagrapport' : ''}<button class="ev-edit" data-act="actBewerk" data-akt="${a.id}" aria-label="${esc((ACT_TYPES[a.type]||ACT_TYPES.notitie).naam)} aanpassen">Aanpassen</button></div>
+          <div class="ev-meta">${esc(uur(a.datum))}${a.door ? (a.type==='mail_in' ? ` · vastgelegd door ${esc(a.door)}` : ` · ${esc(a.door)}`) : ''}${a.bron==='dagrapport' ? ' · uit dagrapport' : ''}<button class="ev-edit" data-act="actBewerk" data-akt="${a.id}" aria-label="${esc((ACT_TYPES[a.type]||ACT_TYPES.notitie).naam)} aanpassen">Aanpassen</button></div>
           ${evBody(a)}${a.vervolg ? `<p class="ev-vervolg">${ic('calendar','sm')}<span><b>Afgesproken:</b> ${esc(a.vervolg)}</span></p>` : ''}${a.afspraakOp ? `<p class="ev-vervolg">${ic('calendar','sm')}<span><b>Gepland:</b> ${esc(fmtTijd(a.afspraakOp))}</span></p><span class="btns"><button class="btn small" data-act="ics" data-id="${b.id}" data-akt="${a.id}">${ic('calendar','sm')}Zet in agenda</button></span>` : ''}
           ${a.bewerkt?`<small class="bewerkt">Aangepast${a.bewerktDoor?' door '+esc(a.bewerktDoor):''} op ${esc(fmtTijd(a.bewerkt))}</small>`:''}</div></div>`;
       }).join('')}</div>` : `<p class="sub">${acts.length - autom ? 'Niets van deze soort.' : 'Nog niets vastgelegd. Begin met een bezoek of telefoontje.'}</p>`}
@@ -2101,7 +2111,7 @@ async function markeerVerstuurd(m, w = {}){
 function mailHandmatig(richting, b){
   const uit = richting==='uit';
   const lijst = S.bedrijven.slice().sort((x,y) => x.naam.localeCompare(y.naam));
-  openSheet(uit ? 'Verstuurde mail vastleggen' : 'Ontvangen mail vastleggen', `<form id="mh" class="section">
+  openSheet(uit ? 'Verstuurde mail vastleggen' : 'Reactie van de klant toevoegen', `<form id="mh" class="section">
     ${b ? `<p class="sub">${esc(b.naam)}</p>` : `<label class="f"><span>Bedrijf</span><select id="mh-b" required><option value="">Kies een bedrijf…</option>${lijst.map(x=>`<option value="${x.id}">${esc(x.naam)}</option>`).join('')}</select></label>`}
     <div id="mh-aan"></div>
     <div class="f"><span>${uit?'Verstuurd op':'Ontvangen op'}</span>${datumKiezer('mh-datum')}</div>
@@ -2112,8 +2122,9 @@ function mailHandmatig(richting, b){
   </form>`, s => {
     let cur = b;
     const zetAan = () => { const cs = cur?.contacten||[]; s.querySelector('#mh-aan').innerHTML = cs.length ? contactSelect(cur, cur.opvolging?.contact ?? 0, 'mh-ci') : (cur ? '<p class="hint">Dit bedrijf heeft nog geen contactpersoon.</p>' : ''); };
-    const sel = s.querySelector('#mh-b'); if(sel) sel.onchange = e => { cur = bedrijf(e.target.value); zetAan(); };
-    mountDatumKiezer(s, 'mh-datum');
+    const vulRe = () => { const o = s.querySelector('#mh-ond'), l = cur && mailStand(cur).laatste; if(!uit && o && !o.value && l?.onderwerp) o.value = /^re:/i.test(l.onderwerp) ? l.onderwerp : 'Re: ' + l.onderwerp; };   // reactie: onderwerp van onze laatste mail
+    const sel = s.querySelector('#mh-b'); if(sel) sel.onchange = e => { cur = bedrijf(e.target.value); zetAan(); vulRe(); };
+    mountDatumKiezer(s, 'mh-datum'); vulRe();
     zetAan();
     s.querySelector('#mh').onsubmit = async e => {
       e.preventDefault(); const d = formData(e.target);
@@ -2305,7 +2316,7 @@ function mailSimpelView(){
         + (!V.msAlles && alVerstuurd.some(m => diffDays(mailDag(m), today()) > 14) ? `<button class="btn small ghost" data-act="msAlles">Oudere mails tonen</button>` : '')
         : `<div class="empty">${ic('mail')}<p>Nog niemand gemaild.</p></div>`}
     </section>
-    <button class="btn" data-act="mailEerder" style="margin-top:4px">${ic('plus','sm')}Mail die al eerder verstuurd is toevoegen</button>
+    <div class="btns" style="margin-top:4px"><button class="btn" data-act="mailEerder">${ic('plus','sm')}Onze eerdere mail toevoegen</button><button class="btn" data-act="mailHandmatig" data-richting="in">${ic('inbox','sm')}Reactie van klant toevoegen</button></div>
   </div>`;
 }
 
