@@ -375,6 +375,7 @@ button.tegel{font:inherit;text-align:left;cursor:pointer;color:inherit}
 .mail-uitleg ol{margin:10px 0 0;padding-left:20px;display:grid;gap:8px;font-size:.93rem}
 .mail-dag{display:flex;gap:6px;align-items:center;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 6px}
 #mo-tekst,#gm-tekst,.ev-mail p{font-family:Aptos,Calibri,Arial,sans-serif;font-size:11pt;color:#000}   /* zoals de mail eruitziet */
+.mo-eerder{margin:4px 0;padding:12px 14px}.mo-eerder .check{align-items:flex-start}#mo-eerder-veld{margin-top:10px}.dk-snel{margin-bottom:8px}
 .mailopties{display:grid;gap:8px}
 .mo-soort label{flex:1 1 140px}
 .mailoptie{display:block;cursor:pointer}
@@ -735,7 +736,7 @@ table.mini td.r,table.mini th.r{text-align:right;font-variant-numeric:tabular-nu
    bedrijven, activiteiten, weergaven, exportlog, instellingen.
    ============================================================ */
 
-const APP_VERSIE = '2026-10-30.18';   // ophogen bij elke wijziging; staat onder Meer
+const APP_VERSIE = '2026-11-02.1';   // ophogen bij elke wijziging; staat onder Meer
 const KOPJES = {
   klant:     {naam:'Klanten',        enk:'Klant'},
   prospect:  {naam:'Prospects',      enk:'Prospect'}
@@ -1307,7 +1308,7 @@ function detailView(b){
         ${b.behoefte ? `<dt>Behoefte</dt><dd>${esc([b.behoefte.werkplekken && b.behoefte.werkplekken + ' werkplekken', (b.behoefte.interesse||[]).join(', '), b.behoefte.wanneer && 'nodig: ' + b.behoefte.wanneer].filter(Boolean).join(' · ') || '—')}<br><small class="sub">uit bezoekverslag van ${esc(fmtDatum(b.behoefte.bijgewerkt))}</small></dd>` : ''}
         ${b.kopje==='klant' ? `<dt>Laatste bestelling</dt><dd>${b.laatsteBestelling ? esc(fmtDatum(b.laatsteBestelling)) : '—'}</dd>` : ''}
         <dt>Laatste bezoek</dt><dd class="dd-knop"><span>${b.laatsteBezoek ? `${esc(fmtDatum(b.laatsteBezoek))} <small class="sub">(${esc(geledenTekst(b.laatsteBezoek))})</small>` : '—'}</span><button class="btn small" data-act="bezoekDatum" data-id="${b.id}">${ic('calendar','sm')}${b.laatsteBezoek ? 'Nieuwe datum' : 'Datum invullen'}</button></dd>
-        ${(() => { const m = mailStand(b); return `<dt>Gemaild</dt><dd>${m.uit.length ? `<ul class="mailgeschiedenis">${m.uit.slice(0, 5).map(x => `<li><button type="button" class="linkknop" data-act="mailDetail" data-mail="${x.id}"><b>${esc(fmtDatum(mailDag(x)))}</b> <small class="sub">(${esc(geledenTekst(mailDag(x)))})</small> · ${esc(x.aan || '')}<br><small class="sub">${esc(x.onderwerp || '(geen onderwerp)')}</small></button></li>`).join('')}</ul>${m.uit.length > 5 ? `<small class="sub">en nog ${m.uit.length - 5} eerder</small>` : ''}` : 'Nog niet gemaild'}${m.gepland ? `<div class="sub" style="margin-top:4px">${ic('clock','sm')} Volgende mail: ${esc(fmtDag(m.gepland.datum))} om ${esc(m.gepland.tijd || '09:30')} aan ${esc(m.gepland.aan)}</div>` : ''}</dd>`; })()}
+        ${(() => { const m = mailStand(b); return `<dt>Gemaild</dt><dd>${m.uit.length ? `<ul class="mailgeschiedenis">${m.uit.slice(0, 5).map(x => `<li><button type="button" class="linkknop" data-act="mailDetail" data-mail="${x.id}"><b>${esc(fmtDatum(mailDag(x)))}</b> <small class="sub">(${esc(geledenTekst(mailDag(x)))})</small> · ${esc(x.aan || '')}<br><small class="sub">${esc(x.onderwerp || '(geen onderwerp)')}</small></button></li>`).join('')}</ul>${m.uit.length > 5 ? `<small class="sub">en nog ${m.uit.length - 5} eerder</small>` : ''}` : 'Nog niet gemaild'}<div style="margin-top:6px"><button class="btn small" data-act="mailEerder" data-id="${b.id}">${ic('plus','sm')}Eerdere mail toevoegen</button></div>${m.gepland ? `<div class="sub" style="margin-top:4px">${ic('clock','sm')} Volgende mail: ${esc(fmtDag(m.gepland.datum))} om ${esc(m.gepland.tijd || '09:30')} aan ${esc(m.gepland.aan)}</div>` : ''}</dd>`; })()}
         <dt>Laatste contact</dt><dd>${b.laatsteContact?esc(fmtDatum(b.laatsteContact)):'—'}</dd>
         <dt>Aangemaakt</dt><dd>${b.aangemaakt?esc(fmtTijd(b.aangemaakt)):'—'}</dd>
       </dl>
@@ -1843,7 +1844,9 @@ function mailOpstellen(b, ci, m){
     <div id="mo-klaar" hidden>
       <label class="f"><span>Onderwerp</span><input id="mo-ond" name="onderwerp" required autocomplete="off"></label>
       <label class="f"><span>Bericht</span><textarea id="mo-tekst" name="tekst" required style="min-height:280px"></textarea></label>
-      <p class="hint">${auto ? 'Versturen gaat vanuit je eigen mailbox, binnen een kwartier. De mail komt daarna vanzelf in de tijdlijn.' : 'Klik op "Open in mail" om hem in je mailprogramma te versturen. Klik daarna op "Markeer als verstuurd", dan komt hij in de tijdlijn.'}</p>
+      <div class="mo-eerder card"><label class="check"><input type="checkbox" id="mo-eerder"><span><b>Deze mail is al eerder verstuurd</b><br><small class="sub">Bijv. vorige week vanuit Outlook. Hij komt dan met die datum in het CRM.</small></span></label>
+        <div id="mo-eerder-veld" hidden>${datumKiezer('mo-wanneer')}</div></div>
+      <p class="hint" id="mo-hint">${auto ? 'Versturen gaat vanuit je eigen mailbox, binnen een kwartier. De mail komt daarna vanzelf in de tijdlijn.' : 'Klik op "Open in mail" om hem in je mailprogramma te versturen. Klik daarna op "Markeer als verstuurd", dan komt hij in de tijdlijn.'}</p>
       <div class="sheet-actions">
         <button type="button" class="btn" id="mo-kopie">${ic('note','sm')}Kopieer tekst</button>
         <a class="btn ${auto ? '' : 'primary'}" id="mo-open" href="#">${ic('mail','sm')}Open in mail</a>
@@ -1912,6 +1915,12 @@ function mailOpstellen(b, ci, m){
     };
     if(kies) $s('#mo-b').onchange = e => { cur = bedrijf(e.target.value); ci = undefined; soort = gespr = null; keuze = null; kiesBedrijf(); };
     ond.oninput = tekst.oninput = link;
+    mountDatumKiezer(s, 'mo-wanneer');
+    const eerder = $s('#mo-eerder'), okTekst = $s('#mo-ok').innerHTML;
+    eerder.onchange = () => {   // al verstuurd: datum kiezen, alleen vastleggen
+      $s('#mo-eerder-veld').hidden = !eerder.checked; $s('#mo-open').hidden = eerder.checked; $s('#mo-hint').hidden = eerder.checked;
+      $s('#mo-ok').innerHTML = eerder.checked ? `${ic('check','sm')}Vastleggen als verstuurd` : okTekst;
+    };
     $s('#mo-kopie').onclick = () => kopieerMail(tekst.value);
     kiesBedrijf();
     $s('#mo').onsubmit = async e => {
@@ -1920,6 +1929,17 @@ function mailOpstellen(b, ci, m){
       if(!cur || !c?.email){ toast('Kies een contactpersoon met een e-mailadres.'); return; }
       if(!keuze){ toast('Kies eerst een mail.'); return; }
       const sjabloon = keuze.sjabloon || '', w = {onderwerp:ond.value, tekst:tekst.value, ...(sjabloon ? {sjabloon} : {}), gesproken:!!keuze.gesproken};
+      if(eerder.checked){
+        const op = $s('#mo-wanneer').value; if(!op){ toast('Kies de datum waarop de mail is verstuurd.'); return; }
+        const datum = new Date(op).toISOString(), ci = Number($s('#mo-ci')?.value ?? 0);
+        if(await veilig(async () => {
+          if(m) return markeerVerstuurd(m, {...w, contact:ci, aan:c.naam, email:c.email, verstuurdOp:datum});
+          await db.collection('mails').add({bedrijfId:cur.id, bedrijf:cur.naam, kopje:cur.kopje, contact:ci, aan:c.naam, email:c.email, ...w, sjabloon,
+            afzender:S.gebruiker?.naam||'', door:S.gebruiker?.naam||'', aangemaakt:new Date().toISOString(), status:'verstuurd', handmatig:true, vastgelegd:true, datum, verstuurdOp:datum});
+          await verwerkActiviteit(cur, {type:'mail_uit', datum, contactNaam:c.naam, aan:c.email, onderwerp:ond.value, tekst:`Onderwerp: ${ond.value}\n\n${tekst.value}`}, {achteraf:true});
+        }, `Mail vastgelegd als verstuurd op ${fmtDatum(op)}`)) closeSheet();
+        return;
+      }
       const ok = await veilig(async () => {
         if(m && auto){   // de ingeplande mail (met de gekozen tekst) nu laten versturen; de reeks loopt gewoon door
           const nu = new Date(); await db.collection('mails').doc(m.id).update({...w, contact:Number($s('#mo-ci')?.value ?? 0), aan:c.naam, email:c.email, datum:today(), tijd:`${pad(nu.getHours())}:${pad(nu.getMinutes())}`}); return;
@@ -1941,6 +1961,22 @@ function mailOpstellen(b, ci, m){
   });
 }
 
+/* Een mail die al eerder is verstuurd (bijv. vanuit Outlook) toevoegen: Mail sturen met het vinkje "al eerder verstuurd" aan. */
+function mailEerder(b){ mailOpstellen(b); const v = document.querySelector('#mo-eerder'); if(v){ v.checked = true; v.onchange(); } }
+/* Datum en tijd in het verleden kiezen, met snelknoppen. Waarde in #<id> als "YYYY-MM-DDTHH:MM". */
+function datumKiezer(id){
+  const snel = [['Vandaag', 0], ['Gisteren', 1], ['Eergisteren', 2], ['Vorige week', 7], ['2 weken geleden', 14], ['Vorige maand', 30]];
+  return `<div class="keuzes dk-snel" data-dk="${id}">${snel.map(([l, n]) => `<button type="button" class="keuze" data-dagen="${n}">${l}</button>`).join('')}</div>
+    <input id="${id}" type="datetime-local" max="${localDT()}" value="${localDT()}" aria-label="Datum en tijd">`;
+}
+function mountDatumKiezer(s, id){
+  const veld = s.querySelector('#' + id), box = s.querySelector(`[data-dk="${id}"]`); if(!veld || !box) return;
+  box.querySelectorAll('[data-dagen]').forEach(k => k.onclick = () => {
+    const d = new Date(); d.setDate(d.getDate() - Number(k.dataset.dagen)); if(k.dataset.dagen !== '0') d.setHours(10, 0, 0, 0);
+    veld.value = localDT(d); box.querySelectorAll('.keuze').forEach(x => x.classList.toggle('on', x===k));
+  });
+  veld.oninput = () => box.querySelectorAll('.keuze').forEach(x => x.classList.remove('on'));
+}
 /* Mailtekst kopiëren met opmaak (Aptos, zwart, 11 pt), zodat hij zo in Outlook geplakt kan worden. */
 async function kopieerMail(tekst){
   try{
@@ -2050,10 +2086,10 @@ function geplandeMailSheet(m){
 /* Een ingeplande mail is (handmatig) verstuurd: vastleggen, opvolging bijwerken en de volgende reeksmail inplannen. */
 async function markeerVerstuurd(m, w = {}){
   const b = bedrijf(m.bedrijfId);
-  const nu = new Date().toISOString();
+  const nu = w.verstuurdOp || new Date().toISOString();   // al eerder verstuurd: die datum
   const mail = {...m, ...w};
   await db.collection('mails').doc(m.id).update({...w, status:'verstuurd', verstuurdOp:nu});
-  await logAct(b, {type:'mail_uit', contactNaam:mail.aan, aan:mail.email, onderwerp:mail.onderwerp, tekst:`Onderwerp: ${mail.onderwerp}\n\n${mail.tekst}`});
+  await logAct(b, {type:'mail_uit', datum:nu, contactNaam:mail.aan, aan:mail.email, onderwerp:mail.onderwerp, tekst:`Onderwerp: ${mail.onderwerp}\n\n${mail.tekst}`});
   await updBedrijf(b.id, {laatsteContact:today()});
   const {opvolging, volgende} = REEKS.naVerzending(b, mail, S.inst, today());
   if(volgende) await db.collection('mails').add(volgende);
@@ -2068,7 +2104,7 @@ function mailHandmatig(richting, b){
   openSheet(uit ? 'Verstuurde mail vastleggen' : 'Ontvangen mail vastleggen', `<form id="mh" class="section">
     ${b ? `<p class="sub">${esc(b.naam)}</p>` : `<label class="f"><span>Bedrijf</span><select id="mh-b" required><option value="">Kies een bedrijf…</option>${lijst.map(x=>`<option value="${x.id}">${esc(x.naam)}</option>`).join('')}</select></label>`}
     <div id="mh-aan"></div>
-    <label class="f"><span>${uit?'Verstuurd op':'Ontvangen op'}</span><input id="mh-datum" name="datum" type="datetime-local" required value="${localDT()}"></label>
+    <div class="f"><span>${uit?'Verstuurd op':'Ontvangen op'}</span>${datumKiezer('mh-datum')}</div>
     <label class="f"><span>Onderwerp</span><input id="mh-ond" name="onderwerp" required autocomplete="off"></label>
     <label class="f"><span>${uit?'Inhoud of samenvatting':'Wat schreef de contactpersoon?'}</span><textarea id="mh-tekst" name="tekst"></textarea></label>
     ${uit ? '' : '<p class="hint">Een ontvangen mail telt als reactie: de opvolging stopt en ingeplande mails gaan niet meer.</p>'}
@@ -2077,15 +2113,17 @@ function mailHandmatig(richting, b){
     let cur = b;
     const zetAan = () => { const cs = cur?.contacten||[]; s.querySelector('#mh-aan').innerHTML = cs.length ? contactSelect(cur, cur.opvolging?.contact ?? 0, 'mh-ci') : (cur ? '<p class="hint">Dit bedrijf heeft nog geen contactpersoon.</p>' : ''); };
     const sel = s.querySelector('#mh-b'); if(sel) sel.onchange = e => { cur = bedrijf(e.target.value); zetAan(); };
+    mountDatumKiezer(s, 'mh-datum');
     zetAan();
     s.querySelector('#mh').onsubmit = async e => {
       e.preventDefault(); const d = formData(e.target);
       if(!cur){ toast('Kies een bedrijf.'); return; }
-      const c = contactVan(cur, Number(d.ci ?? 0)), datum = new Date(d.datum).toISOString();
+      if(!s.querySelector('#mh-datum').value){ toast('Kies de datum.'); return; }
+      const c = contactVan(cur, Number(d.ci ?? 0)), datum = new Date(s.querySelector('#mh-datum').value).toISOString();
       const ok = await veilig(async () => {
         const basis = {bedrijfId:cur.id, bedrijf:cur.naam, kopje:cur.kopje, contact:Number(d.ci ?? 0), aan:c?.naam||'', email:c?.email||'', onderwerp:d.onderwerp.trim(), tekst:d.tekst.trim(), handmatig:true, vastgelegd:true, door:S.gebruiker?.naam||'', aangemaakt:new Date().toISOString()};
         if(uit){
-          await annuleerGepland(cur, 'je stuurde zelf een mail');
+          if(datum.slice(0, 10) >= today()) await annuleerGepland(cur, 'je stuurde zelf een mail');   // een oude mail laat de ingeplande mails staan
           await db.collection('mails').add({...basis, status:'verstuurd', datum, verstuurdOp:datum});
           await verwerkActiviteit(cur, {type:'mail_uit', datum, contactNaam:c?.naam||'', onderwerp:basis.onderwerp, tekst:`Onderwerp: ${basis.onderwerp}${basis.tekst?'\n\n'+basis.tekst:''}`});
         } else {
@@ -2267,7 +2305,7 @@ function mailSimpelView(){
         + (!V.msAlles && alVerstuurd.some(m => diffDays(mailDag(m), today()) > 14) ? `<button class="btn small ghost" data-act="msAlles">Oudere mails tonen</button>` : '')
         : `<div class="empty">${ic('mail')}<p>Nog niemand gemaild.</p></div>`}
     </section>
-    <p class="hint">Mail gestuurd vanuit Outlook? <a href="#" data-act="mailHandmatig" data-richting="uit">Zet hem hier in het CRM</a>.</p>
+    <button class="btn" data-act="mailEerder" style="margin-top:4px">${ic('plus','sm')}Mail die al eerder verstuurd is toevoegen</button>
   </div>`;
 }
 
@@ -4620,6 +4658,7 @@ const ACT = {
   mAgMaand: d => { V.mAg.maand = d.m; V.mAg.dag = d.m===today().slice(0, 7) ? today() : d.m + '-01'; render(); },
   mAgDag: d => { V.mAg.dag = d.d; if(d.d.slice(0, 7) !== V.mAg.maand) V.mAg.maand = d.d.slice(0, 7); render(); },
   msWeergave: d => { V.msWeergave = d.w; render(); },
+  mailEerder: d => mailEerder(d.id ? bedrijf(d.id) : null),
   sluitDetail,
   closeSheet,
   nieuw: d => bedrijfForm(null, d.kopje || (['klant','prospect'].includes(V.tab) ? V.tab : 'prospect')),
